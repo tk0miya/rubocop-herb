@@ -6,6 +6,9 @@ plugins:
   - rubocop-rake
   - rubocop-rspec
 
+Style/Documentation:
+  Enabled: false
+
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
