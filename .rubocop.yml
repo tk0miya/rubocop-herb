@@ -6,6 +6,10 @@ plugins:
   - rubocop-rake
   - rubocop-rspec
 
+Layout/LeadingCommentSpace:
+  AllowRBSInlineAnnotation: true
+  AllowSteepAnnotation: true
+
 Style/Documentation:
   Enabled: false
 
