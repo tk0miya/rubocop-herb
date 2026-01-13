@@ -69,6 +69,9 @@ GEM
       ffi (~> 1.0)
     rbs (3.10.2)
       logger
+    rbs-inline (0.12.0)
+      prism (>= 0.29)
+      rbs (>= 3.8.0)
     rdoc (7.1.0)
       erb
       psych (>= 4.0.0)
@@ -142,6 +145,7 @@ PLATFORMS
 DEPENDENCIES
   irb
   rake (~> 13.0)
+  rbs-inline (~> 0.12.0)
   rspec (~> 3.0)
   rubocop (~> 1.21)
   rubocop-herb!
@@ -185,6 +189,7 @@ CHECKSUMS
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
   rbs (3.10.2) sha256=bd8a5dc4c62f229f020146b61844a31f9c79e649449d212904a474eb79c846fc
+  rbs-inline (0.12.0) sha256=0b84ec69fa5b3deb89e60f08d9b47966c9e26a222c7c65b5014857a3b10c62b2
   rdoc (7.1.0) sha256=494899df0706c178596ca6e1d50f1b7eb285a9b2aae715be5abd742734f17363
   regexp_parser (2.11.3) sha256=ca13f381a173b7a93450e53459075c9b76a10433caadcb2f1180f2c741fc55a4
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835

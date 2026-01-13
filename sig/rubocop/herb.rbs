@@ -1,6 +1,8 @@
+# Generated from lib/rubocop/herb.rb with RBS::Inline
+
 module Rubocop
   module Herb
-    VERSION: String
-    # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+    class Error < StandardError
+    end
   end
 end
