@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     rubocop-herb (0.1.0)
+      lint_roller (>= 1.1.0)
 
 GEM
   remote: https://rubygems.org/

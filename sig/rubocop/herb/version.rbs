@@ -1,6 +1,6 @@
 # Generated from lib/rubocop/herb/version.rb with RBS::Inline
 
-module Rubocop
+module RuboCop
   module Herb
     VERSION: ::String
   end

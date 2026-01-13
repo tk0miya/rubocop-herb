@@ -1,0 +1,27 @@
+module LintRoller
+  class About
+    def initialize: (?name: String, ?version: String, ?homepage: String, ?description: String) -> void
+  end
+
+  class Context
+    attr_reader engine: Symbol?
+
+    def initialize: (?runner: Symbol, ?runner_version: String, ?engine: Symbol, ?engine_version: String, ?rule_format: Symbol, ?target_ruby_version: Gem::Version) -> void
+  end
+
+  class Plugin
+    def initialize: (Hash[String, untyped]) -> void
+    def about: () -> About
+    def supported?: (Context) -> bool
+    def rules: (Context) -> Rules
+  end
+
+  class Rules
+    def initialize: (type: :path, config_format: :rubocop, value: String | Pathname, ?error: untyped) -> void
+                  | (type: :object, config_format: :rubocop, value: untyped, ?error: untyped) -> void
+                  | (type: :error, config_format: :rubocop, value: untyped, error: untyped) -> void
+                  | (:path, :rubocop, String | Pathname, ?untyped) -> void
+                  | (:object, :rubocop, untyped, ?untyped) -> void
+                  | (:error, :rubocop, untyped, untyped) -> void
+  end
+end

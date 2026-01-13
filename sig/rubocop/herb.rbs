@@ -1,6 +1,6 @@
 # Generated from lib/rubocop/herb.rb with RBS::Inline
 
-module Rubocop
+module RuboCop
   module Herb
     class Error < StandardError
     end

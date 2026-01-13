@@ -1,0 +1,16 @@
+# Generated from lib/rubocop/herb/plugin.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    class Plugin < LintRoller::Plugin
+      # @rbs override
+      def about: ...
+
+      # @rbs override
+      def supported?: ...
+
+      # @rbs override
+      def rules: ...
+    end
+  end
+end
