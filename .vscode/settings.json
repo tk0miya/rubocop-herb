@@ -8,6 +8,7 @@
         "lsp",
         "popen",
         "readlines",
-        "Takeshi"
+        "Takeshi",
+        "yardoc"
     ]
 }
