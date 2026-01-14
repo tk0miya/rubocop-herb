@@ -1,0 +1,14 @@
+# Generated from lib/rubocop/herb/erb_node_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    class ErbNodeCollector < ::Herb::Visitor
+      attr_reader nodes: Array[::Herb::AST::Node]
+
+      def initialize: () -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def visit_child_nodes: (::Herb::AST::Node node) -> void
+    end
+  end
+end

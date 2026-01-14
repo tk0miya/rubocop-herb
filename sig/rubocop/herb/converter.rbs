@@ -1,0 +1,38 @@
+# Generated from lib/rubocop/herb/converter.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    class Converter
+      attr_reader source: String
+
+      attr_reader parse_result: ::Herb::ParseResult
+
+      LF: ::Integer
+
+      CR: ::Integer
+
+      SPACE: ::Integer
+
+      # @rbs source: String
+      def convert: (String source) -> String?
+
+      private
+
+      def source_lines: () -> Array[String]
+
+      def source_offsets: () -> Array[Integer]
+
+      def byte_offsets: () -> Array[Integer]
+
+      def build_ruby_code: () -> String
+
+      # @rbs code: String
+      def bleach_code: (String code) -> Array[Integer]
+
+      # @rbs node: ::Herb::AST::Node
+      def ruby_code_for: (::Herb::AST::Node node) -> String
+
+      def byte_location_for: (untyped node) -> [ Integer, Integer ]
+    end
+  end
+end

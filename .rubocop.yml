@@ -10,6 +10,12 @@ Layout/LeadingCommentSpace:
   AllowRBSInlineAnnotation: true
   AllowSteepAnnotation: true
 
+Metrics/AbcSize:
+  Max: 20
+
+RSpec/NamedSubject:
+  Enabled: false
+
 Style/Documentation:
   Enabled: false
 

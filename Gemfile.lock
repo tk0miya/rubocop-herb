@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     rubocop-herb (0.1.0)
+      herb (>= 0.8.0)
       lint_roller (>= 1.1.0)
 
 GEM
@@ -34,6 +35,9 @@ GEM
     ffi (1.17.3-arm64-darwin)
     ffi (1.17.3-x86_64-linux-gnu)
     fileutils (1.8.0)
+    herb (0.8.7)
+    herb (0.8.7-arm64-darwin)
+    herb (0.8.7-x86_64-linux-gnu)
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
     io-console (0.8.2)
@@ -151,6 +155,7 @@ PLATFORMS
 
 DEPENDENCIES
   irb
+  prism (~> 1.8)
   rake (~> 13.0)
   rbs-inline (~> 0.12.0)
   rspec (~> 3.0)
@@ -176,6 +181,9 @@ CHECKSUMS
   ffi (1.17.3-arm64-darwin) sha256=0c690555d4cee17a7f07c04d59df39b2fba74ec440b19da1f685c6579bb0717f
   ffi (1.17.3-x86_64-linux-gnu) sha256=3746b01f677aae7b16dc1acb7cb3cc17b3e35bdae7676a3f568153fb0e2c887f
   fileutils (1.8.0) sha256=8c6b1df54e2540bdb2f39258f08af78853aa70bad52b4d394bbc6424593c6e02
+  herb (0.8.7) sha256=73c5216b1e1b2e84c55411804a95768b1bbbfc99ccc7ee88724ea41498fd2aeb
+  herb (0.8.7-arm64-darwin) sha256=f8b0d295fb941ce7e88d39146528c8bab702aa937703be6632528a8fdddebffc
+  herb (0.8.7-x86_64-linux-gnu) sha256=bd456eec87593b128e5bfe13b614418ceab42fd332965d371008f3754bcf6169
   i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   irb (1.16.0) sha256=2abe56c9ac947cdcb2f150572904ba798c1e93c890c256f8429981a7675b0806
