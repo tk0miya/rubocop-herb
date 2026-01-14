@@ -1,0 +1,11 @@
+module RuboCop
+  type extractorResult = Array[{ offset: Integer, processed_source: ::RuboCop::ProcessedSource}]?
+
+  interface _Extractor
+    def call: (ProcessedSource) -> extractorResult
+  end
+
+  class Runner
+    attr_reader self.ruby_extractors: Array[_Extractor]
+  end
+end

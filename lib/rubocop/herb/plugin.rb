@@ -21,6 +21,8 @@ module RuboCop
 
       # @rbs override
       def rules(_context)
+        ::RuboCop::Runner.ruby_extractors.unshift(Extractor)
+
         LintRoller::Rules.new(
           type: :object,
           config_format: :rubocop,

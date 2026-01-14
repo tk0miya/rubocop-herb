@@ -1,0 +1,17 @@
+# Generated from lib/rubocop/herb/extractor.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    class Extractor
+      # @rbs processed_source: ::RuboCop::ProcessedSource
+      def self.call: (::RuboCop::ProcessedSource processed_source) -> extractorResult
+
+      attr_reader processed_source: ::RuboCop::ProcessedSource
+
+      # @rbs processed_source: ::RuboCop::ProcessedSource
+      def initialize: (::RuboCop::ProcessedSource processed_source) -> void
+
+      def call: () -> extractorResult
+    end
+  end
+end
