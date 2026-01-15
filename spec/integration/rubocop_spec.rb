@@ -197,10 +197,59 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         expect(offenses.map(&:cop_name)).to eq([])
       end
     end
+
+    context "with Layout/IndentationConsistency cop" do
+      # Ruby code in ERB may be aligned differently
+      let(:source) do
+        <<~ERB
+          <% if condition %>
+            <%= value1 %>
+              <%= value2 %>
+          <% end %>
+        ERB
+      end
+
+      it "does not report Layout/IndentationConsistency offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with Style/BlockDelimiters cop" do
+      # ERB blocks often use do/end across multiple tags
+      let(:source) do
+        <<~ERB
+          <% items.each do |item| %>
+            <% process_item(item) %>
+          <% end %>
+        ERB
+      end
+
+      it "does not report Style/BlockDelimiters offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
   end
 
   describe "HTML-related excluded cops" do
     # These cops are temporarily excluded because HTML parts are replaced with whitespace
+
+    context "with Layout/EmptyLineAfterGuardClause cop" do
+      # Guard clause may be followed by HTML
+      let(:source) do
+        <<~ERB
+          <% return if condition %>
+          <p>Content</p>
+          <%= value %>
+        ERB
+      end
+
+      it "does not report Layout/EmptyLineAfterGuardClause offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
 
     context "with Lint/EmptyConditionalBody cop" do
       # Conditional bodies may contain only HTML (no Ruby code)
@@ -276,39 +325,13 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       end
     end
 
-    context "with Style/BlockDelimiters cop" do
-      let(:source) { "<% items.each do |item| %><%= item %><% end %>" }
-
-      it "detects Style/BlockDelimiters offense" do
-        offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(["Style/BlockDelimiters", "Lint/Void"])
-      end
-    end
-
-    context "with Layout/EmptyLineAfterGuardClause cop" do
-      let(:source) do
-        <<~ERB
-          <% items.each do |i| %>
-            <% next if i.nil? %>
-            <%= i %>
-          <% end %>
-        ERB
-      end
-
-      it "detects Layout/EmptyLineAfterGuardClause offense" do
-        offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Layout/EmptyLineAfterGuardClause", "Layout/IndentationConsistency", "Lint/Void"]
-        )
-      end
-    end
-
     context "with Lint/Void cop" do
-      let(:source) { "<% items.each do |item| %><%= item %><% end %>" }
+      # Lint/Void detects useless statements in blocks
+      let(:source) { "<%= items.each { |item| item } %>" }
 
       it "detects Lint/Void offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Lint/Void")
+        expect(offenses.map(&:cop_name)).to eq(["Lint/Void"])
       end
     end
   end
