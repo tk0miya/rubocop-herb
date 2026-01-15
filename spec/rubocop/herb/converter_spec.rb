@@ -102,11 +102,49 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["  #",
-         "  multiline",
-         "  comment",
+         "# multiline",
+         "# comment",
          "  ",
          "   if :cond;  ",
          "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a multiline comment ERB tag with sufficient indentation" do
+      let(:source) do
+        ["<%#",
+         "    multiline",
+         "    comment",
+         "%>"].join("\n")
+      end
+      let(:expected) do
+        ["  #",
+         "  # multiline",
+         "  # comment",
+         "  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an indented multiline comment ERB tag" do
+      let(:source) do
+        ["<div>",
+         "  <%#",
+         "      multiline",
+         "      comment",
+         "  %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "    #",
+         "    # multiline",
+         "    # comment",
+         "#   ",
+         "      "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -126,6 +164,55 @@ RSpec.describe RuboCop::Herb::Converter do
          "         ",
          "     if :cond;  ",
          "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a multiline comment ERB tag without leading whitespace" do
+      let(:source) do
+        ["<%#",
+         "text",
+         "more",
+         "%>"].join("\n")
+      end
+      let(:expected) do
+        ["  #",
+         "#ext",
+         "#ore",
+         "  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a multiline comment ERB tag with tab indentation" do
+      let(:source) do
+        ["<%#",
+         "\ttext",
+         "\tmore",
+         "%>"].join("\n")
+      end
+      let(:expected) do
+        ["  #",
+         "#text",
+         "#more",
+         "  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a multiline comment ERB tag with multibyte characters" do
+      let(:source) do
+        ["<%#",
+         "日本語",
+         "%>"].join("\n")
+      end
+      let(:expected) do
+        ["  #",
+         "#  本語",
+         "  "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
