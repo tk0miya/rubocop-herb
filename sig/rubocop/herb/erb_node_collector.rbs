@@ -9,6 +9,19 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes: (::Herb::AST::Node node) -> void
+
+      # Returns nodes with comment filtering applied.
+      # Comments are filtered out when they share the same line with other ERB nodes.
+      # Comparison is based on the comment's closing position (end line).
+      def filtered_nodes: () -> Array[::Herb::AST::Node]
+
+      private
+
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def filter_comments_on_same_line: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]
+
+      # @rbs node: ::Herb::AST::Node
+      def comment_node?: (::Herb::AST::Node node) -> bool
     end
   end
 end
