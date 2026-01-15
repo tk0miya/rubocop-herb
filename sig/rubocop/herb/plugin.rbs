@@ -4,6 +4,9 @@ module RuboCop
   module Herb
     class Plugin < LintRoller::Plugin
       # @rbs override
+      def initialize: ...
+
+      # @rbs override
       def about: ...
 
       # @rbs override

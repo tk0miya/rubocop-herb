@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 # NOTE: require_relative should be sorted in ASCII order
+require_relative "herb/configuration"
 require_relative "herb/converter"
 require_relative "herb/erb_node_collector"
 require_relative "herb/extractor"
