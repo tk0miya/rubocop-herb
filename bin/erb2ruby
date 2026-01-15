@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "rubocop/herb"
+
+source = $stdin.read
+result = RuboCop::Herb::Converter.new.convert(source)
+
+if result.nil?
+  warn "Error: Failed to parse ERB"
+  exit 1
+end
+
+puts result
