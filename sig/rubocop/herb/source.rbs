@@ -1,0 +1,32 @@
+# Generated from lib/rubocop/herb/source.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    class Source
+      attr_reader code: String
+
+      # @rbs code: String
+      def initialize: (String code) -> void
+
+      def lines: () -> Array[String]
+
+      def offsets: () -> Array[Integer]
+
+      def byte_offsets: () -> Array[Integer]
+
+      # @rbs start_line: Integer
+      # @rbs start_column: Integer
+      # @rbs end_line: Integer
+      # @rbs end_column: Integer
+      def slice: (Integer start_line, Integer start_column, Integer end_line, Integer end_column) -> String
+
+      # @rbs start_line: Integer
+      # @rbs start_column: Integer
+      # @rbs end_line: Integer
+      # @rbs end_column: Integer
+      def byte_range: (Integer start_line, Integer start_column, Integer end_line, Integer end_column) -> [ Integer, Integer ]
+
+      def encoding: () -> Encoding
+    end
+  end
+end

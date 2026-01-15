@@ -21,6 +21,9 @@ Metrics/MethodLength:
 RSpec/NamedSubject:
   Enabled: false
 
+RSpec/NestedGroups:
+  Max: 5
+
 Style/Documentation:
   Enabled: false
 
