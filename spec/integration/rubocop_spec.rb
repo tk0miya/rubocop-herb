@@ -67,8 +67,12 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     end
   end
 
-  describe "offense position accuracy" do
-    context "when ERB extraction causes Layout/LeadingEmptyLines" do
+  describe "excluded cops" do
+    # These cops are excluded due to inherent incompatibilities with ERB extraction
+    # Verify that they are properly excluded from analysis
+
+    context "with Layout/LeadingEmptyLines cop" do
+      # ERB files may not start with Ruby code
       let(:source) do
         <<~ERB
           <div>
@@ -78,37 +82,11 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects Layout/LeadingEmptyLines offense" do
+      it "does not report Layout/LeadingEmptyLines offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines"])
-      end
-
-      it "reports the correct line number for extracted Ruby" do
-        offenses = run_rubocop(source)
-        # Line 3 is where the Ruby code appears in the extracted source
-        expect(offenses.first.line).to eq(3)
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
-
-    context "with multiple ERB tags on different lines" do
-      let(:source) do
-        <<~ERB
-          <div>
-            <%= first_value %>
-            <%= second_value %>
-          </div>
-        ERB
-      end
-
-      it "detects Layout/LeadingEmptyLines offense" do
-        offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines"])
-      end
-    end
-  end
-
-  describe "excluded cops" do
-    # These cops are excluded because they conflict with ERB extraction
 
     context "with Layout/InitialIndentation cop" do
       # ERB code may start at any indentation level within HTML
@@ -122,8 +100,7 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "does not report Layout/InitialIndentation offense" do
         offenses = run_rubocop(source)
-        # Layout/LeadingEmptyLines is detected due to ERB extraction adding empty lines
-        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines"])
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
@@ -163,45 +140,38 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "does not report Style/Semicolon offense" do
         offenses = run_rubocop(source)
-        # Layout/ExtraSpacing may be detected due to ERB tag spacing
-        expect(offenses.map(&:cop_name)).to eq(["Layout/ExtraSpacing"])
-      end
-    end
-  end
-
-  describe "ERB extraction side effects" do
-    context "with multiple ERB tags on the same line" do
-      let(:source) { "<% x = 1 %><% puts x %><%= value %>" }
-
-      it "detects Layout/ExtraSpacing from ERB tag boundaries" do
-        offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Layout/ExtraSpacing", "Layout/ExtraSpacing"]
-        )
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
-    context "with control structures (if/else)" do
+    context "with Style/IfWithSemicolon cop" do
+      # Semicolons are inserted between ERB tags on the same line
       let(:source) do
         <<~ERB
           <% if condition %>
-            <p>True</p>
-          <% else %>
-            <p>False</p>
+            <p>Content</p>
           <% end %>
         ERB
       end
 
-      it "detects offenses from ERB extraction" do
+      it "does not report Style/IfWithSemicolon offense" do
         offenses = run_rubocop(source)
-        # ERB extraction creates patterns that trigger these cops
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Lint/EmptyConditionalBody", "Style/IfWithSemicolon", "Style/EmptyElse"]
-        )
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
-    context "with iteration (each block)" do
+    context "with Layout/ExtraSpacing cop" do
+      # Whitespace padding preserves positions but creates extra spaces
+      let(:source) { "<% x = 1 %><% puts x %><%= value %>" }
+
+      it "does not report Layout/ExtraSpacing offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with Layout/IndentationWidth cop" do
+      # Ruby code in ERB may have different indentation width
       let(:source) do
         <<~ERB
           <ul>
@@ -212,30 +182,133 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects offenses from ERB extraction" do
+      it "does not report Layout/IndentationWidth offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Layout/LeadingEmptyLines", "Layout/IndentationWidth"]
-        )
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
-    context "with nested ERB structures" do
+    context "with Layout/CommentIndentation cop" do
+      # ERB comment to Ruby comment conversion shifts column position
+      let(:source) { "<%# This is a comment %>" }
+
+      it "does not report Layout/CommentIndentation offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+  end
+
+  describe "HTML-related excluded cops" do
+    # These cops are temporarily excluded because HTML parts are replaced with whitespace
+
+    context "with Lint/EmptyConditionalBody cop" do
+      # Conditional bodies may contain only HTML (no Ruby code)
       let(:source) do
         <<~ERB
           <% if condition %>
-            <% items.each do |item| %>
-              <%= render_item(item) %>
-            <% end %>
+            <p>True</p>
+          <% else %>
+            <p>False</p>
           <% end %>
         ERB
       end
 
-      it "detects offenses from ERB extraction" do
+      it "does not report Lint/EmptyConditionalBody offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with Lint/EmptyWhen cop" do
+      # When bodies may contain only HTML (no Ruby code)
+      let(:source) do
+        <<~ERB
+          <% case status %>
+          <% when :pending %>
+            <span>Pending</span>
+          <% when :done %>
+            <span>Done</span>
+          <% end %>
+        ERB
+      end
+
+      it "does not report Lint/EmptyWhen offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with Style/EmptyElse cop" do
+      # Else branches may contain only HTML (no Ruby code)
+      let(:source) do
+        <<~ERB
+          <% if condition %>
+            <%= value %>
+          <% else %>
+            <p>No value</p>
+          <% end %>
+        ERB
+      end
+
+      it "does not report Style/EmptyElse offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+  end
+
+  describe "user code offenses" do
+    # Verify that actual user code issues are still detected
+
+    context "with Style/For cop" do
+      let(:source) do
+        <<~ERB
+          <% for item in items %>
+            <%= item %>
+          <% end %>
+        ERB
+      end
+
+      it "detects Style/For offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq(["Style/For"])
+      end
+    end
+
+    context "with Style/BlockDelimiters cop" do
+      let(:source) { "<% items.each do |item| %><%= item %><% end %>" }
+
+      it "detects Style/BlockDelimiters offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq(["Style/BlockDelimiters", "Lint/Void"])
+      end
+    end
+
+    context "with Layout/EmptyLineAfterGuardClause cop" do
+      let(:source) do
+        <<~ERB
+          <% items.each do |i| %>
+            <% next if i.nil? %>
+            <%= i %>
+          <% end %>
+        ERB
+      end
+
+      it "detects Layout/EmptyLineAfterGuardClause offense" do
         offenses = run_rubocop(source)
         expect(offenses.map(&:cop_name)).to eq(
-          ["Style/IfWithSemicolon", "Layout/IndentationWidth"]
+          ["Layout/EmptyLineAfterGuardClause", "Layout/IndentationConsistency", "Lint/Void"]
         )
+      end
+    end
+
+    context "with Lint/Void cop" do
+      let(:source) { "<% items.each do |item| %><%= item %><% end %>" }
+
+      it "detects Lint/Void offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to include("Lint/Void")
       end
     end
   end
@@ -250,24 +323,12 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       end
     end
 
-    context "with block using do...end on same line" do
-      let(:source) { "<% items.each do |item| %><%= item %><% end %>" }
-
-      it "detects offenses from ERB extraction" do
-        offenses = run_rubocop(source)
-        # do...end block joined with semicolons triggers multiple cops
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Style/BlockDelimiters", "Layout/ExtraSpacing", "Lint/Void", "Layout/ExtraSpacing"]
-        )
-      end
-    end
-
     context "with lambda expression" do
       let(:source) { "<% fn = ->(x) { x * 2 } %><%= fn.call(5) %>" }
 
-      it "detects Layout/ExtraSpacing from tag boundaries" do
+      it "detects no offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(["Layout/ExtraSpacing"])
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
@@ -298,100 +359,6 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       end
     end
 
-    context "with case/when structure" do
-      let(:source) do
-        <<~ERB
-          <% case status %>
-          <% when :pending %>
-            <span>Pending</span>
-          <% when :done %>
-            <span>Done</span>
-          <% end %>
-        ERB
-      end
-
-      it "detects Lint/EmptyWhen due to HTML between when clauses" do
-        offenses = run_rubocop(source)
-        # HTML content between case/when creates empty when bodies
-        expect(offenses.map(&:cop_name)).to eq(["Lint/EmptyWhen", "Lint/EmptyWhen"])
-      end
-    end
-
-    context "with unless modifier" do
-      let(:source) do
-        <<~ERB
-          <% unless hidden %>
-            <div>Content</div>
-          <% end %>
-        ERB
-      end
-
-      it "detects offenses from ERB extraction" do
-        offenses = run_rubocop(source)
-        # HTML content creates empty conditional body
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Lint/EmptyConditionalBody", "Style/IfWithSemicolon"]
-        )
-      end
-    end
-
-    context "with while loop" do
-      let(:source) do
-        <<~ERB
-          <% while i < 10 %>
-            <%= i %>
-            <% i += 1 %>
-          <% end %>
-        ERB
-      end
-
-      it "detects indentation offenses" do
-        offenses = run_rubocop(source)
-        # Multiline ERB extraction causes indentation issues
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Layout/IndentationWidth", "Layout/IndentationConsistency"]
-        )
-      end
-    end
-
-    context "with for loop" do
-      let(:source) do
-        <<~ERB
-          <% for item in items %>
-            <%= item %>
-          <% end %>
-        ERB
-      end
-
-      it "detects Style/For and indentation offenses" do
-        offenses = run_rubocop(source)
-        # Style/For suggests using each instead
-        expect(offenses.map(&:cop_name)).to eq(["Style/For", "Layout/IndentationWidth"])
-      end
-    end
-
-    context "with begin/rescue/ensure" do
-      let(:source) do
-        <<~ERB
-          <% begin %>
-            <%= risky_operation %>
-          <% rescue StandardError => e %>
-            <%= e.message %>
-          <% ensure %>
-            <%= cleanup %>
-          <% end %>
-        ERB
-      end
-
-      it "detects indentation offenses" do
-        offenses = run_rubocop(source)
-        # Multiline begin/rescue/ensure extraction causes indentation issues
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Layout/IndentationWidth", "Layout/IndentationWidth", "Layout/IndentationWidth"]
-        )
-      end
-    end
-
     context "with yield" do
       let(:source) { "<%= yield %>" }
 
@@ -416,25 +383,6 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       it "detects no offenses" do
         offenses = run_rubocop(source)
         expect(offenses.map(&:cop_name)).to eq([])
-      end
-    end
-
-    context "with next in block" do
-      let(:source) do
-        <<~ERB
-          <% items.each do |i| %>
-            <% next if i.nil? %>
-            <%= i %>
-          <% end %>
-        ERB
-      end
-
-      it "detects offenses from do...end block extraction" do
-        offenses = run_rubocop(source)
-        # Guard clause and indentation issues from multiline extraction
-        expect(offenses.map(&:cop_name)).to eq(
-          ["Layout/EmptyLineAfterGuardClause", "Layout/IndentationConsistency", "Lint/Void"]
-        )
       end
     end
 
@@ -557,15 +505,9 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects Layout/LeadingEmptyLines offense" do
+      it "detects no offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines"])
-      end
-
-      it "reports correct line number for extracted Ruby" do
-        offenses = run_rubocop(source)
-        # Line 3 is where the Ruby code appears in the extracted source
-        expect(offenses.first.line).to eq(3)
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
   end
@@ -592,10 +534,9 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     context "with ERB comment only" do
       let(:source) { "<%# This is a comment %>" }
 
-      it "reports Layout/CommentIndentation offense" do
+      it "does not report Layout/CommentIndentation offense" do
         offenses = run_rubocop(source)
-        # Comment is extracted and triggers indentation check
-        expect(offenses.map(&:cop_name)).to eq(["Layout/CommentIndentation"])
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
