@@ -23,6 +23,7 @@ RSpec.describe RuboCop::Herb::Converter do
   describe "#convert" do
     subject { described_class.new.convert(source) }
 
+    # Basic ERB tags
     describe "with a content ERB tag" do
       let(:source) { "<div><%= user.name %></div>" }
       let(:expected) { "         user.name;        " }
@@ -37,6 +38,14 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with execution tag without output" do
+      let(:source) { "<div><% @counter += 1 %></div>" }
+      let(:expected) { "        @counter += 1;        " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Control structures
     describe "with if-ERB tags" do
       let(:source) do
         ["<div>",
@@ -56,6 +65,233 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with unless-ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% unless logged_in? %>",
+         "    Please log in",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     unless logged_in?;  ",
+         "                 ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with if-elsif-else-ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% if admin? %>",
+         "    Admin",
+         "  <% elsif moderator? %>",
+         "    Moderator",
+         "  <% else %>",
+         "    User",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     if admin?;  ",
+         "         ",
+         "     elsif moderator?;  ",
+         "             ",
+         "     else;  ",
+         "        ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with case-when-ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% case status %>",
+         "  <% when :active %>",
+         "    Active",
+         "  <% when :inactive %>",
+         "    Inactive",
+         "  <% else %>",
+         "    Unknown",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     case status;  ",
+         "     when :active;  ",
+         "          ",
+         "     when :inactive;  ",
+         "            ",
+         "     else;  ",
+         "           ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Loops
+    describe "with block-ERB tags (each)" do
+      let(:source) do
+        ["<ul>",
+         "  <% users.each do |user| %>",
+         "    <li><%= user.name %></li>",
+         "  <% end %>",
+         "</ul>"].join("\n")
+      end
+      let(:expected) do
+        ["    ",
+         "     users.each do |user|;  ",
+         "            user.name;       ",
+         "     end;  ",
+         "     "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with block-ERB tags (times)" do
+      let(:source) do
+        ["<div>",
+         "  <% 3.times do |i| %>",
+         "    <p><%= i %></p>",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     3.times do |i|;  ",
+         "           i;      ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with for-ERB tags" do
+      let(:source) do
+        ["<ul>",
+         "  <% for item in items %>",
+         "    <li><%= item %></li>",
+         "  <% end %>",
+         "</ul>"].join("\n")
+      end
+      let(:expected) do
+        ["    ",
+         "     for item in items;  ",
+         "            item;       ",
+         "     end;  ",
+         "     "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with while-ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% while condition %>",
+         "    <p>Processing</p>",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     while condition;  ",
+         "                     ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with until-ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% until done %>",
+         "    <p>Waiting</p>",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     until done;  ",
+         "                  ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Exception handling
+    describe "with begin-rescue-ensure-ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% begin %>",
+         "    <%= risky_operation %>",
+         "  <% rescue StandardError => e %>",
+         "    <%= e.message %>",
+         "  <% ensure %>",
+         "    <% cleanup %>",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     begin;  ",
+         "        risky_operation;  ",
+         "     rescue StandardError => e;  ",
+         "        e.message;  ",
+         "     ensure;  ",
+         "       cleanup;  ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Complex cases
+    describe "with nested ERB tags" do
+      let(:source) do
+        ["<div>",
+         "  <% if show_list? %>",
+         "    <ul>",
+         "      <% items.each do |item| %>",
+         "        <li><%= item.name %></li>",
+         "      <% end %>",
+         "    </ul>",
+         "  <% end %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["     ",
+         "     if show_list?;  ",
+         "        ",
+         "         items.each do |item|;  ",
+         "                item.name;       ",
+         "         end;  ",
+         "         ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with multiple ERB nodes on single line" do
       let(:source) { "<% if user %><%= user.name %><% end %>" }
       let(:expected) { "   if user;      user.name;     end;  " }
@@ -63,6 +299,21 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with multiple content tags on same line" do
+      let(:source) { "<p><%= first %> and <%= second %></p>" }
+      let(:expected) { "       first;           second;      " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with raw output tag (-%>)" do
+      let(:source) { "<div><%= value -%></div>" }
+      let(:expected) { "         value;         " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Comment filtering (ErbNodeCollector#filtered_nodes behavior)
     describe "with a comment ERB tag on its own line" do
       let(:source) do
         ["<%# comment %>",
