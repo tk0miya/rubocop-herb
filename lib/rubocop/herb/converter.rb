@@ -9,6 +9,7 @@ module RuboCop
       LF = 0x0A
       CR = 0x0D
       SPACE = 0x20
+      SEMICOLON = 0x3B
 
       # @rbs source: String
       def convert(source) #: String?
@@ -34,15 +35,20 @@ module RuboCop
         @byte_offsets ||= source_lines.inject([0]) { |offsets, line| offsets << (offsets.last + line.bytesize) }
       end
 
-      def build_ruby_code #: String
+      def build_ruby_code #: String # rubocop:disable Metrics/AbcSize
         collector = ErbNodeCollector.new
         parse_result.visit(collector)
 
         buffer = bleach_code(source)
         collector.nodes.each do |node|
-          bytes = ruby_code_for(node).bytes
-          from, = byte_location_for(node)
+          ruby_code = ruby_code_for(node)
+          bytes = ruby_code.bytes
+          from, to = byte_location_for(node)
           buffer[from, bytes.size] = bytes
+
+          trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
+          semicolon_pos = to - trailing_spaces
+          buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
         end
 
         buffer.pack("C*").force_encoding(source.encoding)

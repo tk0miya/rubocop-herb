@@ -25,14 +25,14 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with a content ERB tag" do
       let(:source) { "<div><%= user.name %></div>" }
-      let(:expected) { "         user.name         " }
+      let(:expected) { "         user.name;        " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a comment ERB tag" do
       let(:source) { "<div><%# user.name %></div>" }
-      let(:expected) { "         user.name         " }
+      let(:expected) { "         user.name;        " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -47,11 +47,18 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["     ",
-         "     if admin?   ",
+         "     if admin?;  ",
          "                 ",
-         "     end   ",
+         "     end;  ",
          "      "].join("\n")
       end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with multiple ERB nodes on single line" do
+      let(:source) { "<% if user %><%= user.name %><% end %>" }
+      let(:expected) { "   if user;      user.name;     end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
