@@ -13,6 +13,10 @@ module RuboCop
 
       SPACE: ::Integer
 
+      SEMICOLON: ::Integer
+
+      HASH: ::Integer
+
       # @rbs source: String
       def convert: (String source) -> String?
 
@@ -25,6 +29,25 @@ module RuboCop
       def byte_offsets: () -> Array[Integer]
 
       def build_ruby_code: () -> String
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def comment_node?: (::Herb::AST::Node node) -> bool
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_comment_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
+
+      # @rbs code: String
+      # @rbs hash_column: Integer
+      def format_multiline_comment: (String code, Integer hash_column) -> String
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
 
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]

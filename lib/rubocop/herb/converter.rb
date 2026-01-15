@@ -70,10 +70,34 @@ module RuboCop
         hash_pos = node.tag_opening.range.to - 1
         buffer[hash_pos] = HASH
 
-        # Write comment content
+        # Write comment content with '#' at the beginning of each line
         ruby_code = ruby_code_for(node)
         from, _to = byte_location_for(node)
-        buffer[from, ruby_code.bytesize] = ruby_code.bytes
+        hash_column = node.tag_opening.location.start.column + 2
+        formatted_code = format_multiline_comment(ruby_code, hash_column)
+        buffer[from, formatted_code.bytesize] = formatted_code.bytes
+      end
+
+      # @rbs code: String
+      # @rbs hash_column: Integer
+      def format_multiline_comment(code, hash_column) #: String
+        # Replace whitespace at hash_column position after newlines with '#'
+        # to align '#' at the same column as the first '#' in '<%#'
+        # Requires hash_column + 2 spaces to place '#' at the same column (for space after #)
+        # If there's not enough whitespace, fall back to replacing the first whitespace
+        # If there's no whitespace at all, overwrite the first character with '#'
+        # Tab characters are not aligned; just replace the first character with '#'
+        result = code.gsub(/(?<=\n)( +)/) do |match|
+          if match.length > hash_column + 1
+            "#{match[0...hash_column]}##{match[(hash_column + 1)..]}"
+          else
+            "##{match[1..]}"
+          end
+        end
+
+        # Handle lines with leading tab or without leading whitespace: overwrite first character with '#'
+        # For multibyte characters, pad with spaces to maintain byte size
+        result.gsub(/(?<=\n)([^ \n#])/) { "##{" " * (Regexp.last_match(1).bytesize - 1)}" }
       end
 
       # @rbs buffer: Array[Integer]
