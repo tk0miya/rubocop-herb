@@ -44,7 +44,7 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "detects no offenses" do
         offenses = run_rubocop(source)
-        expect(offenses).to be_empty
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
@@ -52,9 +52,9 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       # Style/RedundantSelf: Redundant `self` detected
       let(:source) { "<%= self.name %>" }
 
-      it "detects Style/RedundantSelf offense" do
+      it "detects only Style/RedundantSelf offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(["Style/RedundantSelf"])
       end
     end
 
@@ -62,9 +62,9 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       # Lint/UselessAssignment: Useless assignment to variable
       let(:source) { "<% unused_var = 1 %>" }
 
-      it "detects Lint/UselessAssignment offense" do
+      it "detects only Lint/UselessAssignment offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Lint/UselessAssignment")
+        expect(offenses.map(&:cop_name)).to eq(["Lint/UselessAssignment"])
       end
     end
 
@@ -77,9 +77,9 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         )
       end
 
-      it "detects Layout/SpaceAfterComma offense" do
+      it "detects Layout/SpaceAfterComma offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Layout/SpaceAfterComma")
+        expect(offenses.map(&:cop_name)).to eq(["Layout/SpaceAfterComma", "Layout/SpaceAfterComma"])
       end
     end
   end
@@ -88,17 +88,20 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     context "when offense is on the first line" do
       let(:source) { "<%= self.name %>" }
 
+      it "detects only the expected offense" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq(["Style/RedundantSelf"])
+      end
+
       it "reports the correct line number" do
         offenses = run_rubocop(source)
-        offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
-        expect(offense.line).to eq(1)
+        expect(offenses.first.line).to eq(1)
       end
 
       it "reports the correct column number" do
         offenses = run_rubocop(source)
-        offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         # "<%= " is 4 characters, so `self` starts at column 5
-        expect(offense.column).to eq(4)
+        expect(offenses.first.column).to eq(4)
       end
     end
 
@@ -112,13 +115,19 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "reports the correct line number" do
+      it "detects expected offenses" do
+        offenses = run_rubocop(source)
+        # Layout/LeadingEmptyLines is detected due to ERB extraction structure
+        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines", "Style/RedundantSelf"])
+      end
+
+      it "reports the correct line number for Style/RedundantSelf" do
         offenses = run_rubocop(source)
         offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         expect(offense.line).to eq(3)
       end
 
-      it "reports the correct column number" do
+      it "reports the correct column number for Style/RedundantSelf" do
         offenses = run_rubocop(source)
         offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         # "  <%= " is 6 characters (2 spaces + 4 for ERB tag), so `self` starts at column 7
@@ -136,7 +145,14 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "reports correct line numbers for each offense" do
+      it "detects expected offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Layout/LeadingEmptyLines", "Style/RedundantSelf", "Style/RedundantSelf"]
+        )
+      end
+
+      it "reports correct line numbers for Style/RedundantSelf offenses" do
         offenses = run_rubocop(source)
         redundant_self_offenses = offenses.select { |o| o.cop_name == "Style/RedundantSelf" }
         lines = redundant_self_offenses.map(&:line).sort
@@ -160,7 +176,8 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "does not report Layout/InitialIndentation offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).not_to include("Layout/InitialIndentation")
+        # Layout/LeadingEmptyLines is detected due to ERB extraction adding empty lines
+        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines"])
       end
     end
 
@@ -170,7 +187,7 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "does not report Layout/TrailingEmptyLines offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).not_to include("Layout/TrailingEmptyLines")
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
@@ -180,7 +197,7 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "does not report Layout/TrailingWhitespace offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).not_to include("Layout/TrailingWhitespace")
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
@@ -191,29 +208,34 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
 
       it "does not report Style/FrozenStringLiteralComment offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).not_to include("Style/FrozenStringLiteralComment")
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
     context "with Style/Semicolon cop" do
       # Semicolons are inserted between ERB tags on the same line
       # Note: This cop is excluded via glob patterns in Configuration.to_rubocop_config
-      let(:source) { "<% a = 1 %><% b = a %>" }
+      let(:source) { "<% puts 1 %><% puts 2 %>" }
 
       it "does not report Style/Semicolon offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).not_to include("Style/Semicolon")
+        # Layout/ExtraSpacing may be detected due to ERB tag spacing
+        expect(offenses.map(&:cop_name)).to eq(["Layout/ExtraSpacing"])
       end
     end
   end
 
   describe "multiple ERB patterns" do
     context "with multiple ERB tags on the same line" do
-      let(:source) { "<% x = 1 %><%= self.name %>" }
+      # Using `puts x` to avoid Lint/UselessAssignment
+      let(:source) { "<% x = 1 %><% puts x %><%= self.name %>" }
 
-      it "detects offenses correctly" do
+      it "detects expected offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        # Layout/ExtraSpacing is detected due to ERB tag spacing patterns
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Layout/ExtraSpacing", "Layout/ExtraSpacing", "Style/RedundantSelf"]
+        )
       end
     end
 
@@ -228,12 +250,15 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects offenses within control structures" do
+      it "detects expected offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        # ERB extraction creates patterns that trigger these cops
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Lint/EmptyConditionalBody", "Style/IfWithSemicolon", "Style/RedundantSelf", "Style/EmptyElse"]
+        )
       end
 
-      it "reports correct line for the offense" do
+      it "reports correct line for Style/RedundantSelf offense" do
         offenses = run_rubocop(source)
         offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         expect(offense.line).to eq(1)
@@ -251,12 +276,14 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects offenses within iteration blocks" do
+      it "detects expected offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Layout/LeadingEmptyLines", "Layout/IndentationWidth", "Style/RedundantSelf"]
+        )
       end
 
-      it "reports correct line for the offense" do
+      it "reports correct line for Style/RedundantSelf offense" do
         offenses = run_rubocop(source)
         offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         expect(offense.line).to eq(3)
@@ -274,12 +301,14 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects offenses in nested structures" do
+      it "detects expected offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Style/IfWithSemicolon", "Layout/IndentationWidth", "Style/RedundantSelf"]
+        )
       end
 
-      it "reports correct line for nested offense" do
+      it "reports correct line for Style/RedundantSelf offense" do
         offenses = run_rubocop(source)
         offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         expect(offense.line).to eq(3)
@@ -291,17 +320,17 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     context "with Japanese characters before ERB tag" do
       let(:source) { "<p>こんにちは</p><%= self.name %>" }
 
-      it "detects offenses correctly" do
+      it "detects only Style/RedundantSelf offense" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(["Style/RedundantSelf"])
       end
 
-      it "reports correct column position" do
+      it "reports column position in bytes" do
         offenses = run_rubocop(source)
-        offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
-        # "<p>こんにちは</p><%= " is 18 characters (3 + 5 + 4 + 4 + 1 space for offset)
-        # But we need to check actual behavior with byte vs character counting
-        expect(offense).not_to be_nil
+        # Column is reported in bytes:
+        # "<p>" = 3 bytes, "こんにちは" = 15 bytes (5 chars * 3 bytes), "</p><%= " = 8 bytes
+        # Total: 3 + 15 + 8 = 26 bytes
+        expect(offenses.first.column).to eq(26)
       end
     end
 
@@ -314,12 +343,12 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         ERB
       end
 
-      it "detects offenses correctly" do
+      it "detects expected offenses" do
         offenses = run_rubocop(source)
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(["Layout/LeadingEmptyLines", "Style/RedundantSelf"])
       end
 
-      it "reports correct line number" do
+      it "reports correct line number for Style/RedundantSelf" do
         offenses = run_rubocop(source)
         offense = offenses.find { |o| o.cop_name == "Style/RedundantSelf" }
         expect(offense.line).to eq(3)
@@ -331,39 +360,37 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     context "with HTML only (no ERB)" do
       let(:source) { "<div><p>Hello World</p></div>" }
 
-      it "does not crash and returns no offenses" do
+      it "returns no offenses" do
         offenses = run_rubocop(source)
-        expect(offenses).to be_empty
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
 
     context "with empty file" do
       let(:source) { "" }
 
-      it "does not crash" do
-        expect { run_rubocop(source) }.not_to raise_error
-      end
-
-      it "may report Lint/EmptyFile offense" do
+      it "reports Lint/EmptyFile offense" do
         offenses = run_rubocop(source)
-        # Empty file detection is expected behavior from RuboCop
-        expect(offenses.map(&:cop_name)).to include("Lint/EmptyFile")
+        expect(offenses.map(&:cop_name)).to eq(["Lint/EmptyFile"])
       end
     end
 
     context "with ERB comment only" do
       let(:source) { "<%# This is a comment %>" }
 
-      it "does not crash" do
-        expect { run_rubocop(source) }.not_to raise_error
+      it "reports Layout/CommentIndentation offense" do
+        offenses = run_rubocop(source)
+        # Comment is extracted and triggers indentation check
+        expect(offenses.map(&:cop_name)).to eq(["Layout/CommentIndentation"])
       end
     end
 
     context "with output tag containing only whitespace" do
       let(:source) { "<%=   %>" }
 
-      it "does not crash" do
-        expect { run_rubocop(source) }.not_to raise_error
+      it "returns no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
       end
     end
   end
@@ -376,21 +403,20 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
         RuboCop::Herb::Configuration.setup({ "extensions" => [".custom.erb"] })
       end
 
-      it "processes files with custom extension" do
+      it "processes files with custom extension and detects offenses" do
         offenses = run_rubocop("<%= self.name %>")
-        expect(offenses.map(&:cop_name)).to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(["Style/RedundantSelf"])
       end
     end
 
     context "with unsupported file extension" do
       let(:path) { "test.rb" }
 
-      it "does not process unsupported files" do
+      it "does not process as ERB and reports syntax error" do
         # When file is not supported, extractor returns nil and RuboCop processes it as Ruby
-        # Since "<%= self.name %>" is not valid Ruby, this should either error or return different offenses
+        # Since "<%= self.name %>" is not valid Ruby, it reports a syntax error
         offenses = run_rubocop("<%= self.name %>")
-        # The extractor should skip this file
-        expect(offenses.map(&:cop_name)).not_to include("Style/RedundantSelf")
+        expect(offenses.map(&:cop_name)).to eq(["Lint/Syntax"])
       end
     end
   end
