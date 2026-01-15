@@ -316,6 +316,314 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     end
   end
 
+  describe "Ruby syntax patterns" do
+    context "with block using braces" do
+      let(:source) { "<%= items.map { |x| x.upcase } %>" }
+
+      it "detects Style/SymbolProc offense" do
+        offenses = run_rubocop(source)
+        # RuboCop suggests using Symbol#to_proc (&:upcase)
+        expect(offenses.map(&:cop_name)).to eq(["Style/SymbolProc"])
+      end
+    end
+
+    context "with block using do...end on same line" do
+      let(:source) { "<% items.each do |item| %><%= item %><% end %>" }
+
+      it "detects offenses from ERB extraction" do
+        offenses = run_rubocop(source)
+        # do...end block joined with semicolons triggers multiple cops
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Style/BlockDelimiters", "Layout/ExtraSpacing", "Lint/Void", "Layout/ExtraSpacing"]
+        )
+      end
+    end
+
+    context "with lambda expression" do
+      let(:source) { "<% fn = ->(x) { x * 2 } %><%= fn.call(5) %>" }
+
+      it "detects Layout/ExtraSpacing from tag boundaries" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq(["Layout/ExtraSpacing"])
+      end
+    end
+
+    context "with safe navigation operator" do
+      let(:source) { "<%= user&.name %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with splat operator" do
+      let(:source) { "<%= method_call(*args) %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with double splat operator" do
+      let(:source) { "<%= method_call(**options) %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with parallel assignment" do
+      let(:source) { "<% a, b = [1, 2] %><%= a + b %>" }
+
+      it "detects offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq(["Style/ParallelAssignment", "Layout/ExtraSpacing"])
+      end
+    end
+
+    context "with case/when structure" do
+      let(:source) do
+        <<~ERB
+          <% case status %>
+          <% when :pending %>
+            <span>Pending</span>
+          <% when :done %>
+            <span>Done</span>
+          <% end %>
+        ERB
+      end
+
+      it "detects Lint/EmptyWhen due to HTML between when clauses" do
+        offenses = run_rubocop(source)
+        # HTML content between case/when creates empty when bodies
+        expect(offenses.map(&:cop_name)).to eq(["Lint/EmptyWhen", "Lint/EmptyWhen"])
+      end
+    end
+
+    context "with unless modifier" do
+      let(:source) do
+        <<~ERB
+          <% unless hidden %>
+            <div>Content</div>
+          <% end %>
+        ERB
+      end
+
+      it "detects offenses from ERB extraction" do
+        offenses = run_rubocop(source)
+        # HTML content creates empty conditional body
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Lint/EmptyConditionalBody", "Style/IfWithSemicolon"]
+        )
+      end
+    end
+
+    context "with while loop" do
+      let(:source) do
+        <<~ERB
+          <% while i < 10 %>
+            <%= i %>
+            <% i += 1 %>
+          <% end %>
+        ERB
+      end
+
+      it "detects indentation offenses" do
+        offenses = run_rubocop(source)
+        # Multiline ERB extraction causes indentation issues
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Layout/IndentationWidth", "Layout/IndentationConsistency"]
+        )
+      end
+    end
+
+    context "with for loop" do
+      let(:source) do
+        <<~ERB
+          <% for item in items %>
+            <%= item %>
+          <% end %>
+        ERB
+      end
+
+      it "detects Style/For and indentation offenses" do
+        offenses = run_rubocop(source)
+        # Style/For suggests using each instead
+        expect(offenses.map(&:cop_name)).to eq(["Style/For", "Layout/IndentationWidth"])
+      end
+    end
+
+    context "with begin/rescue/ensure" do
+      let(:source) do
+        <<~ERB
+          <% begin %>
+            <%= risky_operation %>
+          <% rescue StandardError => e %>
+            <%= e.message %>
+          <% ensure %>
+            <%= cleanup %>
+          <% end %>
+        ERB
+      end
+
+      it "detects indentation offenses" do
+        offenses = run_rubocop(source)
+        # Multiline begin/rescue/ensure extraction causes indentation issues
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Layout/IndentationWidth", "Layout/IndentationWidth", "Layout/IndentationWidth"]
+        )
+      end
+    end
+
+    context "with yield" do
+      let(:source) { "<%= yield %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with yield and content_for" do
+      let(:source) { "<%= yield :sidebar %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with early return" do
+      let(:source) { "<% return if condition %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with next in block" do
+      let(:source) do
+        <<~ERB
+          <% items.each do |i| %>
+            <% next if i.nil? %>
+            <%= i %>
+          <% end %>
+        ERB
+      end
+
+      it "detects offenses from do...end block extraction" do
+        offenses = run_rubocop(source)
+        # Guard clause and indentation issues from multiline extraction
+        expect(offenses.map(&:cop_name)).to eq(
+          ["Layout/EmptyLineAfterGuardClause", "Layout/IndentationConsistency", "Lint/Void"]
+        )
+      end
+    end
+
+    context "with instance variable" do
+      let(:source) { "<%= @user.name %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with ternary operator" do
+      let(:source) { "<%= admin ? admin_link : user_link %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with string interpolation" do
+      let(:source) { '<%= "Hello #{username}" %>' }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with array literal" do
+      let(:source) { "<%= [1, 2, 3].sum %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with hash literal" do
+      let(:source) { "<%= { key: value }[:key] %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with range" do
+      let(:source) { "<%= (1..10).to_a %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with regex" do
+      let(:source) { "<%= text.match(/pattern/) %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with constant reference" do
+      let(:source) { "<%= MyClass::CONSTANT %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with logical operators" do
+      let(:source) { "<%= a && b || c %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with method chain" do
+      let(:source) { "<%= items.map(&:to_s).compact.join %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+
+    context "with defined? operator" do
+      let(:source) { "<%= defined?(variable) %>" }
+
+      it "detects no offenses" do
+        offenses = run_rubocop(source)
+        expect(offenses.map(&:cop_name)).to eq([])
+      end
+    end
+  end
+
   describe "multibyte character support" do
     context "with Japanese characters before ERB tag" do
       let(:source) { "<p>こんにちは</p><%= self.name %>" }
