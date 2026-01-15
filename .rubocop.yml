@@ -18,6 +18,9 @@ Metrics/AbcSize:
 Metrics/MethodLength:
   Max: 30
 
+RSpec/MultipleMemoizedHelpers:
+  Max: 10
+
 RSpec/NamedSubject:
   Enabled: false
 
