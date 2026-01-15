@@ -1,0 +1,50 @@
+# frozen_string_literal: true
+
+module RuboCop
+  module Herb
+    class Source
+      attr_reader :code #: String
+
+      # @rbs code: String
+      def initialize(code) #: void
+        @code = code
+      end
+
+      def lines #: Array[String]
+        @lines ||= code.lines
+      end
+
+      def offsets #: Array[Integer]
+        @offsets ||= lines.inject([0]) { |acc, line| acc << (acc.last + line.size) }
+      end
+
+      def byte_offsets #: Array[Integer]
+        @byte_offsets ||= lines.inject([0]) { |acc, line| acc << (acc.last + line.bytesize) }
+      end
+
+      # @rbs start_line: Integer
+      # @rbs start_column: Integer
+      # @rbs end_line: Integer
+      # @rbs end_column: Integer
+      def slice(start_line, start_column, end_line, end_column) #: String
+        from = offsets[start_line - 1] + start_column
+        to = offsets[end_line - 1] + end_column
+        code[from...to]
+      end
+
+      # @rbs start_line: Integer
+      # @rbs start_column: Integer
+      # @rbs end_line: Integer
+      # @rbs end_column: Integer
+      def byte_range(start_line, start_column, end_line, end_column) #: [Integer, Integer]
+        from = byte_offsets[start_line - 1] + lines[start_line - 1][0...start_column].bytesize
+        to = byte_offsets[end_line - 1] + lines[end_line - 1][0...end_column].bytesize
+        [from, to]
+      end
+
+      def encoding #: Encoding
+        code.encoding
+      end
+    end
+  end
+end
