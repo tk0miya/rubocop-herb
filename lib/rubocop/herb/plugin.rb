@@ -5,6 +5,12 @@ module RuboCop
   module Herb
     class Plugin < LintRoller::Plugin
       # @rbs override
+      def initialize(config = {})
+        super
+        Configuration.setup(config)
+      end
+
+      # @rbs override
       def about
         LintRoller::About.new(
           name: "rubocop-herb",
@@ -26,7 +32,7 @@ module RuboCop
         LintRoller::Rules.new(
           type: :object,
           config_format: :rubocop,
-          value: {}
+          value: Configuration.to_rubocop_config
         )
       end
     end

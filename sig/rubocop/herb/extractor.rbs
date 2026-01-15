@@ -12,6 +12,10 @@ module RuboCop
       def initialize: (::RuboCop::ProcessedSource processed_source) -> void
 
       def call: () -> extractorResult
+
+      private
+
+      def build_processed_source: (untyped code) -> ::RuboCop::ProcessedSource
     end
   end
 end

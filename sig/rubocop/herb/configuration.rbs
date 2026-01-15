@@ -1,0 +1,24 @@
+# Generated from lib/rubocop/herb/configuration.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Configuration module for managing supported extensions.
+    module Configuration
+      DEFAULT_EXTENSIONS: Array[String]
+
+      # Cops to exclude from ERB files due to inherent incompatibilities
+      # with extracted Ruby code from ERB templates.
+      EXCLUDED_COPS: Array[String]
+
+      self.@supported_extensions: Array[String]
+
+      # @rbs config: Hash[String, untyped]
+      def self.setup: (Hash[String, untyped] config) -> void
+
+      # @rbs path: String
+      def self.supported_file?: (String path) -> bool
+
+      def self.to_rubocop_config: () -> Hash[String, untyped]
+    end
+  end
+end

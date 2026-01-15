@@ -5,6 +5,30 @@ module RuboCop
     def call: (ProcessedSource) -> extractorResult
   end
 
+  module AST
+    class ProcessedSource
+      attr_reader ruby_version: Float
+      attr_reader path: String?
+      attr_reader parser_engine: Symbol?
+
+      # A fix for https://github.com/rubocop/rubocop-ast/blob/master/lib/rubocop/ast/processed_source.rb
+      def initialize: (String source, Float ruby_version, ?String? path, ?parser_engine: Symbol?, ?prism_result: Prism::ParseResult) -> void
+                    | ...
+
+      include Ext::ProcessedSource
+    end
+  end
+
+  module Ext
+    module ProcessedSource
+      attr_accessor registry: untyped
+      attr_accessor config: untyped
+
+      def comment_config: () -> CommentConfig
+      def disabled_line_ranges: () -> untyped
+    end
+  end
+
   class Runner
     attr_reader self.ruby_extractors: Array[_Extractor]
   end
