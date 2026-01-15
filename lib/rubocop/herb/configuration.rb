@@ -11,11 +11,13 @@ module RuboCop
       EXCLUDED_COPS = [
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
         "Layout/ExtraSpacing", # Whitespace padding preserves positions but creates extra spaces
+        "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/IndentationWidth", # Ruby code in ERB may have different indentation width
         "Layout/InitialIndentation", # ERB code may start at any indentation level within HTML
         "Layout/LeadingEmptyLines", # ERB files may not start with Ruby code
         "Layout/TrailingEmptyLines", # ERB files may not end with Ruby code
         "Layout/TrailingWhitespace", # Whitespace padding preserves positions but creates trailing spaces
+        "Style/BlockDelimiters", # ERB blocks often use do/end across multiple tags
         "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
         "Style/IfWithSemicolon", # Semicolons are inserted between ERB tags on the same line
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
@@ -24,6 +26,7 @@ module RuboCop
       # Cops temporarily excluded due to HTML parts being replaced with whitespace.
       # These may be removed once HTML visualization is implemented.
       HTML_RELATED_EXCLUDED_COPS = [
+        "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
         "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
         "Lint/EmptyWhen", # When bodies may contain only HTML (no Ruby code)
         "Style/EmptyElse" # Else branches may contain only HTML (no Ruby code)
