@@ -10,6 +10,10 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS: Array[String]
 
+      # Cops temporarily excluded due to HTML parts being replaced with whitespace.
+      # These may be removed once HTML visualization is implemented.
+      HTML_RELATED_EXCLUDED_COPS: Array[String]
+
       self.@supported_extensions: Array[String]
 
       # @rbs config: Hash[String, untyped]
