@@ -35,7 +35,7 @@ module RuboCop
         @byte_offsets ||= source_lines.inject([0]) { |offsets, line| offsets << (offsets.last + line.bytesize) }
       end
 
-      def build_ruby_code #: String
+      def build_ruby_code #: String # rubocop:disable Metrics/AbcSize
         collector = ErbNodeCollector.new
         parse_result.visit(collector)
 
