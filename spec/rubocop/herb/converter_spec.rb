@@ -62,5 +62,73 @@ RSpec.describe RuboCop::Herb::Converter do
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
+
+    describe "with a comment ERB tag on its own line" do
+      let(:source) do
+        ["<%# comment %>",
+         "<% if :cond %>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["  # comment   ",
+         "   if :cond;  ",
+         "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a comment ERB tag followed by other ERB on the same line" do
+      let(:source) do
+        ["<%# comment %><% if :cond %>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["                 if :cond;  ",
+         "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a multiline comment ERB tag on its own lines" do
+      let(:source) do
+        ["<%#",
+         "  multiline",
+         "  comment",
+         "%>",
+         "<% if :cond %>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["  #",
+         "  multiline",
+         "  comment",
+         "  ",
+         "   if :cond;  ",
+         "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a multiline comment ERB tag followed by other ERB on the same line" do
+      let(:source) do
+        ["<%#",
+         "  multiline",
+         "  comment",
+         "%><% if :cond %>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["   ",
+         "           ",
+         "         ",
+         "     if :cond;  ",
+         "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
   end
 end

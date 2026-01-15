@@ -41,7 +41,7 @@ module RuboCop
         parse_result.visit(collector)
 
         buffer = bleach_code(source)
-        collector.nodes.each do |node|
+        collector.filtered_nodes.each do |node|
           render_node(buffer, node)
         end
 
