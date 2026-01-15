@@ -17,10 +17,26 @@ bundle exec rake             # Run all checks (tests + linting)
 bundle exec rake spec        # Run RSpec tests only
 bundle exec rake rubocop     # Run RuboCop only
 bin/console                  # Start IRB with gem loaded
+bin/erb2ruby < file.erb      # Convert ERB to Ruby (dev tool)
 
 # Gem management
 bundle exec rake install     # Install gem locally
 bundle exec rake release     # Release to RubyGems
+```
+
+### Development Tools
+
+#### bin/erb2ruby
+
+A development tool that reads ERB from stdin and outputs the converted Ruby code. Useful for debugging the Converter.
+
+```bash
+# Convert ERB from stdin
+echo '<div><%= @name %></div>' | bin/erb2ruby
+#=>          @name;
+
+# Convert ERB file
+bin/erb2ruby < app/views/users/show.html.erb
 ```
 
 ## Architecture
