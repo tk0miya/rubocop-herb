@@ -32,7 +32,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with a comment ERB tag" do
       let(:source) { "<div><%# user.name %></div>" }
-      let(:expected) { "         user.name;        " }
+      let(:expected) { "       # user.name         " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
