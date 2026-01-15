@@ -10,6 +10,7 @@ module RuboCop
       CR = 0x0D
       SPACE = 0x20
       SEMICOLON = 0x3B
+      HASH = 0x23
 
       # @rbs source: String
       def convert(source) #: String?
@@ -35,23 +36,56 @@ module RuboCop
         @byte_offsets ||= source_lines.inject([0]) { |offsets, line| offsets << (offsets.last + line.bytesize) }
       end
 
-      def build_ruby_code #: String # rubocop:disable Metrics/AbcSize
+      def build_ruby_code #: String
         collector = ErbNodeCollector.new
         parse_result.visit(collector)
 
         buffer = bleach_code(source)
         collector.nodes.each do |node|
-          ruby_code = ruby_code_for(node)
-          bytes = ruby_code.bytes
-          from, to = byte_location_for(node)
-          buffer[from, bytes.size] = bytes
-
-          trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
-          semicolon_pos = to - trailing_spaces
-          buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+          render_node(buffer, node)
         end
 
         buffer.pack("C*").force_encoding(source.encoding)
+      end
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_node(buffer, node) #: void
+        if comment_node?(node)
+          render_comment_node(buffer, node)
+        else
+          render_code_node(buffer, node)
+        end
+      end
+
+      # @rbs node: ::Herb::AST::Node
+      def comment_node?(node) #: bool
+        node.tag_opening.value == "<%#"
+      end
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_comment_node(buffer, node) #: void
+        # Write '#' at the position of '#' in '<%#'
+        hash_pos = node.tag_opening.range.to - 1
+        buffer[hash_pos] = HASH
+
+        # Write comment content
+        ruby_code = ruby_code_for(node)
+        from, _to = byte_location_for(node)
+        buffer[from, ruby_code.bytesize] = ruby_code.bytes
+      end
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_code_node(buffer, node) #: void
+        ruby_code = ruby_code_for(node)
+        from, to = byte_location_for(node)
+        buffer[from, ruby_code.bytesize] = ruby_code.bytes
+
+        trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
+        semicolon_pos = to - trailing_spaces
+        buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
       end
 
       # @rbs code: String
