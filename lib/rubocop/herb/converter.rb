@@ -42,33 +42,49 @@ module RuboCop
       private
 
       def build_ruby_code #: String
-        collector = ErbNodeCollector.new
-        parse_result.visit(collector)
+        builder = ErbAstBuilder.new
+        erb_nodes = builder.build(parse_result)
 
         buffer = bleach_code(source.code)
-        nodes = collector.filtered_nodes
-        nodes.each_with_index do |node, index|
-          next_node = nodes[index + 1]
-          render_node(buffer, node, next_node)
-        end
+        render_erb_nodes(buffer, filter_comments(erb_nodes), nil)
 
         buffer.pack("C*").force_encoding(source.encoding)
       end
 
+      # Recursively renders ERB nodes and their children.
+      # The parent_next_sibling is passed to handle tail expressions at the end of blocks.
       # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_node(buffer, node, next_node) #: void
-        if comment_node?(node)
-          render_comment_node(buffer, node)
-        else
-          render_code_node(buffer, node, next_node)
+      # @rbs nodes: Array[ErbAst::Node]
+      # @rbs parent_next_sibling: ErbAst::Node?
+      def render_erb_nodes(buffer, nodes, parent_next_sibling) #: void
+        nodes.each_with_index do |node, index|
+          next_sibling = nodes[index + 1]
+          render_erb_node(buffer, node, next_sibling || parent_next_sibling)
+          # Pass the node's next sibling as the parent_next_sibling for its children
+          render_erb_nodes(buffer, filter_comments(node.children), next_sibling || parent_next_sibling)
         end
       end
 
-      # @rbs node: ::Herb::AST::Node
-      def comment_node?(node) #: bool
-        node.tag_opening.value == "<%#"
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ErbAst::Node
+      # @rbs next_sibling: ErbAst::Node?
+      def render_erb_node(buffer, node, next_sibling) #: void
+        if node.comment_node?
+          render_comment_node(buffer, node.herb_node)
+        else
+          render_code_node(buffer, node.herb_node, next_sibling&.herb_node)
+        end
+      end
+
+      # Filters out comments that share the same line with other ERB nodes.
+      # @rbs nodes: Array[ErbAst::Node]
+      def filter_comments(nodes) #: Array[ErbAst::Node]
+        non_comment_start_lines = nodes.reject(&:comment_node?)
+                                       .to_set { |node| node.herb_node.location.start.line }
+
+        nodes.reject do |node|
+          node.comment_node? && non_comment_start_lines.include?(node.herb_node.location.end.line)
+        end
       end
 
       # @rbs buffer: Array[Integer]

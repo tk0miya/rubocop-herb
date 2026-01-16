@@ -35,13 +35,21 @@ module RuboCop
 
       def build_ruby_code: () -> String
 
+      # Recursively renders ERB nodes and their children.
+      # The parent_next_sibling is passed to handle tail expressions at the end of blocks.
       # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
+      # @rbs nodes: Array[ErbAst::Node]
+      # @rbs parent_next_sibling: ErbAst::Node?
+      def render_erb_nodes: (Array[Integer] buffer, Array[ErbAst::Node] nodes, ErbAst::Node? parent_next_sibling) -> void
 
-      # @rbs node: ::Herb::AST::Node
-      def comment_node?: (::Herb::AST::Node node) -> bool
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ErbAst::Node
+      # @rbs next_sibling: ErbAst::Node?
+      def render_erb_node: (Array[Integer] buffer, ErbAst::Node node, ErbAst::Node? next_sibling) -> void
+
+      # Filters out comments that share the same line with other ERB nodes.
+      # @rbs nodes: Array[ErbAst::Node]
+      def filter_comments: (Array[ErbAst::Node] nodes) -> Array[ErbAst::Node]
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
