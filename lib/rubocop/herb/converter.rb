@@ -81,10 +81,10 @@ module RuboCop
 
         # Write comment content with '#' at the beginning of each line
         ruby_code = ruby_code_for(node)
-        from, _to = byte_location_for(node)
+        range = node.content.range
         hash_column = node.tag_opening.location.start.column + 2
         formatted_code = format_multiline_comment(ruby_code, hash_column)
-        buffer[from, formatted_code.bytesize] = formatted_code.bytes
+        buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
       end
 
       # @rbs code: String
@@ -112,13 +112,13 @@ module RuboCop
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
       # @rbs next_node: ::Herb::AST::Node?
-      def render_code_node(buffer, node, next_node) #: void
+      def render_code_node(buffer, node, next_node) #: void # rubocop:disable Metrics/AbcSize
         ruby_code = ruby_code_for(node)
-        from, to = byte_location_for(node)
-        buffer[from, ruby_code.bytesize] = ruby_code.bytes
+        range = node.content.range
+        buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
 
         trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
-        semicolon_pos = to - trailing_spaces
+        semicolon_pos = range.to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
 
         # Skip output marker if this is the tail expression of a branch
@@ -165,16 +165,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
-        start = node.content.location.start
-        end_ = node.content.location.end
-        source.slice(start.line, start.column, end_.line, end_.column)
-      end
-
-      # @rbs node: ::Herb::AST::Node
-      def byte_location_for(node) #: [Integer, Integer]
-        start = node.content.location.start
-        end_ = node.content.location.end
-        source.byte_range(start.line, start.column, end_.line, end_.column)
+        source.byteslice(node.content.range)
       end
     end
   end
