@@ -10,6 +10,7 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
+        "Layout/EndAlignment", # Ruby end keywords in ERB may align with HTML structure, not Ruby
         "Layout/ExtraSpacing", # Whitespace padding preserves positions but creates extra spaces
         "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/IndentationWidth", # Ruby code in ERB may have different indentation width
@@ -19,6 +20,7 @@ module RuboCop
         "Layout/TrailingWhitespace", # Whitespace padding preserves positions but creates trailing spaces
         "Style/BlockDelimiters", # ERB blocks often use do/end across multiple tags
         "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
+        "Style/IfUnlessModifier", # Single-line ERB conditionals cannot be converted to modifier form
         "Style/IfWithSemicolon", # Semicolons are inserted between ERB tags on the same line
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
@@ -27,6 +29,7 @@ module RuboCop
       # These may be removed once HTML visualization is implemented.
       HTML_RELATED_EXCLUDED_COPS = [
         "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
+        "Lint/EmptyBlock", # Block bodies may contain only HTML (no Ruby code)
         "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
         "Lint/EmptyWhen", # When bodies may contain only HTML (no Ruby code)
         "Style/EmptyElse" # Else branches may contain only HTML (no Ruby code)
