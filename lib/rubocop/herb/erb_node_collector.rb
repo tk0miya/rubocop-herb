@@ -212,18 +212,6 @@ module RuboCop
         @nodes << node
       end
 
-      # HTML nodes - traverse body to find nested ERB nodes
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void
-        visit_all(node.body)
-      end
-
-      # Skip HTML text nodes
-      # @rbs _node: ::Herb::AST::HTMLTextNode
-      def visit_html_text_node(_node) #: void
-        # Do nothing - skip HTML text
-      end
-
       private
 
       # Collects ERB nodes from given nodes using a sub-collector.
