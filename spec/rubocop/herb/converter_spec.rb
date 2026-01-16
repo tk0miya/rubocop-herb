@@ -494,5 +494,27 @@ RSpec.describe RuboCop::Herb::Converter do
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
+
+    # Multibyte characters BEFORE ERB tag (regression test for byte offset bug)
+    describe "with multibyte characters before output tag" do
+      let(:source) { "日本語<%= x %>" }
+      let(:expected) { "         _ = x;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with emoji characters before output tag" do
+      let(:source) { "🎉🎉🎉<%= x %>" }
+      let(:expected) { "            _ = x;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with multibyte characters before execution tag" do
+      let(:source) { "あいうえお<% code %>" }
+      let(:expected) { "                  code;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
   end
 end

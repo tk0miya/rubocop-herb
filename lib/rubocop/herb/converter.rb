@@ -162,16 +162,14 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
-        start = node.content.location.start
-        end_ = node.content.location.end
-        source.slice(start.line, start.column, end_.line, end_.column)
+        range = node.content.range
+        source.code.byteslice(range.from, range.to - range.from).force_encoding(source.encoding)
       end
 
       # @rbs node: ::Herb::AST::Node
       def byte_location_for(node) #: [Integer, Integer]
-        start = node.content.location.start
-        end_ = node.content.location.end
-        source.byte_range(start.line, start.column, end_.line, end_.column)
+        range = node.content.range
+        [range.from, range.to]
       end
     end
   end
