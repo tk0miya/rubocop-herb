@@ -2,46 +2,45 @@
 
 module RuboCop
   module Herb
-    # Builds an ErbAst from a Herb AST by extracting only ERB nodes.
-    # HTML nodes are filtered out, preserving the hierarchical structure of ERB nodes.
+    # Builds a filtered ERB AST from a Herb AST by extracting only ERB nodes.
+    # HTML nodes are filtered out, preserving the hierarchical structure.
+    # Returns Herb::AST node instances with filtered children/statements.
     class ErbAstBuilder
-      # Builds an array of ErbAst::Node from a Herb parse result.
+      # Builds an array of Herb AST nodes from a parse result with HTML filtered out.
       # @rbs parse_result: ::Herb::ParseResult
-      def build: (::Herb::ParseResult parse_result) -> Array[ErbAst::Node]
+      def build: (::Herb::ParseResult parse_result) -> Array[::Herb::AST::Node]
 
       private
 
       # Extracts ERB nodes from a collection of Herb AST nodes.
       # HTML nodes are traversed but not included in the result.
       # @rbs nodes: Array[::Herb::AST::Node]
-      def extract_erb_nodes: (Array[::Herb::AST::Node] nodes) -> Array[ErbAst::Node]
+      def extract_erb_nodes: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]
 
       # @rbs node: ::Herb::AST::ERBIfNode
-      def build_if_node: (::Herb::AST::ERBIfNode node) -> ErbAst::Node
+      def build_if_node: (::Herb::AST::ERBIfNode node) -> ::Herb::AST::ERBIfNode
 
-      # Builds nodes from subsequent (elsif/else chain).
       # @rbs subsequent: ::Herb::AST::Node?
-      def build_subsequent_nodes: (::Herb::AST::Node? subsequent) -> Array[ErbAst::Node]
+      def build_subsequent: (::Herb::AST::Node? subsequent) -> ::Herb::AST::Node?
 
       # @rbs node: ::Herb::AST::ERBUnlessNode
-      def build_unless_node: (::Herb::AST::ERBUnlessNode node) -> ErbAst::Node
+      def build_unless_node: (::Herb::AST::ERBUnlessNode node) -> ::Herb::AST::ERBUnlessNode
 
       # @rbs node: ::Herb::AST::ERBCaseNode
-      def build_case_node: (::Herb::AST::ERBCaseNode node) -> ErbAst::Node
+      def build_case_node: (::Herb::AST::ERBCaseNode node) -> ::Herb::AST::ERBCaseNode
 
       # @rbs node: ::Herb::AST::ERBBeginNode
-      def build_begin_node: (::Herb::AST::ERBBeginNode node) -> ErbAst::Node
+      def build_begin_node: (::Herb::AST::ERBBeginNode node) -> ::Herb::AST::ERBBeginNode
 
-      # Builds nodes from rescue chain.
       # @rbs rescue_node: ::Herb::AST::ERBRescueNode?
-      def build_rescue_nodes: (::Herb::AST::ERBRescueNode? rescue_node) -> Array[ErbAst::Node]
+      def build_rescue_chain: (::Herb::AST::ERBRescueNode? rescue_node) -> ::Herb::AST::ERBRescueNode?
 
       # @rbs node: ::Herb::AST::ERBBlockNode
-      def build_block_node: (::Herb::AST::ERBBlockNode node) -> ErbAst::Node
+      def build_block_node: (::Herb::AST::ERBBlockNode node) -> ::Herb::AST::ERBBlockNode
 
       # Builds a loop node (for/while/until).
       # @rbs node: ::Herb::AST::Node
-      def build_loop_node: (::Herb::AST::Node node) -> ErbAst::Node
+      def build_loop_node: (::Herb::AST::Node node) -> ::Herb::AST::Node
     end
   end
 end

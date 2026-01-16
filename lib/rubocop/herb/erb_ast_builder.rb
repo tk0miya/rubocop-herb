@@ -4,12 +4,13 @@ require "herb"
 
 module RuboCop
   module Herb
-    # Builds an ErbAst from a Herb AST by extracting only ERB nodes.
-    # HTML nodes are filtered out, preserving the hierarchical structure of ERB nodes.
+    # Builds a filtered ERB AST from a Herb AST by extracting only ERB nodes.
+    # HTML nodes are filtered out, preserving the hierarchical structure.
+    # Returns Herb::AST node instances with filtered children/statements.
     class ErbAstBuilder # rubocop:disable Metrics/ClassLength
-      # Builds an array of ErbAst::Node from a Herb parse result.
+      # Builds an array of Herb AST nodes from a parse result with HTML filtered out.
       # @rbs parse_result: ::Herb::ParseResult
-      def build(parse_result) #: Array[ErbAst::Node]
+      def build(parse_result) #: Array[::Herb::AST::Node]
         extract_erb_nodes(parse_result.value.children)
       end
 
@@ -18,8 +19,8 @@ module RuboCop
       # Extracts ERB nodes from a collection of Herb AST nodes.
       # HTML nodes are traversed but not included in the result.
       # @rbs nodes: Array[::Herb::AST::Node]
-      def extract_erb_nodes(nodes) #: Array[ErbAst::Node] # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity
-        result = [] #: Array[ErbAst::Node]
+      def extract_erb_nodes(nodes) #: Array[::Herb::AST::Node] # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity
+        result = [] #: Array[::Herb::AST::Node]
 
         nodes.each do |node|
           case node
@@ -35,15 +36,13 @@ module RuboCop
             result << build_block_node(node)
           when ::Herb::AST::ERBForNode, ::Herb::AST::ERBWhileNode, ::Herb::AST::ERBUntilNode
             result << build_loop_node(node)
-          when ::Herb::AST::ERBContentNode, ::Herb::AST::ERBYieldNode
-            result << ErbAst::Node.new(node)
+          when ::Herb::AST::ERBContentNode, ::Herb::AST::ERBYieldNode, ::Herb::AST::ERBEndNode
+            result << node
           when ::Herb::AST::HTMLElementNode
-            # Traverse HTML element's body to find nested ERB nodes
             result.concat(extract_erb_nodes(node.body)) if node.respond_to?(:body) && node.body
           when ::Herb::AST::HTMLTextNode
             # Skip HTML text nodes
           else
-            # For other nodes, try to extract from child_nodes
             result.concat(extract_erb_nodes(node.child_nodes)) if node.respond_to?(:child_nodes)
           end
         end
@@ -52,118 +51,204 @@ module RuboCop
       end
 
       # @rbs node: ::Herb::AST::ERBIfNode
-      def build_if_node(node) #: ErbAst::Node
-        children = extract_erb_nodes(node.statements)
-        children.concat(build_subsequent_nodes(node.subsequent)) if node.subsequent
-        children << ErbAst::Node.new(node.end_node) if node.end_node
-
-        ErbAst::Node.new(node, children)
+      def build_if_node(node) #: ::Herb::AST::ERBIfNode
+        ::Herb::AST::ERBIfNode.new(
+          node.type,
+          node.location,
+          node.errors,
+          node.tag_opening,
+          node.content,
+          node.tag_closing,
+          extract_erb_nodes(node.statements),
+          build_subsequent(node.subsequent),
+          node.end_node
+        )
       end
 
-      # Builds nodes from subsequent (elsif/else chain).
       # @rbs subsequent: ::Herb::AST::Node?
-      def build_subsequent_nodes(subsequent) #: Array[ErbAst::Node]
-        return [] unless subsequent
-
-        result = [] #: Array[ErbAst::Node]
+      def build_subsequent(subsequent) #: ::Herb::AST::Node? # rubocop:disable Metrics/AbcSize
+        return nil unless subsequent
 
         case subsequent
         when ::Herb::AST::ERBIfNode
           # elsif node
-          children = extract_erb_nodes(subsequent.statements)
-          children.concat(build_subsequent_nodes(subsequent.subsequent)) if subsequent.subsequent
-          result << ErbAst::Node.new(subsequent, children)
+          ::Herb::AST::ERBIfNode.new(
+            subsequent.type,
+            subsequent.location,
+            subsequent.errors,
+            subsequent.tag_opening,
+            subsequent.content,
+            subsequent.tag_closing,
+            extract_erb_nodes(subsequent.statements),
+            build_subsequent(subsequent.subsequent),
+            subsequent.end_node
+          )
         when ::Herb::AST::ERBElseNode
-          children = extract_erb_nodes(subsequent.statements)
-          result << ErbAst::Node.new(subsequent, children)
+          ::Herb::AST::ERBElseNode.new(
+            subsequent.type,
+            subsequent.location,
+            subsequent.errors,
+            subsequent.tag_opening,
+            subsequent.content,
+            subsequent.tag_closing,
+            extract_erb_nodes(subsequent.statements)
+          )
         end
-
-        result
       end
 
       # @rbs node: ::Herb::AST::ERBUnlessNode
-      def build_unless_node(node) #: ErbAst::Node
-        children = extract_erb_nodes(node.statements)
-        if node.else_clause
-          else_children = extract_erb_nodes(node.else_clause.statements)
-          children << ErbAst::Node.new(node.else_clause, else_children)
-        end
-        children << ErbAst::Node.new(node.end_node) if node.end_node
+      def build_unless_node(node) #: ::Herb::AST::ERBUnlessNode # rubocop:disable Metrics/AbcSize
+        else_clause = if node.else_clause
+                        ::Herb::AST::ERBElseNode.new(
+                          node.else_clause.type,
+                          node.else_clause.location,
+                          node.else_clause.errors,
+                          node.else_clause.tag_opening,
+                          node.else_clause.content,
+                          node.else_clause.tag_closing,
+                          extract_erb_nodes(node.else_clause.statements)
+                        )
+                      end
 
-        ErbAst::Node.new(node, children)
+        ::Herb::AST::ERBUnlessNode.new(
+          node.type,
+          node.location,
+          node.errors,
+          node.tag_opening,
+          node.content,
+          node.tag_closing,
+          extract_erb_nodes(node.statements),
+          else_clause,
+          node.end_node
+        )
       end
 
       # @rbs node: ::Herb::AST::ERBCaseNode
-      def build_case_node(node) #: ErbAst::Node
-        children = [] #: Array[ErbAst::Node]
-
-        node.conditions.each do |when_node|
-          when_children = extract_erb_nodes(when_node.statements)
-          children << ErbAst::Node.new(when_node, when_children)
+      def build_case_node(node) #: ::Herb::AST::ERBCaseNode # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+        conditions = node.conditions.map do |when_node|
+          ::Herb::AST::ERBWhenNode.new(
+            when_node.type,
+            when_node.location,
+            when_node.errors,
+            when_node.tag_opening,
+            when_node.content,
+            when_node.tag_closing,
+            extract_erb_nodes(when_node.statements)
+          )
         end
 
-        if node.else_clause
-          else_children = extract_erb_nodes(node.else_clause.statements)
-          children << ErbAst::Node.new(node.else_clause, else_children)
-        end
+        else_clause = if node.else_clause
+                        ::Herb::AST::ERBElseNode.new(
+                          node.else_clause.type,
+                          node.else_clause.location,
+                          node.else_clause.errors,
+                          node.else_clause.tag_opening,
+                          node.else_clause.content,
+                          node.else_clause.tag_closing,
+                          extract_erb_nodes(node.else_clause.statements)
+                        )
+                      end
 
-        children << ErbAst::Node.new(node.end_node) if node.end_node
-
-        ErbAst::Node.new(node, children)
+        ::Herb::AST::ERBCaseNode.new(
+          node.type,
+          node.location,
+          node.errors,
+          node.tag_opening,
+          node.content,
+          node.tag_closing,
+          node.children,
+          conditions,
+          else_clause,
+          node.end_node
+        )
       end
 
       # @rbs node: ::Herb::AST::ERBBeginNode
-      def build_begin_node(node) #: ErbAst::Node # rubocop:disable Metrics/AbcSize
-        children = extract_erb_nodes(node.statements)
-        children.concat(build_rescue_nodes(node.rescue_clause)) if node.rescue_clause
+      def build_begin_node(node) #: ::Herb::AST::ERBBeginNode # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+        rescue_clause = build_rescue_chain(node.rescue_clause)
 
-        if node.else_clause
-          else_children = extract_erb_nodes(node.else_clause.statements)
-          children << ErbAst::Node.new(node.else_clause, else_children)
-        end
+        else_clause = if node.else_clause
+                        ::Herb::AST::ERBElseNode.new(
+                          node.else_clause.type,
+                          node.else_clause.location,
+                          node.else_clause.errors,
+                          node.else_clause.tag_opening,
+                          node.else_clause.content,
+                          node.else_clause.tag_closing,
+                          extract_erb_nodes(node.else_clause.statements)
+                        )
+                      end
 
-        if node.ensure_clause
-          ensure_children = extract_erb_nodes(node.ensure_clause.statements)
-          children << ErbAst::Node.new(node.ensure_clause, ensure_children)
-        end
+        ensure_clause = if node.ensure_clause
+                          ::Herb::AST::ERBEnsureNode.new(
+                            node.ensure_clause.type,
+                            node.ensure_clause.location,
+                            node.ensure_clause.errors,
+                            node.ensure_clause.tag_opening,
+                            node.ensure_clause.content,
+                            node.ensure_clause.tag_closing,
+                            extract_erb_nodes(node.ensure_clause.statements)
+                          )
+                        end
 
-        children << ErbAst::Node.new(node.end_node) if node.end_node
-
-        ErbAst::Node.new(node, children)
+        ::Herb::AST::ERBBeginNode.new(
+          node.type,
+          node.location,
+          node.errors,
+          node.tag_opening,
+          node.content,
+          node.tag_closing,
+          extract_erb_nodes(node.statements),
+          rescue_clause,
+          else_clause,
+          ensure_clause,
+          node.end_node
+        )
       end
 
-      # Builds nodes from rescue chain.
       # @rbs rescue_node: ::Herb::AST::ERBRescueNode?
-      def build_rescue_nodes(rescue_node) #: Array[ErbAst::Node]
-        return [] unless rescue_node
+      def build_rescue_chain(rescue_node) #: ::Herb::AST::ERBRescueNode?
+        return nil unless rescue_node
 
-        result = [] #: Array[ErbAst::Node]
-        current = rescue_node
-
-        while current
-          children = extract_erb_nodes(current.statements)
-          result << ErbAst::Node.new(current, children)
-          current = current.subsequent
-        end
-
-        result
+        ::Herb::AST::ERBRescueNode.new(
+          rescue_node.type,
+          rescue_node.location,
+          rescue_node.errors,
+          rescue_node.tag_opening,
+          rescue_node.content,
+          rescue_node.tag_closing,
+          extract_erb_nodes(rescue_node.statements),
+          build_rescue_chain(rescue_node.subsequent)
+        )
       end
 
       # @rbs node: ::Herb::AST::ERBBlockNode
-      def build_block_node(node) #: ErbAst::Node
-        children = extract_erb_nodes(node.body)
-        children << ErbAst::Node.new(node.end_node) if node.end_node
-
-        ErbAst::Node.new(node, children)
+      def build_block_node(node) #: ::Herb::AST::ERBBlockNode
+        ::Herb::AST::ERBBlockNode.new(
+          node.type,
+          node.location,
+          node.errors,
+          node.tag_opening,
+          node.content,
+          node.tag_closing,
+          extract_erb_nodes(node.body),
+          node.end_node
+        )
       end
 
       # Builds a loop node (for/while/until).
       # @rbs node: ::Herb::AST::Node
-      def build_loop_node(node) #: ErbAst::Node
-        children = extract_erb_nodes(node.statements)
-        children << ErbAst::Node.new(node.end_node) if node.end_node
-
-        ErbAst::Node.new(node, children)
+      def build_loop_node(node) #: ::Herb::AST::Node
+        node.class.new(
+          node.type,
+          node.location,
+          node.errors,
+          node.tag_opening,
+          node.content,
+          node.tag_closing,
+          extract_erb_nodes(node.statements),
+          node.end_node
+        )
       end
     end
   end
