@@ -78,7 +78,7 @@ module RuboCop
 
         # Write comment content with '#' at the beginning of each line
         ruby_code = ruby_code_for(node)
-        range = byte_range_for(node)
+        range = node.content.range
         hash_column = node.tag_opening.location.start.column + 2
         formatted_code = format_multiline_comment(ruby_code, hash_column)
         buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
@@ -109,9 +109,9 @@ module RuboCop
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
       # @rbs next_node: ::Herb::AST::Node?
-      def render_code_node(buffer, node, next_node) #: void
+      def render_code_node(buffer, node, next_node) #: void # rubocop:disable Metrics/AbcSize
         ruby_code = ruby_code_for(node)
-        range = byte_range_for(node)
+        range = node.content.range
         buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
 
         trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
@@ -163,11 +163,6 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
         source.byteslice(node.content.range)
-      end
-
-      # @rbs node: ::Herb::AST::Node
-      def byte_range_for(node) #: ::Herb::Range
-        node.content.range
       end
     end
   end
