@@ -8,23 +8,8 @@ module RuboCop
       # @rbs code: String
       def initialize: (String code) -> void
 
-      def lines: () -> Array[String]
-
-      def offsets: () -> Array[Integer]
-
-      def byte_offsets: () -> Array[Integer]
-
-      # @rbs start_line: Integer
-      # @rbs start_column: Integer -- byte offset within the line
-      # @rbs end_line: Integer
-      # @rbs end_column: Integer -- byte offset within the line
-      def slice: (Integer start_line, Integer start_column, Integer end_line, Integer end_column) -> String
-
-      # @rbs start_line: Integer
-      # @rbs start_column: Integer -- byte offset within the line
-      # @rbs end_line: Integer
-      # @rbs end_column: Integer -- byte offset within the line
-      def byte_range: (Integer start_line, Integer start_column, Integer end_line, Integer end_column) -> [ Integer, Integer ]
+      # @rbs range: ::Herb::Range
+      def byteslice: (::Herb::Range range) -> String
 
       def encoding: () -> Encoding
     end

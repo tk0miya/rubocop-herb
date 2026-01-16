@@ -69,7 +69,7 @@ module RuboCop
       def ruby_code_for: (::Herb::AST::Node node) -> String
 
       # @rbs node: ::Herb::AST::Node
-      def byte_location_for: (::Herb::AST::Node node) -> [ Integer, Integer ]
+      def byte_range_for: (::Herb::AST::Node node) -> ::Herb::Range
     end
   end
 end
