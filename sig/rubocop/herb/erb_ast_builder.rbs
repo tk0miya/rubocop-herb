@@ -6,73 +6,78 @@ module RuboCop
     # HTML nodes are filtered out, preserving the hierarchical structure.
     # Returns Herb::AST node instances with filtered children/statements.
     class ErbAstBuilder < ::Herb::Visitor
-      # Builds an array of Herb AST nodes from a parse result with HTML filtered out.
+      attr_reader result: Array[::Herb::AST::Node]
+
+      def initialize: () -> void
+
+      # Shorthand for building a filtered ERB AST from a parse result.
       # @rbs parse_result: ::Herb::ParseResult
-      def build: (::Herb::ParseResult parse_result) -> Array[::Herb::AST::Node]
+      def self.build: (::Herb::ParseResult parse_result) -> Array[::Herb::AST::Node]
 
       # @rbs node: ::Herb::AST::ERBIfNode
-      def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> ::Herb::AST::ERBIfNode
+      def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBElseNode
-      def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> ::Herb::AST::ERBElseNode
+      def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBUnlessNode
-      def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> ::Herb::AST::ERBUnlessNode
+      def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBCaseNode
-      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> ::Herb::AST::ERBCaseNode
+      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBWhenNode
-      def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> ::Herb::AST::ERBWhenNode
+      def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBBeginNode
-      def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> ::Herb::AST::ERBBeginNode
+      def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBRescueNode
-      def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> ::Herb::AST::ERBRescueNode
+      def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBEnsureNode
-      def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> ::Herb::AST::ERBEnsureNode
+      def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBBlockNode
-      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBForNode
-      def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> ::Herb::AST::ERBForNode
+      def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBWhileNode
-      def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> ::Herb::AST::ERBWhileNode
+      def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBUntilNode
-      def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> ::Herb::AST::ERBUntilNode
+      def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
 
-      # Terminal ERB nodes - return as-is
+      # Terminal ERB nodes - add as-is
       # @rbs node: ::Herb::AST::ERBContentNode
-      def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> ::Herb::AST::ERBContentNode
+      def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBYieldNode
-      def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> ::Herb::AST::ERBYieldNode
+      def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
 
       # @rbs node: ::Herb::AST::ERBEndNode
-      def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> ::Herb::AST::ERBEndNode
+      def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
-      # HTML nodes - traverse body but don't include the node itself
+      # HTML nodes - traverse body to find nested ERB nodes
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> Array[::Herb::AST::Node]
+      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
       # Skip HTML text nodes
       # @rbs _node: ::Herb::AST::HTMLTextNode
-      def visit_html_text_node: (untyped _node) -> nil
-
-      # Default: try to visit child nodes
-      # @rbs node: ::Herb::AST::Node
-      def visit_child_nodes: (::Herb::AST::Node node) -> Array[::Herb::AST::Node]
+      def visit_html_text_node: (untyped _node) -> void
 
       private
 
-      # Visits an array of nodes and filters out nil values and flattens arrays.
+      # Visits children and returns the collected results.
       # @rbs nodes: Array[::Herb::AST::Node]
-      def visit_statements: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]
+      def visit_children: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]
+
+      # Transforms a single node using a sub-visitor.
+      # Returns nil if the node is nil, otherwise the first result.
+      # @rbs node: ::Herb::AST::Node?
+      def transform: (::Herb::AST::Node? node) -> ::Herb::AST::Node?
     end
   end
 end
