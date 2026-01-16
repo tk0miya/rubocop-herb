@@ -4,6 +4,7 @@
 require_relative "herb/configuration"
 require_relative "herb/converter"
 require_relative "herb/erb_node_collector"
+require_relative "herb/erb_node_renderer"
 require_relative "herb/extractor"
 require_relative "herb/plugin"
 require_relative "herb/source"

@@ -13,21 +13,6 @@ module RuboCop
 
       SPACE: ::Integer
 
-      SEMICOLON: ::Integer
-
-      HASH: ::Integer
-
-      UNDERSCORE: ::Integer
-
-      EQUALS: ::Integer
-
-      # Node types that indicate the end of a control flow branch
-      # Note: ERBEndNode is NOT included because `end` can close both
-      # control flow constructs (if/case) and iterator blocks (each/times).
-      # For iterators, the block return value is discarded, so we need
-      # the _ = marker to avoid Lint/Void warnings.
-      BRANCH_BOUNDARY_NODES: Array[class]
-
       # @rbs source: String
       def convert: (String source) -> String?
 
@@ -35,57 +20,8 @@ module RuboCop
 
       def build_ruby_code: () -> String
 
-      # Recursively renders ERB nodes and their children.
-      # The parent_next_sibling is passed to handle tail expressions at the end of blocks.
-      # @rbs buffer: Array[Integer]
-      # @rbs nodes: Array[::Herb::AST::Node]
-      # @rbs parent_next_sibling: ::Herb::AST::Node?
-      def render_erb_nodes: (Array[Integer] buffer, Array[::Herb::AST::Node] nodes, ::Herb::AST::Node? parent_next_sibling) -> void
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      # @rbs next_sibling: ::Herb::AST::Node?
-      def render_erb_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_sibling) -> void
-
-      # Returns the filtered children of a node based on its type.
-      # @rbs node: ::Herb::AST::Node
-      def children_of: (::Herb::AST::Node node) -> Array[::Herb::AST::Node]
-
-      # Filters out comments that share the same line with other ERB nodes.
-      # @rbs nodes: Array[::Herb::AST::Node]
-      def filter_comments: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]
-
-      # @rbs node: ::Herb::AST::Node
-      def comment_node?: (::Herb::AST::Node node) -> bool
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      def render_comment_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
-
-      # @rbs code: String
-      # @rbs hash_column: Integer
-      def format_multiline_comment: (String code, Integer hash_column) -> String
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
-
-      # @rbs node: ::Herb::AST::Node
-      def output_node?: (::Herb::AST::Node node) -> bool
-
-      # @rbs next_node: ::Herb::AST::Node?
-      def tail_of_branch?: (::Herb::AST::Node? next_node) -> bool
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      def render_output_marker: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
-
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]
-
-      # @rbs node: ::Herb::AST::Node
-      def ruby_code_for: (::Herb::AST::Node node) -> String
     end
   end
 end
