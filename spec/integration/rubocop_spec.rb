@@ -41,4 +41,38 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       expect(offenses).to eq []
     end
   end
+
+  context "when analyzing if-else-end with output tags" do
+    let(:source) do
+      <<~ERB
+        <% if condition %>
+          <%= value1 %>
+        <% else %>
+          <%= value2 %>
+        <% end %>
+      ERB
+    end
+
+    it "does not trigger Style/ConditionalAssignment" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map(&:cop_name)
+      expect(offenses).not_to include("Style/ConditionalAssignment")
+    end
+  end
+
+  context "when analyzing each block with output tags" do
+    let(:source) do
+      <<~ERB
+        <% items.each do |item| %>
+          <%= item %>
+        <% end %>
+      ERB
+    end
+
+    it "does not trigger Lint/Void" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map(&:cop_name)
+      expect(offenses).not_to include("Lint/Void")
+    end
+  end
 end
