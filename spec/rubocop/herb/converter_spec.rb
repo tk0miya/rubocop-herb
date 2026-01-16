@@ -521,5 +521,23 @@ RSpec.describe RuboCop::Herb::Converter do
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
+
+    # HTML errors should not prevent Ruby extraction
+    describe "with HTML errors (missing closing tags)" do
+      let(:source) do
+        ["<html>",
+         "  <%= form_with do %>",
+         "  <% end %>",
+         "<html>"].join("\n")
+      end
+      let(:expected) do
+        ["      ",
+         "  _ = form_with do;  ",
+         "     end;  ",
+         "      "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
   end
 end
