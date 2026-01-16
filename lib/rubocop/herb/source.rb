@@ -23,13 +23,13 @@ module RuboCop
       end
 
       # @rbs start_line: Integer
-      # @rbs start_column: Integer
+      # @rbs start_column: Integer -- byte offset within the line
       # @rbs end_line: Integer
-      # @rbs end_column: Integer
+      # @rbs end_column: Integer -- byte offset within the line
       def slice(start_line, start_column, end_line, end_column) #: String
-        from = offsets[start_line - 1] + start_column
-        to = offsets[end_line - 1] + end_column
-        code[from...to]
+        from = byte_offsets[start_line - 1] + start_column
+        to = byte_offsets[end_line - 1] + end_column
+        code.byteslice(from, to - from).force_encoding(code.encoding)
       end
 
       # @rbs start_line: Integer

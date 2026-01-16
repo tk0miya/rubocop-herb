@@ -116,6 +116,7 @@ RSpec.describe RuboCop::Herb::Source do
 
     context "with multibyte characters" do
       let(:code) { "こんにちは\nworld" }
+      let(:end_column) { 15 } # 5 chars × 3 bytes = 15 bytes
 
       it "extracts multibyte substring correctly" do
         expect(subject).to eq("こんにちは")
