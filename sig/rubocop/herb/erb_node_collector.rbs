@@ -6,7 +6,7 @@ module RuboCop
     # Preserves the hierarchical structure of ERB nodes.
     # Returns Herb::AST node instances with filtered children/statements.
     class ErbNodeCollector < ::Herb::Visitor
-      attr_reader result: Array[::Herb::AST::Node]
+      attr_reader nodes: Array[::Herb::AST::Node]
 
       def initialize: () -> void
 

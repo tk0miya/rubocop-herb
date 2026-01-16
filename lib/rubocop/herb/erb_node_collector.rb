@@ -8,10 +8,10 @@ module RuboCop
     # Preserves the hierarchical structure of ERB nodes.
     # Returns Herb::AST node instances with filtered children/statements.
     class ErbNodeCollector < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
-      attr_reader :result #: Array[::Herb::AST::Node]
+      attr_reader :nodes #: Array[::Herb::AST::Node]
 
       def initialize #: void
-        @result = []
+        @nodes = []
 
         super
       end
@@ -21,12 +21,12 @@ module RuboCop
       def self.collect(parse_result) #: Array[::Herb::AST::Node]
         collector = new
         parse_result.visit(collector)
-        collector.result
+        collector.nodes
       end
 
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
-        @result << ::Herb::AST::ERBIfNode.new(
+        @nodes << ::Herb::AST::ERBIfNode.new(
           node.type,
           node.location,
           node.errors,
@@ -41,7 +41,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
-        @result << ::Herb::AST::ERBElseNode.new(
+        @nodes << ::Herb::AST::ERBElseNode.new(
           node.type,
           node.location,
           node.errors,
@@ -54,7 +54,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node(node) #: void
-        @result << ::Herb::AST::ERBUnlessNode.new(
+        @nodes << ::Herb::AST::ERBUnlessNode.new(
           node.type,
           node.location,
           node.errors,
@@ -69,7 +69,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBCaseNode
       def visit_erb_case_node(node) #: void
-        @result << ::Herb::AST::ERBCaseNode.new(
+        @nodes << ::Herb::AST::ERBCaseNode.new(
           node.type,
           node.location,
           node.errors,
@@ -85,7 +85,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
-        @result << ::Herb::AST::ERBWhenNode.new(
+        @nodes << ::Herb::AST::ERBWhenNode.new(
           node.type,
           node.location,
           node.errors,
@@ -98,7 +98,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBBeginNode
       def visit_erb_begin_node(node) #: void
-        @result << ::Herb::AST::ERBBeginNode.new(
+        @nodes << ::Herb::AST::ERBBeginNode.new(
           node.type,
           node.location,
           node.errors,
@@ -115,7 +115,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node(node) #: void
-        @result << ::Herb::AST::ERBRescueNode.new(
+        @nodes << ::Herb::AST::ERBRescueNode.new(
           node.type,
           node.location,
           node.errors,
@@ -129,7 +129,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node(node) #: void
-        @result << ::Herb::AST::ERBEnsureNode.new(
+        @nodes << ::Herb::AST::ERBEnsureNode.new(
           node.type,
           node.location,
           node.errors,
@@ -142,7 +142,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
-        @result << ::Herb::AST::ERBBlockNode.new(
+        @nodes << ::Herb::AST::ERBBlockNode.new(
           node.type,
           node.location,
           node.errors,
@@ -156,7 +156,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBForNode
       def visit_erb_for_node(node) #: void
-        @result << ::Herb::AST::ERBForNode.new(
+        @nodes << ::Herb::AST::ERBForNode.new(
           node.type,
           node.location,
           node.errors,
@@ -170,7 +170,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBWhileNode
       def visit_erb_while_node(node) #: void
-        @result << ::Herb::AST::ERBWhileNode.new(
+        @nodes << ::Herb::AST::ERBWhileNode.new(
           node.type,
           node.location,
           node.errors,
@@ -184,7 +184,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBUntilNode
       def visit_erb_until_node(node) #: void
-        @result << ::Herb::AST::ERBUntilNode.new(
+        @nodes << ::Herb::AST::ERBUntilNode.new(
           node.type,
           node.location,
           node.errors,
@@ -199,17 +199,17 @@ module RuboCop
       # Terminal ERB nodes - add as-is
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
-        @result << node
+        @nodes << node
       end
 
       # @rbs node: ::Herb::AST::ERBYieldNode
       def visit_erb_yield_node(node) #: void
-        @result << node
+        @nodes << node
       end
 
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node(node) #: void
-        @result << node
+        @nodes << node
       end
 
       # HTML nodes - traverse body to find nested ERB nodes
@@ -231,7 +231,7 @@ module RuboCop
       def visit_children(nodes) #: Array[::Herb::AST::Node]
         visitor = self.class.new
         visitor.visit_all(nodes)
-        visitor.result
+        visitor.nodes
       end
 
       # Transforms a single node using a sub-visitor.
@@ -242,7 +242,7 @@ module RuboCop
 
         visitor = self.class.new
         node.accept(visitor)
-        visitor.result.first
+        visitor.nodes.first
       end
     end
   end
