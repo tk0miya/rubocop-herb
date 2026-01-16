@@ -4,10 +4,10 @@ require "herb"
 
 module RuboCop
   module Herb
-    # Builds a filtered ERB AST from a Herb AST by extracting only ERB nodes.
-    # HTML nodes are filtered out, preserving the hierarchical structure.
+    # Collects ERB nodes from a Herb AST, filtering out HTML nodes.
+    # Preserves the hierarchical structure of ERB nodes.
     # Returns Herb::AST node instances with filtered children/statements.
-    class ErbAstBuilder < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
+    class ErbNodeCollector < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       attr_reader :result #: Array[::Herb::AST::Node]
 
       def initialize #: void
@@ -16,12 +16,12 @@ module RuboCop
         super
       end
 
-      # Shorthand for building a filtered ERB AST from a parse result.
+      # Shorthand for collecting ERB nodes from a parse result.
       # @rbs parse_result: ::Herb::ParseResult
-      def self.build(parse_result) #: Array[::Herb::AST::Node]
-        visitor = new
-        parse_result.visit(visitor)
-        visitor.result
+      def self.collect(parse_result) #: Array[::Herb::AST::Node]
+        collector = new
+        parse_result.visit(collector)
+        collector.result
       end
 
       # @rbs node: ::Herb::AST::ERBIfNode

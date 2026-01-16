@@ -42,7 +42,7 @@ module RuboCop
       private
 
       def build_ruby_code #: String
-        erb_nodes = ErbAstBuilder.build(parse_result)
+        erb_nodes = ErbNodeCollector.collect(parse_result)
 
         buffer = bleach_code(source.code)
         render_erb_nodes(buffer, filter_comments(erb_nodes), nil)
