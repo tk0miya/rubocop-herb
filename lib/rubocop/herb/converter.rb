@@ -16,20 +16,6 @@ module RuboCop
       UNDERSCORE = 0x5F
       EQUALS = 0x3D
 
-      # Node types that indicate the end of a control flow branch
-      # Note: ERBEndNode is NOT included because `end` can close both
-      # control flow constructs (if/case) and iterator blocks (each/times).
-      # For iterators, the block return value is discarded, so we need
-      # the _ = marker to avoid Lint/Void warnings.
-      BRANCH_BOUNDARY_NODES = [
-        ::Herb::AST::ERBElseNode,
-        ::Herb::AST::ERBIfNode, # includes elsif
-        ::Herb::AST::ERBWhenNode,
-        ::Herb::AST::ERBRescueNode,
-        ::Herb::AST::ERBEnsureNode,
-        ::Herb::AST::ERBInNode
-      ].freeze #: Array[class]
-
       # @rbs source: String
       def convert(source) #: String?
         @source = Source.new(source)
@@ -46,11 +32,12 @@ module RuboCop
         collector = ErbNodeCollector.new
         parse_result.visit(collector)
 
-        buffer = bleach_code(source.code)
         nodes = collector.filtered_nodes
-        nodes.each_with_index do |node, index|
-          next_node = nodes[index + 1]
-          render_node(buffer, node, next_node)
+        branch_tails = collector.branch_tail_nodes
+
+        buffer = bleach_code(source.code)
+        nodes.each do |node|
+          render_node(buffer, node, branch_tails)
         end
 
         buffer.pack("C*").force_encoding(source.encoding)
@@ -58,12 +45,12 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_node(buffer, node, next_node) #: void
+      # @rbs branch_tails: Set[::Herb::AST::Node]
+      def render_node(buffer, node, branch_tails) #: void
         if comment_node?(node)
           render_comment_node(buffer, node)
         else
-          render_code_node(buffer, node, next_node)
+          render_code_node(buffer, node, branch_tails)
         end
       end
 
@@ -111,8 +98,8 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_code_node(buffer, node, next_node) #: void # rubocop:disable Metrics/AbcSize
+      # @rbs branch_tails: Set[::Herb::AST::Node]
+      def render_code_node(buffer, node, branch_tails) #: void # rubocop:disable Metrics/AbcSize
         ruby_code = ruby_code_for(node)
         range = node.content.range
         buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
@@ -121,23 +108,16 @@ module RuboCop
         semicolon_pos = range.to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
 
-        # Skip output marker if this is the tail expression of a branch
-        # (followed by control keywords like end, else, elsif, etc.)
+        # Skip output marker if this is the tail expression of a branch.
+        # Branch tails are identified via AST structure (e.g., last statement in if/else).
         # The tail expression's value is used as the branch's return value,
-        # so Lint/Void won't trigger and we avoid Style/ConditionalAssignment
-        render_output_marker(buffer, node) if output_node?(node) && !tail_of_branch?(next_node)
+        # so Lint/Void won't trigger and we avoid Style/ConditionalAssignment.
+        render_output_marker(buffer, node) if output_node?(node) && !branch_tails.include?(node)
       end
 
       # @rbs node: ::Herb::AST::Node
       def output_node?(node) #: bool
         node.tag_opening.value == "<%="
-      end
-
-      # @rbs next_node: ::Herb::AST::Node?
-      def tail_of_branch?(next_node) #: bool
-        return false unless next_node
-
-        BRANCH_BOUNDARY_NODES.any? { |klass| next_node.is_a?(klass) }
       end
 
       # @rbs buffer: Array[Integer]

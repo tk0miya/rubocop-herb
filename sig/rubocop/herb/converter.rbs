@@ -21,13 +21,6 @@ module RuboCop
 
       EQUALS: ::Integer
 
-      # Node types that indicate the end of a control flow branch
-      # Note: ERBEndNode is NOT included because `end` can close both
-      # control flow constructs (if/case) and iterator blocks (each/times).
-      # For iterators, the block return value is discarded, so we need
-      # the _ = marker to avoid Lint/Void warnings.
-      BRANCH_BOUNDARY_NODES: Array[class]
-
       # @rbs source: String
       def convert: (String source) -> String?
 
@@ -37,8 +30,8 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
+      # @rbs branch_tails: Set[::Herb::AST::Node]
+      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node, Set[::Herb::AST::Node] branch_tails) -> void
 
       # @rbs node: ::Herb::AST::Node
       def comment_node?: (::Herb::AST::Node node) -> bool
@@ -53,14 +46,11 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
+      # @rbs branch_tails: Set[::Herb::AST::Node]
+      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node, Set[::Herb::AST::Node] branch_tails) -> void
 
       # @rbs node: ::Herb::AST::Node
       def output_node?: (::Herb::AST::Node node) -> bool
-
-      # @rbs next_node: ::Herb::AST::Node?
-      def tail_of_branch?: (::Herb::AST::Node? next_node) -> bool
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node

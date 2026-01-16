@@ -297,8 +297,9 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with multiple ERB nodes on single line" do
       let(:source) { "<% if user %><%= user.name %><% end %>" }
-      let(:expected) { "   if user;  _ = user.name;     end;  " }
+      let(:expected) { "   if user;      user.name;     end;  " }
 
+      # user.name has no _ = because it's the tail expression of the if branch
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
@@ -314,12 +315,13 @@ RSpec.describe RuboCop::Herb::Converter do
         ["   if condition;  ",
          "      value1;  ",
          "   else;  ",
-         "  _ = value2;  ",
+         "      value2;  ",
          "   end;  "].join("\n")
       end
 
-      # value1 has no _ = because it's before else (branch boundary)
-      # value2 has _ = because it's before end (not a branch boundary)
+      # Both value1 and value2 have no _ = because they're tail expressions
+      # of their respective branches (if and else). This avoids
+      # Style/ConditionalAssignment while still being valid Ruby.
       it_behaves_like "a Ruby code extractor for ERB"
     end
 

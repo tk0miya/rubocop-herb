@@ -5,6 +5,8 @@ module RuboCop
     class ErbNodeCollector < ::Herb::Visitor
       attr_reader nodes: Array[::Herb::AST::Node]
 
+      attr_reader branch_tail_nodes: Set[::Herb::AST::Node]
+
       def initialize: () -> void
 
       # @rbs node: ::Herb::AST::Node
@@ -16,6 +18,19 @@ module RuboCop
       def filtered_nodes: () -> Array[::Herb::AST::Node]
 
       private
+
+      # @rbs statements: Array[::Herb::AST::Node]?
+      def mark_branch_tail: (Array[::Herb::AST::Node]? statements) -> void
+
+      # Returns the last ERB node if it's an output tag.
+      # - ERBContentNode: <%= expr %>
+      # - ERBBlockNode: <%= expr do %>...<% end %>
+      #
+      # If the last ERB node is an execution tag (<% %>), returns nil
+      # because output tags before it are not tail expressions.
+      #
+      # @rbs statements: Array[::Herb::AST::Node]
+      def find_tail_expression: (Array[::Herb::AST::Node] statements) -> ::Herb::AST::Node?
 
       # @rbs nodes: Array[::Herb::AST::Node]
       def filter_comments_on_same_line: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]

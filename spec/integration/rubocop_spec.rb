@@ -75,4 +75,24 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       expect(offenses).to eq []
     end
   end
+
+  context "when analyzing if-else-end with nested block" do
+    let(:source) do
+      <<~ERB
+        <% if condition %>
+          <%= wrapper do %>
+            <%= inner %>
+           <% end %>
+        <% else %>
+          <%= other %>
+        <% end %>
+      ERB
+    end
+
+    it "does not trigger Style/ConditionalAssignment" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map(&:cop_name)
+      expect(offenses).to eq []
+    end
+  end
 end
