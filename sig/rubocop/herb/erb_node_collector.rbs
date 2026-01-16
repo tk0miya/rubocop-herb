@@ -70,14 +70,10 @@ module RuboCop
 
       private
 
-      # Visits children and returns the collected results.
-      # @rbs nodes: Array[::Herb::AST::Node]
-      def visit_children: (Array[::Herb::AST::Node] nodes) -> Array[::Herb::AST::Node]
-
-      # Transforms a single node using a sub-visitor.
-      # Returns nil if the node is nil, otherwise the first result.
-      # @rbs node: ::Herb::AST::Node?
-      def transform: (::Herb::AST::Node? node) -> ::Herb::AST::Node?
+      # Collects ERB nodes from given nodes using a sub-collector.
+      # Accepts an array or a single node.
+      # @rbs nodes: Array[::Herb::AST::Node] | ::Herb::AST::Node | nil
+      def collect: (Array[::Herb::AST::Node] | ::Herb::AST::Node | nil nodes) -> Array[::Herb::AST::Node]
     end
   end
 end

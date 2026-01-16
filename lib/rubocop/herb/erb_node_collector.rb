@@ -33,8 +33,8 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
-          transform(node.subsequent),
+          collect(node.statements),
+          collect(node.subsequent).first,
           node.end_node
         )
       end
@@ -48,7 +48,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements)
+          collect(node.statements)
         )
       end
 
@@ -61,8 +61,8 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
-          transform(node.else_clause),
+          collect(node.statements),
+          collect(node.else_clause).first,
           node.end_node
         )
       end
@@ -77,8 +77,8 @@ module RuboCop
           node.content,
           node.tag_closing,
           node.children,
-          node.conditions.map { |c| transform(c) }.compact,
-          transform(node.else_clause),
+          node.conditions.map { |c| collect(c).first }.compact,
+          collect(node.else_clause).first,
           node.end_node
         )
       end
@@ -92,7 +92,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements)
+          collect(node.statements)
         )
       end
 
@@ -105,10 +105,10 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
-          transform(node.rescue_clause),
-          transform(node.else_clause),
-          transform(node.ensure_clause),
+          collect(node.statements),
+          collect(node.rescue_clause).first,
+          collect(node.else_clause).first,
+          collect(node.ensure_clause).first,
           node.end_node
         )
       end
@@ -122,8 +122,8 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
-          transform(node.subsequent)
+          collect(node.statements),
+          collect(node.subsequent).first
         )
       end
 
@@ -136,7 +136,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements)
+          collect(node.statements)
         )
       end
 
@@ -149,7 +149,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.body),
+          collect(node.body),
           node.end_node
         )
       end
@@ -163,7 +163,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
+          collect(node.statements),
           node.end_node
         )
       end
@@ -177,7 +177,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
+          collect(node.statements),
           node.end_node
         )
       end
@@ -191,7 +191,7 @@ module RuboCop
           node.tag_opening,
           node.content,
           node.tag_closing,
-          visit_children(node.statements),
+          collect(node.statements),
           node.end_node
         )
       end
@@ -226,23 +226,13 @@ module RuboCop
 
       private
 
-      # Visits children and returns the collected results.
-      # @rbs nodes: Array[::Herb::AST::Node]
-      def visit_children(nodes) #: Array[::Herb::AST::Node]
-        visitor = self.class.new
-        visitor.visit_all(nodes)
-        visitor.nodes
-      end
-
-      # Transforms a single node using a sub-visitor.
-      # Returns nil if the node is nil, otherwise the first result.
-      # @rbs node: ::Herb::AST::Node?
-      def transform(node) #: ::Herb::AST::Node?
-        return nil unless node
-
-        visitor = self.class.new
-        node.accept(visitor)
-        visitor.nodes.first
+      # Collects ERB nodes from given nodes using a sub-collector.
+      # Accepts an array or a single node.
+      # @rbs nodes: Array[::Herb::AST::Node] | ::Herb::AST::Node | nil
+      def collect(nodes) #: Array[::Herb::AST::Node]
+        collector = self.class.new
+        collector.visit_all(Array(nodes).compact)
+        collector.nodes
       end
     end
   end
