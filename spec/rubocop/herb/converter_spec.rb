@@ -26,7 +26,7 @@ RSpec.describe RuboCop::Herb::Converter do
     # Basic ERB tags
     describe "with a content ERB tag" do
       let(:source) { "<div><%= user.name %></div>" }
-      let(:expected) { "         user.name;        " }
+      let(:expected) { "     _ = user.name;        " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -152,7 +152,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["    ",
          "     users.each do |user|;  ",
-         "            user.name;       ",
+         "        _ = user.name;       ",
          "     end;  ",
          "     "].join("\n")
       end
@@ -171,7 +171,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["     ",
          "     3.times do |i|;  ",
-         "           i;      ",
+         "       _ = i;      ",
          "     end;  ",
          "      "].join("\n")
       end
@@ -190,7 +190,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["    ",
          "     for item in items;  ",
-         "            item;       ",
+         "        _ = item;       ",
          "     end;  ",
          "     "].join("\n")
       end
@@ -252,9 +252,9 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["     ",
          "     begin;  ",
-         "        risky_operation;  ",
+         "    _ = risky_operation;  ",
          "     rescue StandardError => e;  ",
-         "        e.message;  ",
+         "    _ = e.message;  ",
          "     ensure;  ",
          "       cleanup;  ",
          "     end;  ",
@@ -282,7 +282,7 @@ RSpec.describe RuboCop::Herb::Converter do
          "     if show_list?;  ",
          "        ",
          "         items.each do |item|;  ",
-         "                item.name;       ",
+         "            _ = item.name;       ",
          "         end;  ",
          "         ",
          "     end;  ",
@@ -294,21 +294,21 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with multiple ERB nodes on single line" do
       let(:source) { "<% if user %><%= user.name %><% end %>" }
-      let(:expected) { "   if user;      user.name;     end;  " }
+      let(:expected) { "   if user;  _ = user.name;     end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with multiple content tags on same line" do
       let(:source) { "<p><%= first %> and <%= second %></p>" }
-      let(:expected) { "       first;           second;      " }
+      let(:expected) { "   _ = first;       _ = second;      " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with raw output tag (-%>)" do
       let(:source) { "<div><%= value -%></div>" }
-      let(:expected) { "         value;         " }
+      let(:expected) { "     _ = value;         " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
