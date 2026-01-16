@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "herb"
+
 module RuboCop
   module Herb
     class Converter
@@ -13,6 +15,17 @@ module RuboCop
       HASH = 0x23
       UNDERSCORE = 0x5F
       EQUALS = 0x3D
+
+      # Node types that indicate the end of a control flow branch
+      BRANCH_BOUNDARY_NODES = [
+        ::Herb::AST::ERBEndNode,
+        ::Herb::AST::ERBElseNode,
+        ::Herb::AST::ERBIfNode, # includes elsif
+        ::Herb::AST::ERBWhenNode,
+        ::Herb::AST::ERBRescueNode,
+        ::Herb::AST::ERBEnsureNode,
+        ::Herb::AST::ERBInNode
+      ].freeze #: Array[class]
 
       # @rbs source: String
       def convert(source) #: String?
@@ -31,8 +44,10 @@ module RuboCop
         parse_result.visit(collector)
 
         buffer = bleach_code(source.code)
-        collector.filtered_nodes.each do |node|
-          render_node(buffer, node)
+        nodes = collector.filtered_nodes
+        nodes.each_with_index do |node, index|
+          next_node = nodes[index + 1]
+          render_node(buffer, node, next_node)
         end
 
         buffer.pack("C*").force_encoding(source.encoding)
@@ -40,11 +55,12 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      def render_node(buffer, node) #: void
+      # @rbs next_node: ::Herb::AST::Node?
+      def render_node(buffer, node, next_node) #: void
         if comment_node?(node)
           render_comment_node(buffer, node)
         else
-          render_code_node(buffer, node)
+          render_code_node(buffer, node, next_node)
         end
       end
 
@@ -92,7 +108,8 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      def render_code_node(buffer, node) #: void
+      # @rbs next_node: ::Herb::AST::Node?
+      def render_code_node(buffer, node, next_node) #: void
         ruby_code = ruby_code_for(node)
         from, to = byte_location_for(node)
         buffer[from, ruby_code.bytesize] = ruby_code.bytes
@@ -101,12 +118,23 @@ module RuboCop
         semicolon_pos = to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
 
-        render_output_marker(buffer, node) if output_node?(node)
+        # Skip output marker if this is the tail expression of a branch
+        # (followed by control keywords like end, else, elsif, etc.)
+        # The tail expression's value is used as the branch's return value,
+        # so Lint/Void won't trigger and we avoid Style/ConditionalAssignment
+        render_output_marker(buffer, node) if output_node?(node) && !tail_of_branch?(next_node)
       end
 
       # @rbs node: ::Herb::AST::Node
       def output_node?(node) #: bool
         node.tag_opening.value == "<%="
+      end
+
+      # @rbs next_node: ::Herb::AST::Node?
+      def tail_of_branch?(next_node) #: bool
+        return false unless next_node
+
+        BRANCH_BOUNDARY_NODES.any? { |klass| next_node.is_a?(klass) }
       end
 
       # @rbs buffer: Array[Integer]
