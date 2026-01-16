@@ -35,8 +35,7 @@ module RuboCop
         @source = Source.new(source)
         @parse_result = ::Herb.parse(source)
 
-        return nil if parse_result.errors.any?
-
+        # Continue processing even with HTML errors - ERB nodes may still be extractable
         build_ruby_code
       end
 
