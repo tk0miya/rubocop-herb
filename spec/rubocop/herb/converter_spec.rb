@@ -468,5 +468,12 @@ RSpec.describe RuboCop::Herb::Converter do
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
+
+    describe "with output tag containing multibyte characters" do
+      let(:source) { '<%= "エラー" %>' }
+      let(:expected) { '_ = "エラー";  ' }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
   end
 end
