@@ -56,7 +56,7 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     it "does not trigger Style/ConditionalAssignment" do
       runner.run(path, source, {})
       offenses = runner.offenses.map(&:cop_name)
-      expect(offenses).not_to include("Style/ConditionalAssignment")
+      expect(offenses).to eq []
     end
   end
 
@@ -72,7 +72,7 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
     it "does not trigger Lint/Void" do
       runner.run(path, source, {})
       offenses = runner.offenses.map(&:cop_name)
-      expect(offenses).not_to include("Lint/Void")
+      expect(offenses).to eq []
     end
   end
 end

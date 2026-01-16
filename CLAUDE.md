@@ -75,6 +75,13 @@ ERB source → Converter → Bleached Ruby code → RuboCop → Diagnostics
 - Double-quoted strings preferred
 - Frozen string literals required
 
+### Testing Conventions
+
+- In integration specs, always use `eq` instead of `include` when comparing offenses
+  - Using `include` hides other unexpected offenses, making debugging difficult
+  - Example: `expect(offenses).to eq []` instead of `expect(offenses).not_to include("Lint/Void")`
+  - The example title should describe the purpose (e.g., "does not trigger Lint/Void"), but the assertion should use `eq` to catch all offenses
+
 ### Writing Type Annotations
 
 This project uses [rbs-inline](https://github.com/soutaro/rbs-inline) style annotations. Types are written as comments in Ruby source files:
