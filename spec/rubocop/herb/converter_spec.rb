@@ -152,7 +152,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["    ",
          "     users.each do |user|;  ",
-         "            user.name;       ",
+         "        _ = user.name;       ",
          "     end;  ",
          "     "].join("\n")
       end
@@ -171,7 +171,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["     ",
          "     3.times do |i|;  ",
-         "           i;      ",
+         "       _ = i;      ",
          "     end;  ",
          "      "].join("\n")
       end
@@ -190,7 +190,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["    ",
          "     for item in items;  ",
-         "            item;       ",
+         "        _ = item;       ",
          "     end;  ",
          "     "].join("\n")
       end
@@ -261,6 +261,9 @@ RSpec.describe RuboCop::Herb::Converter do
          "      "].join("\n")
       end
 
+      # risky_operation and e.message don't have _ = because they're
+      # before rescue/ensure (branch boundaries). cleanup is execution tag,
+      # not output tag, so it never gets _ =.
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
@@ -282,7 +285,7 @@ RSpec.describe RuboCop::Herb::Converter do
          "     if show_list?;  ",
          "        ",
          "         items.each do |item|;  ",
-         "                item.name;       ",
+         "            _ = item.name;       ",
          "         end;  ",
          "         ",
          "     end;  ",
@@ -294,7 +297,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with multiple ERB nodes on single line" do
       let(:source) { "<% if user %><%= user.name %><% end %>" }
-      let(:expected) { "   if user;      user.name;     end;  " }
+      let(:expected) { "   if user;  _ = user.name;     end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -311,10 +314,12 @@ RSpec.describe RuboCop::Herb::Converter do
         ["   if condition;  ",
          "      value1;  ",
          "   else;  ",
-         "      value2;  ",
+         "  _ = value2;  ",
          "   end;  "].join("\n")
       end
 
+      # value1 has no _ = because it's before else (branch boundary)
+      # value2 has _ = because it's before end (not a branch boundary)
       it_behaves_like "a Ruby code extractor for ERB"
     end
 

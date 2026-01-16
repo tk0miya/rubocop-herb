@@ -17,8 +17,11 @@ module RuboCop
       EQUALS = 0x3D
 
       # Node types that indicate the end of a control flow branch
+      # Note: ERBEndNode is NOT included because `end` can close both
+      # control flow constructs (if/case) and iterator blocks (each/times).
+      # For iterators, the block return value is discarded, so we need
+      # the _ = marker to avoid Lint/Void warnings.
       BRANCH_BOUNDARY_NODES = [
-        ::Herb::AST::ERBEndNode,
         ::Herb::AST::ERBElseNode,
         ::Herb::AST::ERBIfNode, # includes elsif
         ::Herb::AST::ERBWhenNode,
