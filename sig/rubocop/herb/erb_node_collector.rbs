@@ -9,6 +9,11 @@ module RuboCop
 
       def initialize: () -> void
 
+      # Conditional node types whose tail expressions don't need `_ =`.
+      # These are nodes where the last expression's value becomes the return value.
+      # Loops (for, while, until, block) are excluded because their body's value isn't used.
+      CONDITIONAL_NODE_TYPES: untyped
+
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes: (::Herb::AST::Node node) -> void
 
@@ -22,11 +27,10 @@ module RuboCop
       # @rbs statements: Array[::Herb::AST::Node]?
       def mark_branch_tail: (Array[::Herb::AST::Node]? statements) -> void
 
-      # Returns the last ERB node if it's an output tag.
-      # - ERBContentNode: <%= expr %>
-      # - ERBBlockNode: <%= expr do %>...<% end %>
+      # Recursively finds the tail output tag in statements.
+      # Traverses into HTML elements to find nested ERB nodes.
       #
-      # If the last ERB node is an execution tag (<% %>), returns nil
+      # Returns nil if the last node is an execution tag (<% %>),
       # because output tags before it are not tail expressions.
       #
       # @rbs statements: Array[::Herb::AST::Node]
@@ -37,6 +41,9 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def comment_node?: (::Herb::AST::Node node) -> bool
+
+      # @rbs node: ::Herb::AST::Node
+      def conditional_node?: (::Herb::AST::Node node) -> bool
     end
   end
 end

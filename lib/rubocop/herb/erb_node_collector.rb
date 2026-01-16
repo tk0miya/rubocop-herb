@@ -15,10 +15,24 @@ module RuboCop
         super
       end
 
+      # Conditional node types whose tail expressions don't need `_ =`.
+      # These are nodes where the last expression's value becomes the return value.
+      # Loops (for, while, until, block) are excluded because their body's value isn't used.
+      CONDITIONAL_NODE_TYPES = [
+        ::Herb::AST::ERBIfNode,
+        ::Herb::AST::ERBElseNode,
+        ::Herb::AST::ERBUnlessNode,
+        ::Herb::AST::ERBCaseNode,
+        ::Herb::AST::ERBWhenNode,
+        ::Herb::AST::ERBBeginNode,
+        ::Herb::AST::ERBRescueNode,
+        ::Herb::AST::ERBEnsureNode
+      ].freeze
+
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes(node) #: void
         nodes << node if node.node_name.start_with?("ERB")
-        mark_branch_tail(node.statements) if node.respond_to?(:statements)
+        mark_branch_tail(node.statements) if conditional_node?(node) && node.respond_to?(:statements)
 
         super
       end
@@ -40,21 +54,28 @@ module RuboCop
         branch_tail_nodes << tail if tail
       end
 
-      # Returns the last ERB node if it's an output tag.
-      # - ERBContentNode: <%= expr %>
-      # - ERBBlockNode: <%= expr do %>...<% end %>
+      # Recursively finds the tail output tag in statements.
+      # Traverses into HTML elements to find nested ERB nodes.
       #
-      # If the last ERB node is an execution tag (<% %>), returns nil
+      # Returns nil if the last node is an execution tag (<% %>),
       # because output tags before it are not tail expressions.
       #
       # @rbs statements: Array[::Herb::AST::Node]
-      def find_tail_expression(statements) #: ::Herb::AST::Node?
-        last_erb = statements.reverse.find { |stmt| stmt.node_name.start_with?("ERB") }
-
-        case last_erb
-        when ::Herb::AST::ERBContentNode, ::Herb::AST::ERBBlockNode
-          last_erb
+      def find_tail_expression(statements) #: ::Herb::AST::Node? # rubocop:disable Metrics/CyclomaticComplexity
+        statements.reverse_each do |stmt|
+          case stmt
+          when ::Herb::AST::ERBContentNode, ::Herb::AST::ERBBlockNode
+            return stmt
+          when ::Herb::AST::HTMLElementNode
+            # Recurse into HTML element's body
+            nested = find_tail_expression(stmt.body) if stmt.respond_to?(:body) && stmt.body
+            return nested if nested
+          else
+            # Other ERB nodes (execution tags) are not valid tails
+            return nil if stmt.node_name.start_with?("ERB")
+          end
         end
+        nil
       end
 
       # @rbs nodes: Array[::Herb::AST::Node]
@@ -75,6 +96,11 @@ module RuboCop
 
         tag_opening = node.tag_opening
         tag_opening.respond_to?(:value) && tag_opening.value.start_with?("<%#")
+      end
+
+      # @rbs node: ::Herb::AST::Node
+      def conditional_node?(node) #: bool
+        CONDITIONAL_NODE_TYPES.any? { |type| node.is_a?(type) }
       end
     end
   end
