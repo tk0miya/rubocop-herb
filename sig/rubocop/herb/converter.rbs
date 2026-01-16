@@ -17,6 +17,10 @@ module RuboCop
 
       HASH: ::Integer
 
+      UNDERSCORE: ::Integer
+
+      EQUALS: ::Integer
+
       # @rbs source: String
       def convert: (String source) -> String?
 
@@ -42,6 +46,13 @@ module RuboCop
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
       def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def output_node?: (::Herb::AST::Node node) -> bool
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_output_marker: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
 
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]

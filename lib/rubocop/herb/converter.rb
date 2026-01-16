@@ -11,6 +11,8 @@ module RuboCop
       SPACE = 0x20
       SEMICOLON = 0x3B
       HASH = 0x23
+      UNDERSCORE = 0x5F
+      EQUALS = 0x3D
 
       # @rbs source: String
       def convert(source) #: String?
@@ -98,6 +100,24 @@ module RuboCop
         trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
         semicolon_pos = to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+
+        render_output_marker(buffer, node) if output_node?(node)
+      end
+
+      # @rbs node: ::Herb::AST::Node
+      def output_node?(node) #: bool
+        node.tag_opening.value == "<%="
+      end
+
+      # @rbs buffer: Array[Integer]
+      # @rbs node: ::Herb::AST::Node
+      def render_output_marker(buffer, node) #: void
+        # Write '_ =' at the position of '<%=' to make it an assignment
+        # This avoids Lint/Void warnings since the expression result is "used"
+        pos = node.tag_opening.range.from
+        buffer[pos] = UNDERSCORE
+        buffer[pos + 1] = SPACE
+        buffer[pos + 2] = EQUALS
       end
 
       # @rbs code: String
