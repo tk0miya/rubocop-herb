@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "herb"
+
 module RuboCop
   module Herb
     class Converter
@@ -14,8 +16,16 @@ module RuboCop
       UNDERSCORE = 0x5F
       EQUALS = 0x3D
 
-      # Control flow keywords that indicate the end of a branch
-      CONTROL_KEYWORDS = %w[end else elsif when rescue ensure in].freeze #: Array[String]
+      # Node types that indicate the end of a control flow branch
+      BRANCH_BOUNDARY_NODES = [
+        ::Herb::AST::ERBEndNode,
+        ::Herb::AST::ERBElseNode,
+        ::Herb::AST::ERBIfNode, # includes elsif
+        ::Herb::AST::ERBWhenNode,
+        ::Herb::AST::ERBRescueNode,
+        ::Herb::AST::ERBEnsureNode,
+        ::Herb::AST::ERBInNode
+      ].freeze #: Array[class]
 
       # @rbs source: String
       def convert(source) #: String?
@@ -124,8 +134,7 @@ module RuboCop
       def tail_of_branch?(next_node) #: bool
         return false unless next_node
 
-        content = ruby_code_for(next_node).lstrip
-        CONTROL_KEYWORDS.any? { |kw| content.start_with?(kw) }
+        BRANCH_BOUNDARY_NODES.any? { |klass| next_node.is_a?(klass) }
       end
 
       # @rbs buffer: Array[Integer]

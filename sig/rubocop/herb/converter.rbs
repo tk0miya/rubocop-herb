@@ -21,8 +21,8 @@ module RuboCop
 
       EQUALS: ::Integer
 
-      # Control flow keywords that indicate the end of a branch
-      CONTROL_KEYWORDS: Array[String]
+      # Node types that indicate the end of a control flow branch
+      BRANCH_BOUNDARY_NODES: Array[class]
 
       # @rbs source: String
       def convert: (String source) -> String?
