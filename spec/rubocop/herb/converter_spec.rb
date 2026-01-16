@@ -152,7 +152,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["    ",
          "     users.each do |user|;  ",
-         "        _ = user.name;       ",
+         "            user.name;       ",
          "     end;  ",
          "     "].join("\n")
       end
@@ -171,7 +171,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["     ",
          "     3.times do |i|;  ",
-         "       _ = i;      ",
+         "           i;      ",
          "     end;  ",
          "      "].join("\n")
       end
@@ -190,7 +190,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["    ",
          "     for item in items;  ",
-         "        _ = item;       ",
+         "            item;       ",
          "     end;  ",
          "     "].join("\n")
       end
@@ -252,9 +252,9 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["     ",
          "     begin;  ",
-         "    _ = risky_operation;  ",
+         "        risky_operation;  ",
          "     rescue StandardError => e;  ",
-         "    _ = e.message;  ",
+         "        e.message;  ",
          "     ensure;  ",
          "       cleanup;  ",
          "     end;  ",
@@ -282,7 +282,7 @@ RSpec.describe RuboCop::Herb::Converter do
          "     if show_list?;  ",
          "        ",
          "         items.each do |item|;  ",
-         "            _ = item.name;       ",
+         "                item.name;       ",
          "         end;  ",
          "         ",
          "     end;  ",
@@ -294,7 +294,26 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with multiple ERB nodes on single line" do
       let(:source) { "<% if user %><%= user.name %><% end %>" }
-      let(:expected) { "   if user;  _ = user.name;     end;  " }
+      let(:expected) { "   if user;      user.name;     end;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with if-else containing output tags in branches" do
+      let(:source) do
+        ["<% if condition %>",
+         "  <%= value1 %>",
+         "<% else %>",
+         "  <%= value2 %>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["   if condition;  ",
+         "      value1;  ",
+         "   else;  ",
+         "      value2;  ",
+         "   end;  "].join("\n")
+      end
 
       it_behaves_like "a Ruby code extractor for ERB"
     end

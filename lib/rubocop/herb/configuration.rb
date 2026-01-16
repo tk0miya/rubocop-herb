@@ -19,7 +19,6 @@ module RuboCop
         "Layout/TrailingEmptyLines", # ERB files may not end with Ruby code
         "Layout/TrailingWhitespace", # Whitespace padding preserves positions but creates trailing spaces
         "Style/BlockDelimiters", # ERB blocks often use do/end across multiple tags
-        "Style/ConditionalAssignment", # <%= in if-else branches assigns to _ variable, not real assignment
         "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
         "Style/IfUnlessModifier", # Single-line ERB conditionals cannot be converted to modifier form
         "Style/IfWithSemicolon", # Semicolons are inserted between ERB tags on the same line

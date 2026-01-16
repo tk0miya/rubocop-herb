@@ -21,6 +21,9 @@ module RuboCop
 
       EQUALS: ::Integer
 
+      # Control flow keywords that indicate the end of a branch
+      CONTROL_KEYWORDS: Array[String]
+
       # @rbs source: String
       def convert: (String source) -> String?
 
@@ -30,7 +33,8 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
+      # @rbs next_node: ::Herb::AST::Node?
+      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
 
       # @rbs node: ::Herb::AST::Node
       def comment_node?: (::Herb::AST::Node node) -> bool
@@ -45,10 +49,14 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
+      # @rbs next_node: ::Herb::AST::Node?
+      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
 
       # @rbs node: ::Herb::AST::Node
       def output_node?: (::Herb::AST::Node node) -> bool
+
+      # @rbs next_node: ::Herb::AST::Node?
+      def tail_of_branch?: (::Herb::AST::Node? next_node) -> bool
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node

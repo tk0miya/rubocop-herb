@@ -14,6 +14,9 @@ module RuboCop
       UNDERSCORE = 0x5F
       EQUALS = 0x3D
 
+      # Control flow keywords that indicate the end of a branch
+      CONTROL_KEYWORDS = %w[end else elsif when rescue ensure in].freeze #: Array[String]
+
       # @rbs source: String
       def convert(source) #: String?
         @source = Source.new(source)
@@ -31,8 +34,10 @@ module RuboCop
         parse_result.visit(collector)
 
         buffer = bleach_code(source.code)
-        collector.filtered_nodes.each do |node|
-          render_node(buffer, node)
+        nodes = collector.filtered_nodes
+        nodes.each_with_index do |node, index|
+          next_node = nodes[index + 1]
+          render_node(buffer, node, next_node)
         end
 
         buffer.pack("C*").force_encoding(source.encoding)
@@ -40,11 +45,12 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      def render_node(buffer, node) #: void
+      # @rbs next_node: ::Herb::AST::Node?
+      def render_node(buffer, node, next_node) #: void
         if comment_node?(node)
           render_comment_node(buffer, node)
         else
-          render_code_node(buffer, node)
+          render_code_node(buffer, node, next_node)
         end
       end
 
@@ -92,7 +98,8 @@ module RuboCop
 
       # @rbs buffer: Array[Integer]
       # @rbs node: ::Herb::AST::Node
-      def render_code_node(buffer, node) #: void
+      # @rbs next_node: ::Herb::AST::Node?
+      def render_code_node(buffer, node, next_node) #: void
         ruby_code = ruby_code_for(node)
         from, to = byte_location_for(node)
         buffer[from, ruby_code.bytesize] = ruby_code.bytes
@@ -101,12 +108,24 @@ module RuboCop
         semicolon_pos = to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
 
-        render_output_marker(buffer, node) if output_node?(node)
+        # Skip output marker if this is the tail expression of a branch
+        # (followed by control keywords like end, else, elsif, etc.)
+        # The tail expression's value is used as the branch's return value,
+        # so Lint/Void won't trigger and we avoid Style/ConditionalAssignment
+        render_output_marker(buffer, node) if output_node?(node) && !tail_of_branch?(next_node)
       end
 
       # @rbs node: ::Herb::AST::Node
       def output_node?(node) #: bool
         node.tag_opening.value == "<%="
+      end
+
+      # @rbs next_node: ::Herb::AST::Node?
+      def tail_of_branch?(next_node) #: bool
+        return false unless next_node
+
+        content = ruby_code_for(next_node).lstrip
+        CONTROL_KEYWORDS.any? { |kw| content.start_with?(kw) }
       end
 
       # @rbs buffer: Array[Integer]
