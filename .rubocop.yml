@@ -15,10 +15,6 @@ Layout/LeadingCommentSpace:
 Metrics/AbcSize:
   Max: 20
 
-Metrics/ClassLength:
-  Exclude:
-    - "lib/rubocop/herb/converter.rb"
-
 Metrics/MethodLength:
   Max: 30
 

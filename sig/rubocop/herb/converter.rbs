@@ -3,74 +3,8 @@
 module RuboCop
   module Herb
     class Converter
-      attr_reader source: Source
-
-      attr_reader parse_result: ::Herb::ParseResult
-
-      LF: ::Integer
-
-      CR: ::Integer
-
-      SPACE: ::Integer
-
-      SEMICOLON: ::Integer
-
-      HASH: ::Integer
-
-      UNDERSCORE: ::Integer
-
-      EQUALS: ::Integer
-
-      # Node types that indicate the end of a control flow branch
-      # Note: ERBEndNode is NOT included because `end` can close both
-      # control flow constructs (if/case) and iterator blocks (each/times).
-      # For iterators, the block return value is discarded, so we need
-      # the _ = marker to avoid Lint/Void warnings.
-      BRANCH_BOUNDARY_NODES: Array[class]
-
-      # @rbs source: String
-      def convert: (String source) -> String?
-
-      private
-
-      def build_ruby_code: () -> String
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
-
-      # @rbs node: ::Herb::AST::Node
-      def comment_node?: (::Herb::AST::Node node) -> bool
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      def render_comment_node: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
-
       # @rbs code: String
-      # @rbs hash_column: Integer
-      def format_multiline_comment: (String code, Integer hash_column) -> String
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      # @rbs next_node: ::Herb::AST::Node?
-      def render_code_node: (Array[Integer] buffer, ::Herb::AST::Node node, ::Herb::AST::Node? next_node) -> void
-
-      # @rbs node: ::Herb::AST::Node
-      def output_node?: (::Herb::AST::Node node) -> bool
-
-      # @rbs next_node: ::Herb::AST::Node?
-      def tail_of_branch?: (::Herb::AST::Node? next_node) -> bool
-
-      # @rbs buffer: Array[Integer]
-      # @rbs node: ::Herb::AST::Node
-      def render_output_marker: (Array[Integer] buffer, ::Herb::AST::Node node) -> void
-
-      # @rbs code: String
-      def bleach_code: (String code) -> Array[Integer]
-
-      # @rbs node: ::Herb::AST::Node
-      def ruby_code_for: (::Herb::AST::Node node) -> String
+      def convert: (String code) -> String?
     end
   end
 end

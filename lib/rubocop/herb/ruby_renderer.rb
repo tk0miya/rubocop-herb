@@ -1,0 +1,291 @@
+# frozen_string_literal: true
+
+require "herb"
+require_relative "ruby_renderer/block_context"
+
+module RuboCop
+  module Herb
+    # Visitor-based renderer that traverses Herb AST and renders Ruby code.
+    # Comments are collected during traversal and rendered at the end
+    # with filtering applied.
+    class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
+      LF = 0x0A
+      CR = 0x0D
+      SPACE = 0x20
+      SEMICOLON = 0x3B
+      HASH = 0x23
+      UNDERSCORE = 0x5F
+      EQUALS = 0x3D
+
+      # Render ERB source to Ruby code
+      # @rbs source: Source
+      # @rbs parse_result: ::Herb::ParseResult
+      def self.render(source, parse_result) #: String
+        renderer = new(source)
+        parse_result.visit(renderer)
+        renderer.result
+      end
+
+      attr_reader :buffer #: Array[Integer]
+      attr_reader :source #: Source
+      attr_reader :result #: String
+      attr_reader :block_stack #: Array[BlockContext]
+      attr_reader :comment_nodes #: Array[::Herb::AST::Node]
+      attr_reader :non_comment_lines #: Set[Integer]
+
+      # @rbs source: Source
+      def initialize(source) #: void
+        @source = source
+        @buffer = bleach_code(source.code)
+        @result = ""
+        @block_stack = []
+        @comment_nodes = []
+        @non_comment_lines = Set.new
+
+        super()
+      end
+
+      # Override to render comments and build result after document traversal completes
+      # @rbs node: ::Herb::AST::DocumentNode
+      def visit_document_node(node) #: void
+        super
+        render_comments
+        @result = buffer.pack("C*").force_encoding(source.encoding)
+      end
+
+      # Visit ERB block nodes (iterators like each, times, loop)
+      # These are NOT control flow - return value is discarded
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node(node) #: void
+        render_code_node(node)
+        push_block(node.body)
+        super
+        pop_block
+      end
+
+      # Visit ERB for nodes (for loops - return value is discarded)
+      # @rbs node: ::Herb::AST::ERBForNode
+      def visit_erb_for_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements)
+        super
+        pop_block
+      end
+
+      # Visit ERB while nodes (while loops - return value is discarded)
+      # @rbs node: ::Herb::AST::ERBWhileNode
+      def visit_erb_while_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements)
+        super
+        pop_block
+      end
+
+      # Visit ERB until nodes (until loops - return value is discarded)
+      # @rbs node: ::Herb::AST::ERBUntilNode
+      def visit_erb_until_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements)
+        super
+        pop_block
+      end
+
+      # Visit ERB if nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBIfNode
+      def visit_erb_if_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB unless nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBUnlessNode
+      def visit_erb_unless_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB else nodes (control flow continuation - returns value)
+      # @rbs node: ::Herb::AST::ERBElseNode
+      def visit_erb_else_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB case nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBCaseNode
+      def visit_erb_case_node(node) #: void
+        render_code_node(node)
+        super
+      end
+
+      # Visit ERB when nodes (control flow continuation - returns value)
+      # @rbs node: ::Herb::AST::ERBWhenNode
+      def visit_erb_when_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB begin nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBBeginNode
+      def visit_erb_begin_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB rescue nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBRescueNode
+      def visit_erb_rescue_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB ensure nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBEnsureNode
+      def visit_erb_ensure_node(node) #: void
+        render_code_node(node)
+        push_block(node.statements, returning_value: true)
+        super
+        pop_block
+      end
+
+      # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def visit_erb_content_node(node) #: void
+        if node.tag_opening.value == "<%#"
+          comment_nodes << node
+        else
+          render_code_node(node)
+        end
+        super
+      end
+
+      # Visit ERB end nodes
+      # @rbs node: ::Herb::AST::ERBEndNode
+      def visit_erb_end_node(node) #: void
+        render_code_node(node)
+        super
+      end
+
+      private
+
+      # @rbs statements: Array[::Herb::AST::Node]
+      # @rbs returning_value: bool
+      def push_block(statements, returning_value: false) #: void
+        block_stack.push(BlockContext.new(statements, returning_value: returning_value))
+      end
+
+      def pop_block #: void
+        block_stack.pop
+      end
+
+      def current_block #: BlockContext?
+        block_stack.last
+      end
+
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def output_node?(node) #: bool
+        node.tag_opening.value == "<%="
+      end
+
+      # Check if this output node is a tail expression that doesn't need _ = marker
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def tail_expression?(node) #: bool
+        return false unless current_block
+        return false unless current_block.returning_value
+        return false unless current_block.last_statement?(node)
+
+        true
+      end
+
+      # @rbs node: ::Herb::AST::Node
+      def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
+        return unless node.respond_to?(:content) && node.content
+
+        # Record line number for comment filtering
+        non_comment_lines << node.location.start.line
+
+        ruby_code = ruby_code_for(node)
+        range = node.content.range
+        buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
+
+        trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
+        semicolon_pos = range.to - trailing_spaces
+        buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+
+        render_output_marker(node) if output_node?(node) && !tail_expression?(node)
+      end
+
+      # @rbs node: ::Herb::AST::Node
+      def render_output_marker(node) #: void
+        pos = node.tag_opening.range.from
+        buffer[pos] = UNDERSCORE
+        buffer[pos + 1] = SPACE
+        buffer[pos + 2] = EQUALS
+      end
+
+      # Render collected comments, filtering out those on the same line as code
+      def render_comments #: void
+        comment_nodes.each do |node|
+          next if non_comment_lines.include?(node.location.end.line)
+
+          render_comment_node(node)
+        end
+      end
+
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def render_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
+        hash_pos = node.tag_opening.range.to - 1
+        buffer[hash_pos] = HASH
+
+        ruby_code = ruby_code_for(node)
+        range = node.content.range
+        hash_column = node.tag_opening.location.start.column + 2
+        formatted_code = format_multiline_comment(ruby_code, hash_column)
+        buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+      end
+
+      # @rbs code: String
+      # @rbs hash_column: Integer
+      def format_multiline_comment(code, hash_column) #: String
+        result = code.gsub(/(?<=\n)( +)/) do |match|
+          if match.length > hash_column + 1
+            "#{match[0...hash_column]}##{match[(hash_column + 1)..]}"
+          else
+            "##{match[1..]}"
+          end
+        end
+
+        result.gsub(/(?<=\n)([^ \n#])/) { "##{" " * (Regexp.last_match(1).bytesize - 1)}" }
+      end
+
+      # @rbs code: String
+      def bleach_code(code) #: Array[Integer]
+        code.bytes.map do |byte|
+          case byte
+          when LF, CR
+            byte
+          else
+            SPACE
+          end
+        end
+      end
+
+      # @rbs node: ::Herb::AST::Node
+      def ruby_code_for(node) #: String
+        source.byteslice(node.content.range)
+      end
+    end
+  end
+end
