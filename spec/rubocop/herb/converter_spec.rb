@@ -297,7 +297,8 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with multiple ERB nodes on single line" do
       let(:source) { "<% if user %><%= user.name %><% end %>" }
-      let(:expected) { "   if user;  _ = user.name;     end;  " }
+      # Control flow returns value, so last statement doesn't need _ =
+      let(:expected) { "   if user;      user.name;     end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -310,16 +311,15 @@ RSpec.describe RuboCop::Herb::Converter do
          "  <%= value2 %>",
          "<% end %>"].join("\n")
       end
+      # Control flow returns value, so last statements don't need _ =
       let(:expected) do
         ["   if condition;  ",
          "      value1;  ",
          "   else;  ",
-         "  _ = value2;  ",
+         "      value2;  ",
          "   end;  "].join("\n")
       end
 
-      # value1 has no _ = because it's before else (branch boundary)
-      # value2 has _ = because it's before end (not a branch boundary)
       it_behaves_like "a Ruby code extractor for ERB"
     end
 

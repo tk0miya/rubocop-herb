@@ -1,0 +1,144 @@
+# Generated from lib/rubocop/herb/ruby_renderer.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor-based renderer that traverses Herb AST and renders Ruby code.
+    # Comments are collected during traversal and rendered at the end
+    # with filtering applied.
+    class RubyRenderer < ::Herb::Visitor
+      LF: ::Integer
+
+      CR: ::Integer
+
+      SPACE: ::Integer
+
+      SEMICOLON: ::Integer
+
+      HASH: ::Integer
+
+      UNDERSCORE: ::Integer
+
+      EQUALS: ::Integer
+
+      # Render ERB source to Ruby code
+      # @rbs source: Source
+      # @rbs parse_result: ::Herb::ParseResult
+      def self.render: (Source source, ::Herb::ParseResult parse_result) -> String
+
+      attr_reader buffer: Array[Integer]
+
+      attr_reader source: Source
+
+      attr_reader result: String
+
+      attr_reader block_stack: Array[BlockContext]
+
+      attr_reader comment_nodes: Array[::Herb::AST::Node]
+
+      attr_reader non_comment_lines: Set[Integer]
+
+      # @rbs source: Source
+      def initialize: (Source source) -> void
+
+      # Override to render comments and build result after document traversal completes
+      # @rbs node: ::Herb::AST::DocumentNode
+      def visit_document_node: (::Herb::AST::DocumentNode node) -> void
+
+      # Visit ERB block nodes (iterators like each, times, loop)
+      # These are NOT control flow - return value is discarded
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
+
+      # Visit ERB for nodes (for loops - return value is discarded)
+      # @rbs node: ::Herb::AST::ERBForNode
+      def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+
+      # Visit ERB while nodes (while loops - return value is discarded)
+      # @rbs node: ::Herb::AST::ERBWhileNode
+      def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+
+      # Visit ERB until nodes (until loops - return value is discarded)
+      # @rbs node: ::Herb::AST::ERBUntilNode
+      def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+
+      # Visit ERB if nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBIfNode
+      def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+
+      # Visit ERB unless nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBUnlessNode
+      def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+
+      # Visit ERB else nodes (control flow continuation - returns value)
+      # @rbs node: ::Herb::AST::ERBElseNode
+      def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+
+      # Visit ERB case nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBCaseNode
+      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+
+      # Visit ERB when nodes (control flow continuation - returns value)
+      # @rbs node: ::Herb::AST::ERBWhenNode
+      def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+
+      # Visit ERB begin nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBBeginNode
+      def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+
+      # Visit ERB rescue nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBRescueNode
+      def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+
+      # Visit ERB ensure nodes (control flow - returns value)
+      # @rbs node: ::Herb::AST::ERBEnsureNode
+      def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
+      # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> void
+
+      # Visit ERB end nodes
+      # @rbs node: ::Herb::AST::ERBEndNode
+      def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
+
+      private
+
+      # @rbs statements: Array[::Herb::AST::Node]
+      # @rbs returning_value: bool
+      def push_block: (Array[::Herb::AST::Node] statements, ?returning_value: bool) -> void
+
+      def pop_block: () -> void
+
+      def current_block: () -> BlockContext?
+
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def output_node?: (::Herb::AST::ERBContentNode node) -> bool
+
+      # Check if this output node is a tail expression that doesn't need _ = marker
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def tail_expression?: (::Herb::AST::ERBContentNode node) -> bool
+
+      # @rbs node: ::Herb::AST::Node
+      def render_code_node: (::Herb::AST::Node node) -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def render_output_marker: (::Herb::AST::Node node) -> void
+
+      # Render collected comments, filtering out those on the same line as code
+      def render_comments: () -> void
+
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def render_comment_node: (::Herb::AST::ERBContentNode node) -> void
+
+      # @rbs code: String
+      # @rbs hash_column: Integer
+      def format_multiline_comment: (String code, Integer hash_column) -> String
+
+      # @rbs code: String
+      def bleach_code: (String code) -> Array[Integer]
+
+      # @rbs node: ::Herb::AST::Node
+      def ruby_code_for: (::Herb::AST::Node node) -> String
+    end
+  end
+end
