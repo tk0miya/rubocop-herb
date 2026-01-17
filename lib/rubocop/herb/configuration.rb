@@ -32,7 +32,10 @@ module RuboCop
         "Lint/EmptyBlock", # Block bodies may contain only HTML (no Ruby code)
         "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
         "Lint/EmptyWhen", # When bodies may contain only HTML (no Ruby code)
-        "Style/EmptyElse" # Else branches may contain only HTML (no Ruby code)
+        "Style/EmptyElse", # Else branches may contain only HTML (no Ruby code)
+        "Style/IdenticalConditionalBranches", # Branches may differ only in HTML content
+        "Style/Next", # Loop conditions may guard HTML output, not suitable for next
+        "Style/RedundantCondition" # Condition may appear redundant when HTML is removed
       ].freeze #: Array[String]
 
       # @rbs self.@supported_extensions: Array[String]
