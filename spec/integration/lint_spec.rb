@@ -7,7 +7,7 @@ require "rubocop/lsp/stdin_runner"
 require "tempfile"
 require "yaml"
 
-RSpec.describe "Integration test with RuboCop", type: :feature do
+RSpec.describe "Lint with RuboCop", type: :feature do
   let(:runner) { RuboCop::Lsp::StdinRunner.new(config_store) }
   let(:config_store) do
     RuboCop::ConfigStore.new.tap do |store|
