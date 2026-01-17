@@ -31,7 +31,7 @@ module RuboCop
       attr_reader :result #: String
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
-      attr_reader :non_comment_lines #: Set[Integer]
+      attr_reader :code_positions #: Hash[Integer, Integer]
 
       # @rbs source: Source
       def initialize(source) #: void
@@ -40,7 +40,7 @@ module RuboCop
         @result = ""
         @block_stack = []
         @comment_nodes = []
-        @non_comment_lines = Set.new
+        @code_positions = {}
 
         super()
       end
@@ -213,8 +213,7 @@ module RuboCop
       def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
         return unless node.respond_to?(:content) && node.content
 
-        # Record line number for comment filtering
-        non_comment_lines << node.location.start.line
+        record_code_position(node)
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
@@ -227,6 +226,14 @@ module RuboCop
         render_output_marker(node) if output_node?(node) && !tail_expression?(node)
       end
 
+      # Record line and column for comment filtering (keep maximum column per line)
+      # @rbs node: ::Herb::AST::Node
+      def record_code_position(node) #: void
+        line = node.location.start.line
+        column = node.location.start.column
+        code_positions[line] = column if !code_positions.key?(line) || code_positions[line] < column
+      end
+
       # @rbs node: ::Herb::AST::Node
       def render_output_marker(node) #: void
         pos = node.tag_opening.range.from
@@ -235,13 +242,22 @@ module RuboCop
         buffer[pos + 2] = EQUALS
       end
 
-      # Render collected comments, filtering out those on the same line as code
+      # Render collected comments that can be safely converted to Ruby comments
       def render_comments #: void
         comment_nodes.each do |node|
-          next if non_comment_lines.include?(node.location.end.line)
-
-          render_comment_node(node)
+          render_comment_node(node) if renderable_comment?(node)
         end
+      end
+
+      # Check if this comment can be rendered as a Ruby comment without breaking code
+      # Comments are not renderable when there's code to the right on the same line,
+      # because Ruby's # comment extends to end of line and would comment out the code
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def renderable_comment?(node) #: bool
+        line = node.location.end.line
+        return true unless code_positions.key?(line)
+
+        node.location.start.column >= code_positions[line]
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode

@@ -35,7 +35,7 @@ module RuboCop
 
       attr_reader comment_nodes: Array[::Herb::AST::Node]
 
-      attr_reader non_comment_lines: Set[Integer]
+      attr_reader code_positions: Hash[Integer, Integer]
 
       # @rbs source: Source
       def initialize: (Source source) -> void
@@ -121,11 +121,21 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def render_code_node: (::Herb::AST::Node node) -> void
 
+      # Record line and column for comment filtering (keep maximum column per line)
+      # @rbs node: ::Herb::AST::Node
+      def record_code_position: (::Herb::AST::Node node) -> void
+
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
 
-      # Render collected comments, filtering out those on the same line as code
+      # Render collected comments that can be safely converted to Ruby comments
       def render_comments: () -> void
+
+      # Check if this comment can be rendered as a Ruby comment without breaking code
+      # Comments are not renderable when there's code to the right on the same line,
+      # because Ruby's # comment extends to end of line and would comment out the code
+      # @rbs node: ::Herb::AST::ERBContentNode
+      def renderable_comment?: (::Herb::AST::ERBContentNode node) -> bool
 
       # @rbs node: ::Herb::AST::ERBContentNode
       def render_comment_node: (::Herb::AST::ERBContentNode node) -> void

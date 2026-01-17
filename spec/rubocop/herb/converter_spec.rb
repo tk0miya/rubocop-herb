@@ -366,6 +366,26 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with other ERB followed by a comment ERB tag on the same line" do
+      let(:source) do
+        ["<% if :cond %><%# comment %>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["   if :cond;    # comment   ",
+         "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a comment ERB tag between two other ERB tags on the same line" do
+      let(:source) { "<%= :a %><%# comment %><%= :b %>" }
+      let(:expected) { "_ = :a;                _ = :b;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with a multiline comment ERB tag on its own lines" do
       let(:source) do
         ["<%#",
