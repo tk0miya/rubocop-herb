@@ -3,6 +3,9 @@
 # Monkey patch to fix autocorrect with ruby_extractors
 # RuboCop uses merge! when offset == 0, but import! is needed
 # when the source_buffer is different (as with extracted Ruby from ERB)
+#
+# This issue has been reported to RuboCop:
+# https://github.com/rubocop/rubocop/issues/14138
 module RuboCop
   module Cop
     class Team

@@ -75,4 +75,79 @@ RSpec.describe "Integration test with RuboCop", type: :feature do
       expect(offenses).to eq []
     end
   end
+
+  describe "autocorrect" do
+    context "with Layout/SpaceAroundOperators offense" do
+      let(:source) { "<div><%= x==1 %></div>" }
+
+      it "corrects the offense" do
+        runner.run(path, source, { autocorrect: true })
+        expect(runner.formatted_source).to eq "<div><%= x == 1 %></div>"
+      end
+
+      it "produces valid ERB" do
+        runner.run(path, source, { autocorrect: true })
+        expect { ERB.new(runner.formatted_source) }.not_to raise_error
+      end
+    end
+
+    context "with Style/StringConcatenation offense" do
+      let(:source) { "<p><%= 'Hello' + 'World' %></p>" }
+
+      it "corrects the offense" do
+        runner.run(path, source, { autocorrect: true })
+        expect(runner.formatted_source).to eq "<p><%= 'HelloWorld' %></p>"
+      end
+
+      it "produces valid ERB" do
+        runner.run(path, source, { autocorrect: true })
+        expect { ERB.new(runner.formatted_source) }.not_to raise_error
+      end
+    end
+
+    context "with Style/ZeroLengthPredicate offense" do
+      let(:source) { "<%= arr.length==0 %>" }
+
+      it "corrects the offense" do
+        runner.run(path, source, { autocorrect: true })
+        expect(runner.formatted_source).to eq "<%= arr.empty? %>"
+      end
+
+      it "produces valid ERB" do
+        runner.run(path, source, { autocorrect: true })
+        expect { ERB.new(runner.formatted_source) }.not_to raise_error
+      end
+    end
+
+    # rubocop:disable RSpec/MultipleMemoizedHelpers
+    context "with Layout/HashAlignment offense spanning multiple lines" do
+      let(:source) do
+        <<~ERB
+          <%= render locals: {
+            foo: 1,
+            barbaz:   2
+          } %>
+        ERB
+      end
+      let(:expected) do
+        <<~ERB
+          <%= render locals: {
+            foo: 1,
+            barbaz: 2
+          } %>
+        ERB
+      end
+
+      it "corrects the offense" do
+        runner.run(path, source, { autocorrect: true })
+        expect(runner.formatted_source).to eq expected
+      end
+
+      it "produces valid ERB" do
+        runner.run(path, source, { autocorrect: true })
+        expect { ERB.new(runner.formatted_source) }.not_to raise_error
+      end
+    end
+    # rubocop:enable RSpec/MultipleMemoizedHelpers
+  end
 end
