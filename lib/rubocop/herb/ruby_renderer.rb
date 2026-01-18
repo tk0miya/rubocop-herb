@@ -184,6 +184,14 @@ module RuboCop
         super
       end
 
+      # Visit HTML open tag nodes (e.g., <p>, <div class="foo">)
+      # Renders as Ruby code like "p; " or "div; " to maintain byte length
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        render_open_tag_node(node) if html_visualization
+        super
+      end
+
       # Visit HTML close tag nodes (e.g., </p>, </div>)
       # Renders as Ruby code like "p1; " to maintain byte length
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
@@ -254,6 +262,17 @@ module RuboCop
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SPACE
         buffer[pos + 2] = EQUALS
+      end
+
+      # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
+      # Attributes are ignored, only the tag name is rendered
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def render_open_tag_node(node) #: void
+        tag_name = node.tag_name.value
+        ruby_code = "#{tag_name}; "
+
+        start_pos = node.tag_opening.range.from
+        buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
       end
 
       # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
