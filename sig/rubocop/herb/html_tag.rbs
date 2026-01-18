@@ -1,0 +1,18 @@
+# Generated from lib/rubocop/herb/html_tag.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Data class for storing HTML tag information
+    # Used for mapping simplified Ruby code back to original HTML
+    class HtmlTag < Data
+      attr_reader range(): ::Herb::Range
+
+      def self.new: (::Herb::Range range) -> instance
+                  | (range: ::Herb::Range) -> instance
+
+      def self.members: () -> [ :range ]
+
+      def members: () -> [ :range ]
+    end
+  end
+end

@@ -11,13 +11,20 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       include Characters
 
+      # Result of rendering ERB source to Ruby code
+      Result = Data.define(
+        :source, #: Source
+        :code, #: String
+        :html_tags #: Hash[Integer, HtmlTag]
+      )
+
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs html_visualization: bool
-      def self.render(source, html_visualization: false) #: String
+      def self.render(source, html_visualization: false) #: Result
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        renderer.result
+        Result.new(source:, code: renderer.result, html_tags: renderer.html_tags)
       end
 
       attr_reader :buffer #: Array[Integer]
@@ -28,6 +35,7 @@ module RuboCop
       attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :close_tag_counter #: Integer
       attr_reader :html_visualization #: bool
+      attr_reader :html_tags #: Hash[Integer, HtmlTag]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -40,6 +48,7 @@ module RuboCop
         @code_positions = {}
         @close_tag_counter = 0
         @html_visualization = html_visualization
+        @html_tags = {}
 
         super()
       end
@@ -267,10 +276,8 @@ module RuboCop
       end
 
       # Get the byte range of an HTML node
-      # For HTMLElementNode: computed from open/close tag ranges
-      # For HTMLTextNode: computed from location (line/column to byte offset)
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
-      def compute_node_range(node) #: ::Herb::Range
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def compute_node_range(node) #: ::Herb::Range # rubocop:disable Metrics/AbcSize
         case node
         when ::Herb::AST::HTMLElementNode
           from = node.open_tag.tag_opening.range.from
@@ -278,11 +285,14 @@ module RuboCop
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
           source.location_to_range(node.location)
+        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
+          ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
         end
       end
 
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
       # Attributes are ignored, only the tag name is rendered
+      # Records HtmlTag for AST restoration
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
       def render_open_tag_node(node) #: void
         tag_name = node.tag_name.value
@@ -290,10 +300,13 @@ module RuboCop
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+
+        record_html_tag_info(node)
       end
 
       # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
       # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # Records HtmlTag for AST restoration
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def render_close_tag_node(node) #: void
         tag_name = node.tag_name.value
@@ -302,6 +315,8 @@ module RuboCop
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+
+        record_html_tag_info(node)
       end
 
       # Render HTML text node by placing "_; " at first non-whitespace position
@@ -379,6 +394,13 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
         source.byteslice(node.content.range)
+      end
+
+      # Record HTML tag info for AST restoration
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def record_html_tag_info(node) #: void
+        range = compute_node_range(node)
+        html_tags[range.from] = HtmlTag.new(range)
       end
     end
   end
