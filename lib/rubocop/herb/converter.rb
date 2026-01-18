@@ -11,7 +11,7 @@ module RuboCop
       end
 
       # @rbs code: String
-      def convert(code) #: String?
+      def convert(code) #: RenderResult?
         source = Source.new(code)
         RubyRenderer.render(source, html_visualization:)
       end

@@ -7,15 +7,15 @@ require "prism"
 RSpec.describe RuboCop::Herb::Converter do
   shared_examples "a Ruby code extractor for ERB" do
     it "collects Ruby parts from ERB" do
-      expect(subject).to eq(expected)
+      expect(ruby_code).to eq(expected)
     end
 
     it "preserves byte lengths" do
-      expect(subject.bytesize).to eq(source.bytesize)
+      expect(ruby_code.bytesize).to eq(source.bytesize)
     end
 
     it "generates valid Ruby code" do
-      parse_result = Prism.parse(subject)
+      parse_result = Prism.parse(ruby_code)
       expect(parse_result.errors).to be_empty
     end
   end
@@ -24,24 +24,26 @@ RSpec.describe RuboCop::Herb::Converter do
     context "when html_visualization is disabled (default)" do
       subject { described_class.new.convert(source) }
 
+      let(:ruby_code) { subject.ruby_code }
+
       # Basic ERB tags
       describe "with a content ERB tag" do
         let(:source) { "<div><%= user.name %></div>" }
-        let(:expected) { "     _ = user.name;        " }
+        let(:expected) { "div; _ = user.name;        " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with a comment ERB tag" do
         let(:source) { "<div><%# user.name %></div>" }
-        let(:expected) { "       # user.name         " }
+        let(:expected) { "div;   # user.name         " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with execution tag without output" do
         let(:source) { "<div><% @counter += 1 %></div>" }
-        let(:expected) { "        @counter += 1;        " }
+        let(:expected) { "div;    @counter += 1;        " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -56,7 +58,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     if admin?;  ",
            "                 ",
            "     end;  ",
@@ -75,7 +77,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     unless logged_in?;  ",
            "                 ",
            "     end;  ",
@@ -98,7 +100,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     if admin?;  ",
            "         ",
            "     elsif moderator?;  ",
@@ -126,7 +128,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     case status;  ",
            "     when :active;  ",
            "          ",
@@ -151,9 +153,9 @@ RSpec.describe RuboCop::Herb::Converter do
            "</ul>"].join("\n")
         end
         let(:expected) do
-          ["    ",
+          ["ul; ",
            "     users.each do |user|;  ",
-           "        _ = user.name;       ",
+           "    li; _ = user.name;       ",
            "     end;  ",
            "     "].join("\n")
         end
@@ -170,9 +172,9 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     3.times do |i|;  ",
-           "       _ = i;      ",
+           "    p; _ = i;      ",
            "     end;  ",
            "      "].join("\n")
         end
@@ -189,9 +191,9 @@ RSpec.describe RuboCop::Herb::Converter do
            "</ul>"].join("\n")
         end
         let(:expected) do
-          ["    ",
+          ["ul; ",
            "     for item in items;  ",
-           "        _ = item;       ",
+           "    li; _ = item;       ",
            "     end;  ",
            "     "].join("\n")
         end
@@ -208,9 +210,9 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     while condition;  ",
-           "                     ",
+           "    p;               ",
            "     end;  ",
            "      "].join("\n")
         end
@@ -227,9 +229,9 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     until done;  ",
-           "                  ",
+           "    p;            ",
            "     end;  ",
            "      "].join("\n")
         end
@@ -251,7 +253,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     begin;  ",
            "        risky_operation;  ",
            "     rescue StandardError => e;  ",
@@ -282,11 +284,11 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "     if show_list?;  ",
-           "        ",
+           "    ul; ",
            "         items.each do |item|;  ",
-           "            _ = item.name;       ",
+           "        li; _ = item.name;       ",
            "         end;  ",
            "         ",
            "     end;  ",
@@ -326,14 +328,14 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with multiple content tags on same line" do
         let(:source) { "<p><%= first %> and <%= second %></p>" }
-        let(:expected) { "   _ = first;       _ = second;      " }
+        let(:expected) { "p; _ = first;       _ = second;      " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with raw output tag (-%>)" do
         let(:source) { "<div><%= value -%></div>" }
-        let(:expected) { "     _ = value;         " }
+        let(:expected) { "div; _ = value;         " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -435,7 +437,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "</div>"].join("\n")
         end
         let(:expected) do
-          ["     ",
+          ["div; ",
            "    #",
            "    # multiline",
            "    # comment",
@@ -544,6 +546,8 @@ RSpec.describe RuboCop::Herb::Converter do
       end
 
       # HTML errors should not prevent Ruby extraction
+      # Note: When there are HTML errors, Herb parser may not recognize elements,
+      # so opening tags may not be rendered as method calls
       describe "with HTML errors (missing closing tags)" do
         let(:source) do
           ["<html>",
@@ -564,6 +568,8 @@ RSpec.describe RuboCop::Herb::Converter do
 
     context "when html_visualization is enabled" do
       subject { described_class.new(html_visualization: true).convert(source) }
+
+      let(:ruby_code) { subject.ruby_code }
 
       # Basic ERB tags with HTML open/close tag rendering
       describe "with a content ERB tag" do

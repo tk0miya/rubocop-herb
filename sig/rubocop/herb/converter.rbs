@@ -9,7 +9,7 @@ module RuboCop
       def initialize: (?html_visualization: bool) -> void
 
       # @rbs code: String
-      def convert: (String code) -> String?
+      def convert: (String code) -> RenderResult?
     end
   end
 end

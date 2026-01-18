@@ -12,4 +12,4 @@ if result.nil?
   exit 1
 end
 
-puts result
+puts result.ruby_code

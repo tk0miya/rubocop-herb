@@ -1,0 +1,27 @@
+# Generated from lib/rubocop/herb/html_aware_processed_source.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Custom ProcessedSource that stores HTML tag mappings for source replacement
+    # Note: AST nodes are frozen by parser, so we can't modify them directly.
+    # Instead, we store the mappings and provide lookup methods.
+    class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
+      attr_reader html_tag_mappings: Array[{ from: Integer, to: Integer, original: String }]
+
+      # @rbs code: String
+      # @rbs ruby_version: Float
+      # @rbs path: String?
+      # @rbs html_tag_mappings: Array[{from: Integer, to: Integer, original: String}]
+      # @rbs parser_engine: Symbol
+      def initialize: (String code, Float ruby_version, ?String? path, ?html_tag_mappings: Array[{ from: Integer, to: Integer, original: String }], ?parser_engine: Symbol) -> untyped
+
+      # Find the original HTML source for a given AST node position
+      # @rbs node: ::RuboCop::AST::Node
+      def original_html_for: (::RuboCop::AST::Node node) -> String?
+
+      # Check if a node represents an HTML tag
+      # @rbs node: ::RuboCop::AST::Node
+      def html_tag_node?: (::RuboCop::AST::Node node) -> bool
+    end
+  end
+end

@@ -2,6 +2,18 @@
 
 module RuboCop
   module Herb
+    # Result of rendering ERB to Ruby
+    class RenderResult < Struct[untyped]
+      attr_accessor ruby_code(): untyped
+
+      attr_accessor html_tag_mappings(): untyped
+
+      attr_accessor erb_end_mappings(): untyped
+
+      def self.new: (?ruby_code: untyped, ?html_tag_mappings: untyped, ?erb_end_mappings: untyped) -> instance
+                  | ({ ?ruby_code: untyped, ?html_tag_mappings: untyped, ?erb_end_mappings: untyped }) -> instance
+    end
+
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
     # Comments are collected during traversal and rendered at the end
     # with filtering applied.
@@ -11,7 +23,7 @@ module RuboCop
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs html_visualization: bool
-      def self.render: (Source source, ?html_visualization: bool) -> String
+      def self.render: (Source source, ?html_visualization: bool) -> RenderResult
 
       attr_reader buffer: Array[Integer]
 
@@ -28,6 +40,10 @@ module RuboCop
       attr_reader close_tag_counter: Integer
 
       attr_reader html_visualization: bool
+
+      attr_reader html_tag_mappings: Array[{ from: Integer, to: Integer, original: String, html_end: Integer }]
+
+      attr_reader erb_end_mappings: Array[{ from: Integer, to: Integer, erb_end: Integer }]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -94,9 +110,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
-      # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag with semicolon and processes children
-      # If the element contains no ERB nodes, renders only the open tag name
+      # Visit HTML element nodes to render opening tags as method calls
+      # Always renders opening tag for AST source replacement
+      # With html_visualization, also renders close tags and processes based on ERB content
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
@@ -132,8 +148,21 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
 
-      # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
-      # Attributes are ignored, only the tag name is rendered
+      # Render HTML opening tag as a method call (e.g., <div ...> becomes "div; ")
+      # Shifted one character left to avoid leading space warnings
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def render_html_open_tag: (::Herb::AST::HTMLElementNode node) -> void
+
+      # @rbs tag_name: String
+      # @rbs start_pos: Integer
+      # @rbs open_tag: ::Herb::AST::HTMLOpenTagNode
+      def record_html_tag_mapping: (String tag_name, Integer start_pos, ::Herb::AST::HTMLOpenTagNode open_tag) -> void
+
+      # Record ERB end tag mapping for extending control flow node ranges
+      # @rbs node: ::Herb::AST::ERBEndNode
+      def record_erb_end_mapping: (::Herb::AST::ERBEndNode node) -> void
+
+      # Render HTML open tag as Ruby code for visualization (e.g., "<p>" -> "p; ")
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
       def render_open_tag_node: (::Herb::AST::HTMLOpenTagNode node) -> void
 

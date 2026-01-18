@@ -5,6 +5,9 @@ require_relative "ruby_renderer/block_context"
 
 module RuboCop
   module Herb
+    # Result of rendering ERB to Ruby
+    RenderResult = Struct.new(:ruby_code, :html_tag_mappings, :erb_end_mappings, keyword_init: true)
+
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
     # Comments are collected during traversal and rendered at the end
     # with filtering applied.
@@ -14,10 +17,14 @@ module RuboCop
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs html_visualization: bool
-      def self.render(source, html_visualization: false) #: String
+      def self.render(source, html_visualization: false) #: RenderResult
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        renderer.result
+        RenderResult.new(
+          ruby_code: renderer.result,
+          html_tag_mappings: renderer.html_tag_mappings,
+          erb_end_mappings: renderer.erb_end_mappings
+        )
       end
 
       attr_reader :buffer #: Array[Integer]
@@ -28,6 +35,8 @@ module RuboCop
       attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :close_tag_counter #: Integer
       attr_reader :html_visualization #: bool
+      attr_reader :html_tag_mappings #: Array[{from: Integer, to: Integer, original: String, html_end: Integer}]
+      attr_reader :erb_end_mappings #: Array[{from: Integer, to: Integer, erb_end: Integer}]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -40,6 +49,8 @@ module RuboCop
         @code_positions = {}
         @close_tag_counter = 0
         @html_visualization = html_visualization
+        @html_tag_mappings = []
+        @erb_end_mappings = []
 
         super()
       end
@@ -174,14 +185,17 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node(node) #: void
         render_code_node(node)
+        record_erb_end_mapping(node)
         super
       end
 
-      # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag with semicolon and processes children
-      # If the element contains no ERB nodes, renders only the open tag name
+      # Visit HTML element nodes to render opening tags as method calls
+      # Always renders opening tag for AST source replacement
+      # With html_visualization, also renders close tags and processes based on ERB content
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
+        render_html_open_tag(node)
+
         return super unless html_visualization
 
         range = source.location_to_range(node.location)
@@ -266,8 +280,53 @@ module RuboCop
         buffer[pos + 2] = EQUALS
       end
 
-      # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
-      # Attributes are ignored, only the tag name is rendered
+      # Render HTML opening tag as a method call (e.g., <div ...> becomes "div; ")
+      # Shifted one character left to avoid leading space warnings
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def render_html_open_tag(node) #: void
+        tag_name = node.tag_name.value
+        open_tag = node.open_tag
+        # Write tag name starting at the position of '<' (one character left)
+        start_pos = open_tag.tag_opening.range.from
+        buffer[start_pos, tag_name.bytesize] = tag_name.bytes
+        buffer[start_pos + tag_name.bytesize] = SEMICOLON
+
+        # Record mapping for later AST source replacement
+        record_html_tag_mapping(tag_name, start_pos, open_tag)
+      end
+
+      # @rbs tag_name: String
+      # @rbs start_pos: Integer
+      # @rbs open_tag: ::Herb::AST::HTMLOpenTagNode
+      def record_html_tag_mapping(tag_name, start_pos, open_tag) #: void
+        open_tag_start = open_tag.tag_opening.range.from
+        open_tag_end = open_tag.tag_closing.range.to
+        original_html = source.code.byteslice(open_tag_start, open_tag_end - open_tag_start)
+        html_tag_mappings << {
+          from: start_pos,
+          to: start_pos + tag_name.bytesize,
+          original: original_html,
+          html_end: open_tag_end # Original HTML tag end position for autocorrect
+        }
+      end
+
+      # Record ERB end tag mapping for extending control flow node ranges
+      # @rbs node: ::Herb::AST::ERBEndNode
+      def record_erb_end_mapping(node) #: void
+        content_range = node.content.range
+        # Find where 'end' keyword starts in the content (skip leading whitespace)
+        end_keyword_start = content_range.from + (node.content.value =~ /end/)
+        end_keyword_end = end_keyword_start + 3 # 'end' is 3 bytes
+        erb_tag_end = node.tag_closing.range.to
+
+        erb_end_mappings << {
+          from: end_keyword_start,
+          to: end_keyword_end,
+          erb_end: erb_tag_end
+        }
+      end
+
+      # Render HTML open tag as Ruby code for visualization (e.g., "<p>" -> "p; ")
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
       def render_open_tag_node(node) #: void
         tag_name = node.tag_name.value

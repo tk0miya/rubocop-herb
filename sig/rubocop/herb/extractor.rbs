@@ -15,7 +15,8 @@ module RuboCop
 
       private
 
-      def build_processed_source: (untyped code) -> ::RuboCop::ProcessedSource
+      # @rbs render_result: RenderResult
+      def build_processed_source: (RenderResult render_result) -> ::RuboCop::ProcessedSource
     end
   end
 end
