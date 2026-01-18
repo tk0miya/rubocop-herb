@@ -37,6 +37,8 @@ module RuboCop
 
       attr_reader code_positions: Hash[Integer, Integer]
 
+      attr_reader close_tag_counter: Integer
+
       # @rbs source: Source
       def initialize: (Source source) -> void
 
@@ -101,6 +103,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
+      # Visit HTML close tag nodes (e.g., </p>, </div>)
+      # Renders as Ruby code like "p1; " to maintain byte length
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -127,6 +134,13 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
+
+      # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
+      # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
+
+      def next_close_tag_counter: () -> Integer
 
       # Render collected comments that can be safely converted to Ruby comments
       def render_comments: () -> void

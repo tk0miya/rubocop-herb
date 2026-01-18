@@ -32,6 +32,7 @@ module RuboCop
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
+      attr_reader :close_tag_counter #: Integer
 
       # @rbs source: Source
       def initialize(source) #: void
@@ -41,6 +42,7 @@ module RuboCop
         @block_stack = []
         @comment_nodes = []
         @code_positions = {}
+        @close_tag_counter = 0
 
         super()
       end
@@ -178,6 +180,14 @@ module RuboCop
         super
       end
 
+      # Visit HTML close tag nodes (e.g., </p>, </div>)
+      # Renders as Ruby code like "p1; " to maintain byte length
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node(node) #: void
+        render_close_tag_node(node)
+        super
+      end
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -240,6 +250,24 @@ module RuboCop
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SPACE
         buffer[pos + 2] = EQUALS
+      end
+
+      # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
+      # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def render_close_tag_node(node) #: void
+        tag_name = node.tag_name.value
+        counter = next_close_tag_counter
+        ruby_code = "#{tag_name}#{counter}; "
+
+        start_pos = node.tag_opening.range.from
+        buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+      end
+
+      def next_close_tag_counter #: Integer
+        current = @close_tag_counter
+        @close_tag_counter = (@close_tag_counter + 1) % 10
+        current
       end
 
       # Render collected comments that can be safely converted to Ruby comments
