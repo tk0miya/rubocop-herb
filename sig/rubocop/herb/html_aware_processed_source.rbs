@@ -2,9 +2,7 @@
 
 module RuboCop
   module Herb
-    # Custom ProcessedSource that stores HTML tag mappings for source replacement
-    # Note: AST nodes are frozen by parser, so we can't modify them directly.
-    # Instead, we store the mappings and provide lookup methods.
+    # Custom ProcessedSource that replaces AST node sources for HTML tags
     class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
       attr_reader html_tag_mappings: Array[{ from: Integer, to: Integer, original: String }]
 
@@ -15,13 +13,31 @@ module RuboCop
       # @rbs parser_engine: Symbol
       def initialize: (String code, Float ruby_version, ?String? path, ?html_tag_mappings: Array[{ from: Integer, to: Integer, original: String }], ?parser_engine: Symbol) -> untyped
 
-      # Find the original HTML source for a given AST node position
-      # @rbs node: ::RuboCop::AST::Node
-      def original_html_for: (::RuboCop::AST::Node node) -> String?
+      private
 
-      # Check if a node represents an HTML tag
-      # @rbs node: ::RuboCop::AST::Node
-      def html_tag_node?: (::RuboCop::AST::Node node) -> bool
+      def replace_ast_with_html_sources: () -> void
+
+      # Recursively rebuild AST, replacing HTML tag nodes with nodes that have HTML source
+      # @rbs node: untyped
+      def rebuild_ast: (untyped node) -> untyped
+
+      # Compare children by object identity, not value equality
+      # (AST nodes compare equal if they have same type/children, ignoring location)
+      # @rbs original: Array[untyped]
+      # @rbs updated: Array[untyped]
+      def children_changed?: (Array[untyped] original, Array[untyped] updated) -> bool
+
+      # @rbs node: ::Parser::AST::Node
+      def find_mapping_for_node: (::Parser::AST::Node node) -> Hash[Symbol, untyped]?
+
+      # @rbs node: ::Parser::AST::Node
+      # @rbs children: Array[untyped]
+      # @rbs html_source: String
+      def create_html_source_node: (::Parser::AST::Node node, Array[untyped] children, String html_source) -> ::Parser::AST::Node
+
+      # @rbs node: ::Parser::AST::Node
+      # @rbs html_range: ::Parser::Source::Range
+      def create_source_map_for_node: (::Parser::AST::Node node, ::Parser::Source::Range html_range) -> ::Parser::Source::Map
     end
   end
 end
