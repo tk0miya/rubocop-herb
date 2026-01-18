@@ -22,7 +22,7 @@ module RuboCop
         each_corrector(report) do |to_merge|
           suppress_clobbering do
             # Always use import! to handle different source buffers
-            corrector.import!(to_merge, offset: offset)
+            corrector.import!(to_merge, offset:)
           end
         end
 

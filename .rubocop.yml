@@ -30,6 +30,9 @@ RSpec/NestedGroups:
 Style/Documentation:
   Enabled: false
 
+Style/HashSyntax:
+  EnforcedShorthandSyntax: always
+
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 

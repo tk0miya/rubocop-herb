@@ -16,7 +16,7 @@ RSpec.describe RuboCop::Herb::Source do
   describe "#byteslice" do
     subject { described_class.new(code).byteslice(range) }
 
-    let(:range) { instance_double(Herb::Range, from: from, to: to) }
+    let(:range) { instance_double(Herb::Range, from:, to:) }
 
     context "with ASCII characters" do
       let(:code) { "hello\nworld\nfoo" }
