@@ -18,16 +18,19 @@ module RuboCop
     class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
       attr_reader html_tag_mappings: Array[{ from: Integer, to: Integer, original: String, html_end: Integer }]
 
+      attr_reader erb_end_mappings: Array[{ from: Integer, to: Integer, erb_end: Integer }]
+
       # @rbs code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
-      # @rbs html_tag_mappings: Array[{from: Integer, to: Integer, original: String}]
+      # @rbs html_tag_mappings: Array[{from: Integer, to: Integer, original: String, html_end: Integer}]
+      # @rbs erb_end_mappings: Array[{from: Integer, to: Integer, erb_end: Integer}]
       # @rbs parser_engine: Symbol
-      def initialize: (String code, Float ruby_version, ?String? path, ?html_tag_mappings: Array[{ from: Integer, to: Integer, original: String }], ?parser_engine: Symbol) -> untyped
+      def initialize: (String code, Float ruby_version, ?String? path, **untyped options) -> untyped
 
       private
 
-      def replace_ast_with_html_sources: () -> void
+      def rebuild_ast_if_needed: () -> void
 
       # Recursively rebuild AST, replacing HTML tag nodes with nodes that have HTML source
       # @rbs node: untyped
@@ -51,6 +54,28 @@ module RuboCop
       # @rbs node: ::Parser::AST::Node
       # @rbs html_range: ::Parser::Source::Range
       def create_source_map_for_node: (::Parser::AST::Node node, ::Parser::Source::Range html_range) -> ::Parser::Source::Map
+
+      # Check if this is a control flow node whose end keyword falls within an ERB end tag
+      # @rbs node: ::Parser::AST::Node
+      def find_erb_end_mapping_for_node: (::Parser::AST::Node node) -> Hash[Symbol, untyped]?
+
+      # @rbs node: ::Parser::AST::Node
+      def control_flow_node?: (::Parser::AST::Node node) -> bool
+
+      # Extend the node's location to cover the full ERB end tag
+      # @rbs node: ::Parser::AST::Node
+      # @rbs children: Array[untyped]
+      # @rbs erb_end: Integer
+      def extend_node_end: (::Parser::AST::Node node, Array[untyped] children, Integer erb_end) -> ::Parser::AST::Node
+
+      # @rbs loc: ::Parser::Source::Map
+      # @rbs extended_range: ::Parser::Source::Range
+      # @rbs erb_end: Integer
+      def extend_location_map: (::Parser::Source::Map loc, ::Parser::Source::Range extended_range, Integer erb_end) -> ::Parser::Source::Map
+
+      # @rbs end_range: ::Parser::Source::Range?
+      # @rbs erb_end: Integer
+      def extend_end_range: (::Parser::Source::Range? end_range, Integer erb_end) -> ::Parser::Source::Range?
     end
   end
 end

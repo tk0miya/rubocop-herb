@@ -40,6 +40,7 @@ module RuboCop
           processed_source.ruby_version,
           processed_source.path,
           html_tag_mappings: render_result.html_tag_mappings,
+          erb_end_mappings: render_result.erb_end_mappings,
           parser_engine: processed_source.parser_engine
         ).tap do |ps|
           ps.config = processed_source.config

@@ -26,23 +26,29 @@ module RuboCop
     end
 
     # Custom ProcessedSource that replaces AST node sources for HTML tags
-    class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
+    class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource # rubocop:disable Metrics/ClassLength
       attr_reader :html_tag_mappings #: Array[{from: Integer, to: Integer, original: String, html_end: Integer}]
+      attr_reader :erb_end_mappings #: Array[{from: Integer, to: Integer, erb_end: Integer}]
 
       # @rbs code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
-      # @rbs html_tag_mappings: Array[{from: Integer, to: Integer, original: String}]
+      # @rbs html_tag_mappings: Array[{from: Integer, to: Integer, original: String, html_end: Integer}]
+      # @rbs erb_end_mappings: Array[{from: Integer, to: Integer, erb_end: Integer}]
       # @rbs parser_engine: Symbol
-      def initialize(code, ruby_version, path = nil, html_tag_mappings: [], parser_engine: :parser_prism)
-        @html_tag_mappings = html_tag_mappings
-        super(code, ruby_version, path, parser_engine:)
-        replace_ast_with_html_sources if ast && !html_tag_mappings.empty?
+      def initialize(code, ruby_version, path = nil, **options)
+        @html_tag_mappings = options[:html_tag_mappings] || []
+        @erb_end_mappings = options[:erb_end_mappings] || []
+        super(code, ruby_version, path, parser_engine: options[:parser_engine] || :parser_prism)
+        rebuild_ast_if_needed
       end
 
       private
 
-      def replace_ast_with_html_sources #: void
+      def rebuild_ast_if_needed #: void
+        return unless ast
+        return if html_tag_mappings.empty? && erb_end_mappings.empty?
+
         @ast = rebuild_ast(ast)
       end
 
@@ -54,12 +60,17 @@ module RuboCop
         # First, rebuild all children
         new_children = node.children.map { |child| rebuild_ast(child) }
 
-        # Check if this node should have its source replaced
-        mapping = find_mapping_for_node(node)
-        if mapping
-          # Create a new node with HTML source
-          create_html_source_node(node, new_children, mapping[:original], mapping[:html_end])
-        elsif children_changed?(node.children, new_children)
+        # Check if this node should have its source replaced (HTML tags)
+        html_mapping = find_mapping_for_node(node)
+        if html_mapping
+          return create_html_source_node(node, new_children, html_mapping[:original], html_mapping[:html_end])
+        end
+
+        # Check if this is a control flow node that needs its end extended
+        erb_end_mapping = find_erb_end_mapping_for_node(node)
+        return extend_node_end(node, new_children, erb_end_mapping[:erb_end]) if erb_end_mapping
+
+        if children_changed?(node.children, new_children)
           # Children changed, create new node
           node.updated(nil, new_children)
         else
@@ -121,6 +132,94 @@ module RuboCop
         else
           ::Parser::Source::Map.new(html_range)
         end
+      end
+
+      # Check if this is a control flow node whose end keyword falls within an ERB end tag
+      # @rbs node: ::Parser::AST::Node
+      def find_erb_end_mapping_for_node(node) #: Hash[Symbol, untyped]?
+        return nil unless control_flow_node?(node)
+        return nil unless node.loc.respond_to?(:end) && node.loc.end
+
+        end_keyword_start = node.loc.end.begin_pos
+        end_keyword_end = node.loc.end.end_pos
+
+        erb_end_mappings.find do |mapping|
+          mapping[:from] == end_keyword_start && mapping[:to] == end_keyword_end
+        end
+      end
+
+      # @rbs node: ::Parser::AST::Node
+      def control_flow_node?(node) #: bool
+        %i[if unless case while until for begin].include?(node.type)
+      end
+
+      # Extend the node's location to cover the full ERB end tag
+      # @rbs node: ::Parser::AST::Node
+      # @rbs children: Array[untyped]
+      # @rbs erb_end: Integer
+      def extend_node_end(node, children, erb_end) #: ::Parser::AST::Node
+        original_range = node.loc.expression
+        extended_range = ::Parser::Source::Range.new(
+          original_range.source_buffer,
+          original_range.begin_pos,
+          erb_end
+        )
+
+        # Create new location map with extended expression range
+        new_map = extend_location_map(node.loc, extended_range, erb_end)
+
+        node.updated(nil, children, { location: new_map })
+      end
+
+      # @rbs loc: ::Parser::Source::Map
+      # @rbs extended_range: ::Parser::Source::Range
+      # @rbs erb_end: Integer
+      def extend_location_map(loc, extended_range, erb_end) #: ::Parser::Source::Map # rubocop:disable Metrics/AbcSize
+        case loc
+        when ::Parser::Source::Map::Condition
+          # For if/unless/case nodes
+          extended_end = extend_end_range(loc.end, erb_end) if loc.end
+          ::Parser::Source::Map::Condition.new(
+            loc.keyword,
+            loc.begin,
+            loc.else,
+            extended_end,
+            extended_range
+          )
+        when ::Parser::Source::Map::For
+          # For for loops
+          extended_end = extend_end_range(loc.end, erb_end) if loc.end
+          ::Parser::Source::Map::For.new(
+            loc.keyword,
+            loc.in,
+            loc.begin,
+            extended_end,
+            extended_range
+          )
+        when ::Parser::Source::Map::Keyword
+          # For while/until/begin
+          extended_end = extend_end_range(loc.end, erb_end) if loc.end
+          ::Parser::Source::Map::Keyword.new(
+            loc.keyword,
+            loc.begin,
+            extended_end,
+            extended_range
+          )
+        else
+          ::Parser::Source::Map.new(extended_range)
+        end
+      end
+
+      # @rbs end_range: ::Parser::Source::Range?
+      # @rbs erb_end: Integer
+      def extend_end_range(end_range, erb_end) #: ::Parser::Source::Range?
+        return nil unless end_range
+
+        ::Parser::Source::Range.new(
+          end_range.source_buffer,
+          end_range.begin_pos,
+          erb_end
+        )
       end
     end
   end
