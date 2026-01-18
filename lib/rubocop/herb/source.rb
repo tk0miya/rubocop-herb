@@ -18,6 +18,12 @@ module RuboCop
         parse
       end
 
+      # Check if a range contains any ERB nodes
+      # @rbs range: ::Herb::Range
+      def contains_erb?(range) #: bool
+        erb_node_positions.any? { |pos| pos >= range.from && pos < range.to }
+      end
+
       # @rbs range: ::Herb::Range
       def byteslice(range) #: String
         code.byteslice(range.from, range.to - range.from).force_encoding(code.encoding)

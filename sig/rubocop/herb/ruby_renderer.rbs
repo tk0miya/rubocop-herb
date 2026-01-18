@@ -94,15 +94,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
-      # Visit HTML open tag nodes (e.g., <p>, <div class="foo">)
-      # Renders as Ruby code like "p; " or "div; " to maintain byte length
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def visit_html_open_tag_node: (::Herb::AST::HTMLOpenTagNode node) -> void
-
-      # Visit HTML close tag nodes (e.g., </p>, </div>)
-      # Renders as Ruby code like "p1; " to maintain byte length
-      # @rbs node: ::Herb::AST::HTMLCloseTagNode
-      def visit_html_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
+      # Visit HTML element nodes (container for open tag, content, and close tag)
+      # If the element contains ERB nodes, renders open tag with semicolon and processes children
+      # If the element contains no ERB nodes, renders only the open tag name
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
       # Visit HTML text nodes (plain text content between tags)
       # Renders underscore at first non-whitespace position to indicate content presence
