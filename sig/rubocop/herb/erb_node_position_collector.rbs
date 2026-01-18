@@ -1,0 +1,26 @@
+# Generated from lib/rubocop/herb/erb_node_position_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor that collects the start byte positions of ERB nodes in a document.
+    # This is useful for determining if an HTML element contains ERB nodes.
+    class ErbNodePositionCollector < ::Herb::Visitor
+      # Collect ERB node start positions from a parse result
+      # @rbs parse_result: ::Herb::ParseResult
+      def self.collect: (::Herb::ParseResult parse_result) -> Set[Integer]
+
+      attr_reader positions: Set[Integer]
+
+      def initialize: () -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def visit_child_nodes: (::Herb::AST::Node node) -> void
+
+      private
+
+      # Record the start byte position of an ERB node using tag_opening.range.from
+      # @rbs node: ::Herb::AST::Node
+      def record_position: (::Herb::AST::Node node) -> void
+    end
+  end
+end
