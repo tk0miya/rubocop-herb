@@ -132,6 +132,12 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
 
+      # Get the byte range of an HTML node
+      # For HTMLElementNode: computed from open/close tag ranges
+      # For HTMLTextNode: computed from location (line/column to byte offset)
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
+      def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode node) -> ::Herb::Range
+
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
       # Attributes are ignored, only the tag name is rendered
       # @rbs node: ::Herb::AST::HTMLOpenTagNode

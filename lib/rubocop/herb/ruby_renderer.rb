@@ -184,7 +184,7 @@ module RuboCop
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
-        range = source.location_to_range(node.location)
+        range = compute_node_range(node)
         if source.contains_erb?(range)
           render_open_tag_node(node.open_tag)
           super
@@ -266,6 +266,21 @@ module RuboCop
         buffer[pos + 2] = EQUALS
       end
 
+      # Get the byte range of an HTML node
+      # For HTMLElementNode: computed from open/close tag ranges
+      # For HTMLTextNode: computed from location (line/column to byte offset)
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
+      def compute_node_range(node) #: ::Herb::Range
+        case node
+        when ::Herb::AST::HTMLElementNode
+          from = node.open_tag.tag_opening.range.from
+          to = node.close_tag ? node.close_tag.tag_closing.range.to : node.open_tag.tag_closing.range.to
+          ::Herb::Range.new(from, to)
+        when ::Herb::AST::HTMLTextNode
+          source.location_to_range(node.location)
+        end
+      end
+
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
       # Attributes are ignored, only the tag name is rendered
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
@@ -294,7 +309,7 @@ module RuboCop
       # Requires at least 3 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
-        range = source.location_to_range(node.location)
+        range = compute_node_range(node)
         match = source.byteslice(range).match(/\S/)
         return unless match
 
