@@ -22,7 +22,7 @@ module RuboCop
         return unless path && Configuration.supported_file?(path)
 
         result = Converter.new(html_visualization: Configuration.html_visualization?)
-                          .convert(processed_source.raw_source, path)
+                          .convert(path, processed_source.raw_source)
 
         [{
           offset: 0,

@@ -10,10 +10,10 @@ module RuboCop
         @html_visualization = html_visualization
       end
 
+      # @rbs path: String
       # @rbs code: String
-      # @rbs path: String?
-      def convert(code, path = nil) #: RubyRenderer::Result
-        source = Source.new(code, path)
+      def convert(path, code) #: RubyRenderer::Result
+        source = Source.new(path, code)
         RubyRenderer.render(source, html_visualization:)
       end
     end

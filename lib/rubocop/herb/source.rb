@@ -8,16 +8,16 @@ module RuboCop
       include Characters
 
       attr_reader :code #: String
-      attr_reader :path #: String?
+      attr_reader :path #: String
       attr_reader :line_offsets #: Array[Integer]
       attr_reader :parse_result #: ::Herb::ParseResult
       attr_reader :erb_node_positions #: Set[Integer]
 
+      # @rbs path: String
       # @rbs code: String
-      # @rbs path: String?
-      def initialize(code, path = nil) #: void
-        @code = code
+      def initialize(path, code) #: void
         @path = path
+        @code = code
         parse
       end
 

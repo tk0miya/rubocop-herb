@@ -12,7 +12,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
 
   describe "HTML AST restoration" do
     let(:erb_source) { "<div><%= @name %></div>" }
-    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: true).convert(erb_source) }
+    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: true).convert("test.html.erb", erb_source) }
     let(:processed_source) do
       described_class.new(
         conversion_result.code, 3.3, "test.html.erb",
@@ -33,7 +33,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
 
   describe "with multiple HTML tags" do
     let(:erb_source) { "<ul><li><%= item %></li></ul>" }
-    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: true).convert(erb_source) }
+    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: true).convert("test.html.erb", erb_source) }
     let(:processed_source) do
       described_class.new(
         conversion_result.code, 3.3, "test.html.erb",
@@ -50,7 +50,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
 
   describe "with attributes" do
     let(:erb_source) { '<div class="container"><%= content %></div>' }
-    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: true).convert(erb_source) }
+    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: true).convert("test.html.erb", erb_source) }
     let(:processed_source) do
       described_class.new(
         conversion_result.code, 3.3, "test.html.erb",

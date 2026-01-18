@@ -22,7 +22,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
   describe "#convert" do
     context "when html_visualization is disabled (default)" do
-      subject { described_class.new.convert(source).code }
+      subject { described_class.new.convert("test.html.erb", source).code }
 
       # Basic ERB tags
       describe "with a content ERB tag" do
@@ -563,7 +563,7 @@ RSpec.describe RuboCop::Herb::Converter do
     end
 
     context "when html_visualization is enabled" do
-      subject { described_class.new(html_visualization: true).convert(source).code }
+      subject { described_class.new(html_visualization: true).convert("test.html.erb", source).code }
 
       # Basic ERB tags with HTML open/close tag rendering
       describe "with a content ERB tag" do
