@@ -9,6 +9,10 @@ module RuboCop
 
       attr_reader line_offsets: Array[Integer]
 
+      attr_reader parse_result: ::Herb::ParseResult
+
+      attr_reader erb_node_positions: Set[Integer]
+
       # @rbs code: String
       def initialize: (String code) -> void
 
@@ -22,6 +26,8 @@ module RuboCop
       def location_to_range: (::Herb::Location location) -> ::Herb::Range
 
       private
+
+      def parse: () -> void
 
       # Convert line and column (1-indexed line, 0-indexed column) to byte offset
       # @rbs line: Integer

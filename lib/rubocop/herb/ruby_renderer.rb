@@ -13,11 +13,10 @@ module RuboCop
 
       # Render ERB source to Ruby code
       # @rbs source: Source
-      # @rbs parse_result: ::Herb::ParseResult
       # @rbs html_visualization: bool
-      def self.render(source, parse_result, html_visualization: false) #: String
+      def self.render(source, html_visualization: false) #: String
         renderer = new(source, html_visualization:)
-        parse_result.visit(renderer)
+        source.parse_result.visit(renderer)
         renderer.result
       end
 

@@ -65,4 +65,34 @@ RSpec.describe RuboCop::Herb::Source do
       expect(subject).to eq(Encoding::UTF_8)
     end
   end
+
+  describe "#parse_result" do
+    subject { described_class.new(code).parse_result }
+
+    let(:code) { "<div><%= @name %></div>" }
+
+    it "returns the Herb parse result" do
+      expect(subject).to be_a(Herb::ParseResult)
+    end
+  end
+
+  describe "#erb_node_positions" do
+    subject { described_class.new(code).erb_node_positions }
+
+    context "with ERB content" do
+      let(:code) { "<div><%= @name %></div>" }
+
+      it "returns ERB node positions" do
+        expect(subject).to eq(Set[5])
+      end
+    end
+
+    context "with no ERB content" do
+      let(:code) { "<div>Hello</div>" }
+
+      it "returns empty set" do
+        expect(subject).to eq(Set[])
+      end
+    end
+  end
 end

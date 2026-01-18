@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "herb"
+
 module RuboCop
   module Herb
     class Source
@@ -7,11 +9,13 @@ module RuboCop
 
       attr_reader :code #: String
       attr_reader :line_offsets #: Array[Integer]
+      attr_reader :parse_result #: ::Herb::ParseResult
+      attr_reader :erb_node_positions #: Set[Integer]
 
       # @rbs code: String
       def initialize(code) #: void
         @code = code
-        @line_offsets = compute_line_offsets
+        parse
       end
 
       # @rbs range: ::Herb::Range
@@ -32,6 +36,12 @@ module RuboCop
       end
 
       private
+
+      def parse #: void
+        @parse_result = ::Herb.parse(code)
+        @erb_node_positions = ErbNodePositionCollector.collect(@parse_result)
+        @line_offsets = compute_line_offsets
+      end
 
       # Convert line and column (1-indexed line, 0-indexed column) to byte offset
       # @rbs line: Integer
