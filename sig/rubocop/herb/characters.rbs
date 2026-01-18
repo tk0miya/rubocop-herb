@@ -1,0 +1,22 @@
+# Generated from lib/rubocop/herb/characters.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Byte constants for character manipulation
+    module Characters
+      LF: Integer
+
+      CR: Integer
+
+      SPACE: Integer
+
+      HASH: Integer
+
+      SEMICOLON: Integer
+
+      EQUALS: Integer
+
+      UNDERSCORE: Integer
+    end
+  end
+end
