@@ -4,6 +4,27 @@ require "rubocop"
 
 module RuboCop
   module Herb
+    # Custom Range that uses the original buffer but returns HTML source
+    # This satisfies RuboCop's corrector buffer validation while showing HTML in messages
+    class HtmlSourceRange < ::Parser::Source::Range
+      # @rbs buffer: ::Parser::Source::Buffer
+      # @rbs begin_pos: Integer
+      # @rbs end_pos: Integer
+      # @rbs html_source: String
+      def initialize(buffer, begin_pos, end_pos, html_source) # rubocop:disable Lint/MissingSuper
+        @html_source = html_source
+        # Manually set instance variables to avoid frozen object issues
+        @source_buffer = buffer
+        @begin_pos = begin_pos
+        @end_pos = end_pos
+        freeze
+      end
+
+      def source #: String
+        @html_source
+      end
+    end
+
     # Custom ProcessedSource that replaces AST node sources for HTML tags
     class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
       attr_reader :html_tag_mappings #: Array[{from: Integer, to: Integer, original: String}]
@@ -73,12 +94,14 @@ module RuboCop
       # @rbs children: Array[untyped]
       # @rbs html_source: String
       def create_html_source_node(node, children, html_source) #: ::Parser::AST::Node
-        # Create a buffer with the HTML source
-        html_buffer = ::Parser::Source::Buffer.new("(html_tag)")
-        html_buffer.source = html_source
-
-        # Create a range spanning the entire HTML
-        html_range = ::Parser::Source::Range.new(html_buffer, 0, html_source.bytesize)
+        # Create a custom range that uses original buffer but returns HTML source
+        original_range = node.loc.expression
+        html_range = HtmlSourceRange.new(
+          original_range.source_buffer,
+          original_range.begin_pos,
+          original_range.end_pos,
+          html_source
+        )
 
         # Create appropriate map based on node type
         new_map = create_source_map_for_node(node, html_range)

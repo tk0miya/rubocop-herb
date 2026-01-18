@@ -2,6 +2,18 @@
 
 module RuboCop
   module Herb
+    # Custom Range that uses the original buffer but returns HTML source
+    # This satisfies RuboCop's corrector buffer validation while showing HTML in messages
+    class HtmlSourceRange < ::Parser::Source::Range
+      # @rbs buffer: ::Parser::Source::Buffer
+      # @rbs begin_pos: Integer
+      # @rbs end_pos: Integer
+      # @rbs html_source: String
+      def initialize: (::Parser::Source::Buffer buffer, Integer begin_pos, Integer end_pos, String html_source) -> untyped
+
+      def source: () -> String
+    end
+
     # Custom ProcessedSource that replaces AST node sources for HTML tags
     class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
       attr_reader html_tag_mappings: Array[{ from: Integer, to: Integer, original: String }]

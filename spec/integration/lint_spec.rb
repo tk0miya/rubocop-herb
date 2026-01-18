@@ -129,4 +129,40 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
   end
+
+  context "when analyzing if-else with identical HTML branches" do
+    let(:config) do
+      # Enable Style/IdenticalConditionalBranches for this test
+      # (it's normally excluded since branches may differ only in HTML)
+      rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
+      rubocop_config["Style/IdenticalConditionalBranches"] = { "Enabled" => true }
+      Tempfile.new([".rubocop", ".yml"]).tap do |f|
+        f.write(YAML.dump(rubocop_config))
+        f.close
+      end
+    end
+
+    let(:source) do
+      <<~ERB
+        <% if foo %>
+          <div></div>
+        <% else %>
+          <div></div>
+        <% end %>
+      ERB
+    end
+
+    it "detects Style/IdenticalConditionalBranches for identical HTML branches" do
+      runner.run(path, source, {})
+      expect(runner.offenses.map(&:cop_name)).to eq %w[
+        Style/IdenticalConditionalBranches
+        Style/IdenticalConditionalBranches
+      ]
+    end
+
+    it "includes original HTML tag in offense message" do
+      runner.run(path, source, {})
+      expect(runner.offenses.map(&:message)).to all(include("<div>"))
+    end
+  end
 end
