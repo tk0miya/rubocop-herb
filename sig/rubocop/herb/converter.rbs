@@ -8,8 +8,9 @@ module RuboCop
       # @rbs html_visualization: bool
       def initialize: (?html_visualization: bool) -> void
 
+      # @rbs path: String
       # @rbs code: String
-      def convert: (String code) -> String?
+      def convert: (String path, String code) -> RubyRenderer::Result
     end
   end
 end

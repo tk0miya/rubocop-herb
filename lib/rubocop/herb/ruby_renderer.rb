@@ -11,35 +11,49 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       include Characters
 
+      # Result of rendering ERB source to Ruby code
+      Result = Data.define(
+        :source, #: Source
+        :code, #: String
+        :mixed_source, #: String
+        :html_tags #: Hash[Integer, HtmlTag]
+      )
+
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs html_visualization: bool
-      def self.render(source, html_visualization: false) #: String
+      def self.render(source, html_visualization: false) #: Result
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        renderer.result
+        Result.new(source:, code: renderer.result, mixed_source: renderer.mixed_result, html_tags: renderer.html_tags)
       end
 
       attr_reader :buffer #: Array[Integer]
+      attr_reader :mixed_buffer #: Array[Integer]
       attr_reader :source #: Source
       attr_reader :result #: String
+      attr_reader :mixed_result #: String
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :close_tag_counter #: Integer
       attr_reader :html_visualization #: bool
+      attr_reader :html_tags #: Hash[Integer, HtmlTag]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
       def initialize(source, html_visualization: false) #: void
         @source = source
         @buffer = bleach_code(source.code)
+        @mixed_buffer = source.code.bytes.dup
         @result = ""
+        @mixed_result = ""
         @block_stack = []
         @comment_nodes = []
         @code_positions = {}
         @close_tag_counter = 0
         @html_visualization = html_visualization
+        @html_tags = {}
 
         super()
       end
@@ -50,6 +64,7 @@ module RuboCop
         super
         render_comments
         @result = buffer.pack("C*").force_encoding(source.encoding)
+        @mixed_result = mixed_buffer.pack("C*").force_encoding(source.encoding)
       end
 
       # Visit ERB block nodes (iterators like each, times, loop)
@@ -179,18 +194,18 @@ module RuboCop
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
       # If the element contains ERB nodes, renders open tag with semicolon and processes children
-      # If the element contains no ERB nodes, renders only the open tag name
+      # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
-        range = compute_node_range(node)
-        if source.contains_erb?(range)
+        element_range = compute_node_range(node)
+        if source.contains_erb?(element_range)
           render_open_tag_node(node.open_tag)
           super
           render_close_tag_node(node.close_tag) if node.close_tag
         else
-          render_open_tag_node(node.open_tag)
+          render_open_tag_node(node.open_tag, element_range:)
         end
       end
 
@@ -242,11 +257,14 @@ module RuboCop
         ruby_code = ruby_code_for(node)
         range = node.content.range
         buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
+        mixed_buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
 
         trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
         semicolon_pos = range.to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+        mixed_buffer[semicolon_pos] = SEMICOLON if semicolon_pos < mixed_buffer.size
 
+        bleach_erb_delimiters(node)
         render_output_marker(node) if output_node?(node) && !tail_expression?(node)
       end
 
@@ -259,18 +277,37 @@ module RuboCop
       end
 
       # @rbs node: ::Herb::AST::Node
-      def render_output_marker(node) #: void
+      def render_output_marker(node) #: void # rubocop:disable Metrics/AbcSize
         pos = node.tag_opening.range.from
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SPACE
         buffer[pos + 2] = EQUALS
+        mixed_buffer[pos] = UNDERSCORE
+        mixed_buffer[pos + 1] = SPACE
+        mixed_buffer[pos + 2] = EQUALS
+      end
+
+      # Bleach ERB delimiters in mixed_buffer to spaces
+      # @rbs node: ::Herb::AST::Node
+      def bleach_erb_delimiters(node) #: void
+        return unless node.respond_to?(:tag_opening) && node.respond_to?(:tag_closing)
+
+        # Bleach opening delimiter (<% or <%=)
+        opening_range = node.tag_opening.range
+        opening_range.from.upto(opening_range.to - 1) do |i|
+          mixed_buffer[i] = SPACE
+        end
+
+        # Bleach closing delimiter (%>)
+        closing_range = node.tag_closing.range
+        closing_range.from.upto(closing_range.to - 1) do |i|
+          mixed_buffer[i] = SPACE
+        end
       end
 
       # Get the byte range of an HTML node
-      # For HTMLElementNode: computed from open/close tag ranges
-      # For HTMLTextNode: computed from location (line/column to byte offset)
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
-      def compute_node_range(node) #: ::Herb::Range
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def compute_node_range(node) #: ::Herb::Range # rubocop:disable Metrics/AbcSize
         case node
         when ::Herb::AST::HTMLElementNode
           from = node.open_tag.tag_opening.range.from
@@ -278,22 +315,29 @@ module RuboCop
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
           source.location_to_range(node.location)
+        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
+          ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
         end
       end
 
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
       # Attributes are ignored, only the tag name is rendered
+      # Records HtmlTag for AST restoration
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def render_open_tag_node(node) #: void
+      # @rbs element_range: ::Herb::Range?
+      def render_open_tag_node(node, element_range: nil) #: void
         tag_name = node.tag_name.value
         ruby_code = "#{tag_name}; "
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+
+        record_html_tag_info(node, element_range:)
       end
 
       # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
       # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # Records HtmlTag for AST restoration
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def render_close_tag_node(node) #: void
         tag_name = node.tag_name.value
@@ -302,6 +346,8 @@ module RuboCop
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+
+        record_html_tag_info(node)
       end
 
       # Render HTML text node by placing "_; " at first non-whitespace position
@@ -342,12 +388,16 @@ module RuboCop
       def render_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
         hash_pos = node.tag_opening.range.to - 1
         buffer[hash_pos] = HASH
+        mixed_buffer[hash_pos] = HASH
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
         hash_column = node.tag_opening.location.start.column + 2
         formatted_code = format_multiline_comment(ruby_code, hash_column)
         buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+        mixed_buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+
+        bleach_erb_delimiters(node)
       end
 
       # @rbs code: String
@@ -379,6 +429,16 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
         source.byteslice(node.content.range)
+      end
+
+      # Record HTML tag info for AST restoration
+      # When element_range is provided, uses that range instead of the node's tag range
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      # @rbs element_range: ::Herb::Range?
+      def record_html_tag_info(node, element_range: nil) #: void
+        tag_range = compute_node_range(node)
+        range = element_range || tag_range
+        html_tags[tag_range.from] = HtmlTag.new(range)
       end
     end
   end
