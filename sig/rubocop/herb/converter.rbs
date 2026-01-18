@@ -3,6 +3,11 @@
 module RuboCop
   module Herb
     class Converter
+      attr_reader html_visualization: bool
+
+      # @rbs html_visualization: bool
+      def initialize: (?html_visualization: bool) -> void
+
       # @rbs code: String
       def convert: (String code) -> String?
     end

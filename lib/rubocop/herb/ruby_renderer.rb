@@ -20,8 +20,9 @@ module RuboCop
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs parse_result: ::Herb::ParseResult
-      def self.render(source, parse_result) #: String
-        renderer = new(source)
+      # @rbs html_visualization: bool
+      def self.render(source, parse_result, html_visualization: false) #: String
+        renderer = new(source, html_visualization: html_visualization)
         parse_result.visit(renderer)
         renderer.result
       end
@@ -32,15 +33,20 @@ module RuboCop
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
+      attr_reader :close_tag_counter #: Integer
+      attr_reader :html_visualization #: bool
 
       # @rbs source: Source
-      def initialize(source) #: void
+      # @rbs html_visualization: bool
+      def initialize(source, html_visualization: false) #: void
         @source = source
         @buffer = bleach_code(source.code)
         @result = ""
         @block_stack = []
         @comment_nodes = []
         @code_positions = {}
+        @close_tag_counter = 0
+        @html_visualization = html_visualization
 
         super()
       end
@@ -178,6 +184,14 @@ module RuboCop
         super
       end
 
+      # Visit HTML close tag nodes (e.g., </p>, </div>)
+      # Renders as Ruby code like "p1; " to maintain byte length
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node(node) #: void
+        render_close_tag_node(node) if html_visualization
+        super
+      end
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -240,6 +254,18 @@ module RuboCop
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SPACE
         buffer[pos + 2] = EQUALS
+      end
+
+      # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
+      # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def render_close_tag_node(node) #: void
+        tag_name = node.tag_name.value
+        ruby_code = "#{tag_name}#{close_tag_counter}; "
+        @close_tag_counter = close_tag_counter.succ % 10
+
+        start_pos = node.tag_opening.range.from
+        buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
       end
 
       # Render collected comments that can be safely converted to Ruby comments

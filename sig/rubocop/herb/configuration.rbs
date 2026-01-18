@@ -16,8 +16,12 @@ module RuboCop
 
       self.@supported_extensions: Array[String]
 
+      self.@html_visualization: bool
+
       # @rbs config: Hash[String, untyped]
       def self.setup: (Hash[String, untyped] config) -> void
+
+      def self.html_visualization?: () -> bool
 
       # @rbs path: String
       def self.supported_file?: (String path) -> bool
