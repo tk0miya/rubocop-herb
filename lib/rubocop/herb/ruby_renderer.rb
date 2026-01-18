@@ -194,18 +194,18 @@ module RuboCop
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
       # If the element contains ERB nodes, renders open tag with semicolon and processes children
-      # If the element contains no ERB nodes, renders only the open tag name
+      # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
-        range = compute_node_range(node)
-        if source.contains_erb?(range)
+        element_range = compute_node_range(node)
+        if source.contains_erb?(element_range)
           render_open_tag_node(node.open_tag)
           super
           render_close_tag_node(node.close_tag) if node.close_tag
         else
-          render_open_tag_node(node.open_tag)
+          render_open_tag_node(node.open_tag, element_range:)
         end
       end
 
@@ -324,14 +324,15 @@ module RuboCop
       # Attributes are ignored, only the tag name is rendered
       # Records HtmlTag for AST restoration
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def render_open_tag_node(node) #: void
+      # @rbs element_range: ::Herb::Range?
+      def render_open_tag_node(node, element_range: nil) #: void
         tag_name = node.tag_name.value
         ruby_code = "#{tag_name}; "
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
 
-        record_html_tag_info(node)
+        record_html_tag_info(node, element_range:)
       end
 
       # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
@@ -431,10 +432,13 @@ module RuboCop
       end
 
       # Record HTML tag info for AST restoration
+      # When element_range is provided, uses that range instead of the node's tag range
       # @rbs node: ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
-      def record_html_tag_info(node) #: void
-        range = compute_node_range(node)
-        html_tags[range.from] = HtmlTag.new(range)
+      # @rbs element_range: ::Herb::Range?
+      def record_html_tag_info(node, element_range: nil) #: void
+        tag_range = compute_node_range(node)
+        range = element_range || tag_range
+        html_tags[tag_range.from] = HtmlTag.new(range)
       end
     end
   end
