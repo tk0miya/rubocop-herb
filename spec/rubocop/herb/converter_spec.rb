@@ -714,6 +714,28 @@ RSpec.describe RuboCop::Herb::Converter do
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
+
+      # HTML tags without ERB nodes should render tag name only and skip processing children
+      describe "with HTML tag without ERB nodes" do
+        let(:source) { "<div>text</div>" }
+        let(:expected) { "div;           " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with nested HTML tags without ERB nodes" do
+        let(:source) { "<div><p>text</p></div>" }
+        let(:expected) { "div;                  " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with parent tag containing ERB but child tag without ERB" do
+        let(:source) { "<div><%= x %><p>text</p></div>" }
+        let(:expected) { "div; _ = x;  p;         div0; " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
     end
   end
 end
