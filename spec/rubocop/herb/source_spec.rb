@@ -66,32 +66,32 @@ RSpec.describe RuboCop::Herb::Source do
     end
   end
 
-  describe "#parse" do
-    let(:source) { described_class.new(code) }
+  describe "#parse_result" do
+    subject { described_class.new(code).parse_result }
 
-    before { source.parse }
+    let(:code) { "<div><%= @name %></div>" }
+
+    it "returns the Herb parse result" do
+      expect(subject).to be_a(Herb::ParseResult)
+    end
+  end
+
+  describe "#erb_node_positions" do
+    subject { described_class.new(code).erb_node_positions }
 
     context "with ERB content" do
       let(:code) { "<div><%= @name %></div>" }
 
-      it "sets parse_result" do
-        expect(source.parse_result).to be_a(Herb::ParseResult)
-      end
-
-      it "sets erb_node_positions" do
-        expect(source.erb_node_positions).to eq(Set[5])
+      it "returns ERB node positions" do
+        expect(subject).to eq(Set[5])
       end
     end
 
     context "with no ERB content" do
       let(:code) { "<div>Hello</div>" }
 
-      it "sets parse_result" do
-        expect(source.parse_result).to be_a(Herb::ParseResult)
-      end
-
-      it "sets erb_node_positions to empty set" do
-        expect(source.erb_node_positions).to eq(Set[])
+      it "returns empty set" do
+        expect(subject).to eq(Set[])
       end
     end
   end
