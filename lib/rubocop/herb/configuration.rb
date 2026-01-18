@@ -25,17 +25,13 @@ module RuboCop
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
 
-      # Cops temporarily excluded due to HTML parts being replaced with whitespace.
-      # These may be removed once HTML visualization is implemented.
+      # Cops excluded due to HTML visualization limitations.
+      # These cops produce false positives even with HTML visualization enabled.
       HTML_RELATED_EXCLUDED_COPS = [
-        "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
-        "Lint/EmptyBlock", # Block bodies may contain only HTML (no Ruby code)
-        "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
-        "Lint/EmptyWhen", # When bodies may contain only HTML (no Ruby code)
-        "Style/EmptyElse", # Else branches may contain only HTML (no Ruby code)
-        "Style/IdenticalConditionalBranches", # Branches may differ only in HTML content
+        "Layout/EmptyLineAfterGuardClause", # Guard clause followed by HTML appears as empty line
+        "Style/IdenticalConditionalBranches", # Same tag names in different branches appear identical
         "Style/Next", # Loop conditions may guard HTML output, not suitable for next
-        "Style/RedundantCondition" # Condition may appear redundant when HTML is removed
+        "Style/RedundantCondition" # Ternary operators like `foo ? foo : bar` are flagged regardless of context
       ].freeze #: Array[String]
 
       # @rbs self.@supported_extensions: Array[String]

@@ -10,8 +10,8 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS: Array[String]
 
-      # Cops temporarily excluded due to HTML parts being replaced with whitespace.
-      # These may be removed once HTML visualization is implemented.
+      # Cops excluded due to HTML visualization limitations.
+      # These cops produce false positives even with HTML visualization enabled.
       HTML_RELATED_EXCLUDED_COPS: Array[String]
 
       self.@supported_extensions: Array[String]
