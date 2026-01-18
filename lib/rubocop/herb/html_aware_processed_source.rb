@@ -27,7 +27,7 @@ module RuboCop
 
     # Custom ProcessedSource that replaces AST node sources for HTML tags
     class HtmlAwareProcessedSource < ::RuboCop::ProcessedSource
-      attr_reader :html_tag_mappings #: Array[{from: Integer, to: Integer, original: String}]
+      attr_reader :html_tag_mappings #: Array[{from: Integer, to: Integer, original: String, html_end: Integer}]
 
       # @rbs code: String
       # @rbs ruby_version: Float
@@ -58,7 +58,7 @@ module RuboCop
         mapping = find_mapping_for_node(node)
         if mapping
           # Create a new node with HTML source
-          create_html_source_node(node, new_children, mapping[:original])
+          create_html_source_node(node, new_children, mapping[:original], mapping[:html_end])
         elsif children_changed?(node.children, new_children)
           # Children changed, create new node
           node.updated(nil, new_children)
@@ -93,13 +93,15 @@ module RuboCop
       # @rbs node: ::Parser::AST::Node
       # @rbs children: Array[untyped]
       # @rbs html_source: String
-      def create_html_source_node(node, children, html_source) #: ::Parser::AST::Node
+      # @rbs html_end: Integer
+      def create_html_source_node(node, children, html_source, html_end) #: ::Parser::AST::Node
         # Create a custom range that uses original buffer but returns HTML source
+        # Use html_end (original HTML tag end position) for proper autocorrect positioning
         original_range = node.loc.expression
         html_range = HtmlSourceRange.new(
           original_range.source_buffer,
           original_range.begin_pos,
-          original_range.end_pos,
+          html_end,
           html_source
         )
 

@@ -131,6 +131,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
   end
 
   context "when analyzing if-else with identical HTML branches" do
+    let(:html_visualization) { false }
+
     let(:config) do
       # Enable Style/IdenticalConditionalBranches for this test
       # (it's normally excluded since branches may differ only in HTML)
