@@ -9,8 +9,14 @@ module RuboCop
 
       attr_reader line_offsets: Array[Integer]
 
+      attr_reader parse_result: ::Herb::ParseResult?
+
+      attr_reader erb_node_positions: Set[Integer]?
+
       # @rbs code: String
       def initialize: (String code) -> void
+
+      def parse: () -> void
 
       # @rbs range: ::Herb::Range
       def byteslice: (::Herb::Range range) -> String
