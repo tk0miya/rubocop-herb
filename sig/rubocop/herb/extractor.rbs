@@ -16,9 +16,9 @@ module RuboCop
       private
 
       # @rbs code: String
-      # @rbs source: Source
+      # @rbs mixed_source: String
       # @rbs html_tags: Hash[Integer, HtmlTag]
-      def build_processed_source: (String code, Source source, Hash[Integer, HtmlTag] html_tags) -> ProcessedSource
+      def build_processed_source: (String code, String mixed_source, Hash[Integer, HtmlTag] html_tags) -> ProcessedSource
     end
   end
 end

@@ -14,14 +14,16 @@ module RuboCop
 
         attr_reader code(): String
 
+        attr_reader mixed_source(): String
+
         attr_reader html_tags(): Hash[Integer, HtmlTag]
 
-        def self.new: (Source source, String code, Hash[Integer, HtmlTag] html_tags) -> instance
-                    | (source: Source, code: String, html_tags: Hash[Integer, HtmlTag]) -> instance
+        def self.new: (Source source, String code, String mixed_source, Hash[Integer, HtmlTag] html_tags) -> instance
+                    | (source: Source, code: String, mixed_source: String, html_tags: Hash[Integer, HtmlTag]) -> instance
 
-        def self.members: () -> [ :source, :code, :html_tags ]
+        def self.members: () -> [ :source, :code, :mixed_source, :html_tags ]
 
-        def members: () -> [ :source, :code, :html_tags ]
+        def members: () -> [ :source, :code, :mixed_source, :html_tags ]
       end
 
       # Render ERB source to Ruby code
@@ -31,9 +33,13 @@ module RuboCop
 
       attr_reader buffer: Array[Integer]
 
+      attr_reader mixed_buffer: Array[Integer]
+
       attr_reader source: Source
 
       attr_reader result: String
+
+      attr_reader mixed_result: String
 
       attr_reader block_stack: Array[BlockContext]
 
@@ -149,6 +155,10 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
+
+      # Bleach ERB delimiters in mixed_buffer to spaces
+      # @rbs node: ::Herb::AST::Node
+      def bleach_erb_delimiters: (::Herb::AST::Node node) -> void
 
       # Get the byte range of an HTML node
       # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode

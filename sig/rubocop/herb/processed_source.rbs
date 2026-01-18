@@ -6,7 +6,7 @@ module RuboCop
     # After parsing Ruby code, it uses RuboCopASTTransformer visitor to replace locations
     # of HTML tag nodes with their original HTML source
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
-      attr_reader source: Source
+      attr_reader mixed_source: String
 
       attr_reader html_tags: Hash[Integer, HtmlTag]
 
@@ -15,10 +15,10 @@ module RuboCop
       # @rbs code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
-      # @rbs source: Source
+      # @rbs mixed_source: String
       # @rbs html_tags: Hash[Integer, HtmlTag]
       # @rbs parser_engine: Symbol
-      def initialize: (String code, Float ruby_version, ?String? path, source: Source, ?html_tags: Hash[Integer, HtmlTag], ?parser_engine: Symbol) -> void
+      def initialize: (String code, Float ruby_version, ?String? path, mixed_source: String, ?html_tags: Hash[Integer, HtmlTag], ?parser_engine: Symbol) -> void
 
       private
 

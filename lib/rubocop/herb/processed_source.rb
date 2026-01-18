@@ -8,18 +8,18 @@ module RuboCop
     # After parsing Ruby code, it uses RuboCopASTTransformer visitor to replace locations
     # of HTML tag nodes with their original HTML source
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
-      attr_reader :source #: Source
+      attr_reader :mixed_source #: String
       attr_reader :html_tags #: Hash[Integer, HtmlTag]
       attr_reader :ast #: ::AST::Node?
 
       # @rbs code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
-      # @rbs source: Source
+      # @rbs mixed_source: String
       # @rbs html_tags: Hash[Integer, HtmlTag]
       # @rbs parser_engine: Symbol
-      def initialize(code, ruby_version, path = nil, source:, html_tags: {}, parser_engine: :default) #: void
-        @source = source
+      def initialize(code, ruby_version, path = nil, mixed_source:, html_tags: {}, parser_engine: :default) #: void
+        @mixed_source = mixed_source
         @html_tags = html_tags
         super(code, ruby_version, path, parser_engine:)
       end
@@ -37,9 +37,8 @@ module RuboCop
       end
 
       def transform_ast #: void
-        erb_buffer = Parser::Source::Buffer.new(path || "(erb)")
-        erb_buffer.source = source.code
-        @ast = RuboCopASTTransformer.transform(ast, html_tags, erb_buffer)
+        buffer.instance_variable_set(:@source, mixed_source)
+        @ast = RuboCopASTTransformer.transform(ast, html_tags, buffer)
       end
     end
   end

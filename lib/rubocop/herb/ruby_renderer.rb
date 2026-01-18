@@ -15,6 +15,7 @@ module RuboCop
       Result = Data.define(
         :source, #: Source
         :code, #: String
+        :mixed_source, #: String
         :html_tags #: Hash[Integer, HtmlTag]
       )
 
@@ -24,12 +25,14 @@ module RuboCop
       def self.render(source, html_visualization: false) #: Result
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        Result.new(source:, code: renderer.result, html_tags: renderer.html_tags)
+        Result.new(source:, code: renderer.result, mixed_source: renderer.mixed_result, html_tags: renderer.html_tags)
       end
 
       attr_reader :buffer #: Array[Integer]
+      attr_reader :mixed_buffer #: Array[Integer]
       attr_reader :source #: Source
       attr_reader :result #: String
+      attr_reader :mixed_result #: String
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
@@ -42,7 +45,9 @@ module RuboCop
       def initialize(source, html_visualization: false) #: void
         @source = source
         @buffer = bleach_code(source.code)
+        @mixed_buffer = source.code.bytes.dup
         @result = ""
+        @mixed_result = ""
         @block_stack = []
         @comment_nodes = []
         @code_positions = {}
@@ -59,6 +64,7 @@ module RuboCop
         super
         render_comments
         @result = buffer.pack("C*").force_encoding(source.encoding)
+        @mixed_result = mixed_buffer.pack("C*").force_encoding(source.encoding)
       end
 
       # Visit ERB block nodes (iterators like each, times, loop)
@@ -251,11 +257,14 @@ module RuboCop
         ruby_code = ruby_code_for(node)
         range = node.content.range
         buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
+        mixed_buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
 
         trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
         semicolon_pos = range.to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+        mixed_buffer[semicolon_pos] = SEMICOLON if semicolon_pos < mixed_buffer.size
 
+        bleach_erb_delimiters(node)
         render_output_marker(node) if output_node?(node) && !tail_expression?(node)
       end
 
@@ -268,11 +277,32 @@ module RuboCop
       end
 
       # @rbs node: ::Herb::AST::Node
-      def render_output_marker(node) #: void
+      def render_output_marker(node) #: void # rubocop:disable Metrics/AbcSize
         pos = node.tag_opening.range.from
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SPACE
         buffer[pos + 2] = EQUALS
+        mixed_buffer[pos] = UNDERSCORE
+        mixed_buffer[pos + 1] = SPACE
+        mixed_buffer[pos + 2] = EQUALS
+      end
+
+      # Bleach ERB delimiters in mixed_buffer to spaces
+      # @rbs node: ::Herb::AST::Node
+      def bleach_erb_delimiters(node) #: void
+        return unless node.respond_to?(:tag_opening) && node.respond_to?(:tag_closing)
+
+        # Bleach opening delimiter (<% or <%=)
+        opening_range = node.tag_opening.range
+        opening_range.from.upto(opening_range.to - 1) do |i|
+          mixed_buffer[i] = SPACE
+        end
+
+        # Bleach closing delimiter (%>)
+        closing_range = node.tag_closing.range
+        closing_range.from.upto(closing_range.to - 1) do |i|
+          mixed_buffer[i] = SPACE
+        end
       end
 
       # Get the byte range of an HTML node
@@ -357,12 +387,16 @@ module RuboCop
       def render_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
         hash_pos = node.tag_opening.range.to - 1
         buffer[hash_pos] = HASH
+        mixed_buffer[hash_pos] = HASH
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
         hash_column = node.tag_opening.location.start.column + 2
         formatted_code = format_multiline_comment(ruby_code, hash_column)
         buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+        mixed_buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+
+        bleach_erb_delimiters(node)
       end
 
       # @rbs code: String

@@ -26,21 +26,21 @@ module RuboCop
 
         [{
           offset: 0,
-          processed_source: build_processed_source(result.code, result.source, result.html_tags)
+          processed_source: build_processed_source(result.code, result.mixed_source, result.html_tags)
         }]
       end
 
       private
 
       # @rbs code: String
-      # @rbs source: Source
+      # @rbs mixed_source: String
       # @rbs html_tags: Hash[Integer, HtmlTag]
-      def build_processed_source(code, source, html_tags) #: ProcessedSource
+      def build_processed_source(code, mixed_source, html_tags) #: ProcessedSource
         ProcessedSource.new(
           code,
           processed_source.ruby_version,
           processed_source.path,
-          source:,
+          mixed_source:,
           html_tags:,
           parser_engine: processed_source.parser_engine
         ).tap do |ps|
