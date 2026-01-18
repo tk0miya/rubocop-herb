@@ -5,12 +5,12 @@ require "bundler/setup"
 require "rubocop/herb"
 require "optparse"
 
-options = { html_visualization: false }
+options = { html_visualization: true }
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$PROGRAM_NAME} [options] < file.erb"
 
-  opts.on("--html-visualization", "Enable HTML visualization") do
-    options[:html_visualization] = true
+  opts.on("--disable-html-visualization", "Disable HTML visualization") do
+    options[:html_visualization] = false
   end
 
   opts.on("-h", "--help", "Show this help message") do
