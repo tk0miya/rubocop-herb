@@ -22,7 +22,7 @@ module RuboCop
       # @rbs parse_result: ::Herb::ParseResult
       # @rbs html_visualization: bool
       def self.render(source, parse_result, html_visualization: false) #: String
-        renderer = new(source, html_visualization: html_visualization)
+        renderer = new(source, html_visualization:)
         parse_result.visit(renderer)
         renderer.result
       end
@@ -197,7 +197,7 @@ module RuboCop
       # @rbs statements: Array[::Herb::AST::Node]
       # @rbs returning_value: bool
       def push_block(statements, returning_value: false) #: void
-        block_stack.push(BlockContext.new(statements, returning_value: returning_value))
+        block_stack.push(BlockContext.new(statements, returning_value:))
       end
 
       def pop_block #: void
