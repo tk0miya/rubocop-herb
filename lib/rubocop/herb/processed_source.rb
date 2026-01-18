@@ -37,7 +37,9 @@ module RuboCop
       end
 
       def transform_ast #: void
-        @ast = RuboCopASTTransformer.transform(ast, source, html_tags)
+        erb_buffer = Parser::Source::Buffer.new(path || "(erb)")
+        erb_buffer.source = source.code
+        @ast = RuboCopASTTransformer.transform(ast, html_tags, erb_buffer)
       end
     end
   end

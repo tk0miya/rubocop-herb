@@ -9,21 +9,20 @@ module RuboCop
     class RuboCopASTTransformer < Parser::AST::Processor
       # Transform AST to restore original HTML tag information
       # @rbs ast: Parser::AST::Node
-      # @rbs source: Source
       # @rbs html_tags: Hash[Integer, HtmlTag]
-      def self.transform(ast, source, html_tags) #: Parser::AST::Node
-        new(source, html_tags).process(ast)
+      # @rbs buffer: Parser::Source::Buffer
+      def self.transform(ast, html_tags, buffer) #: Parser::AST::Node
+        new(html_tags, buffer).process(ast)
       end
 
       attr_reader :buffer #: Parser::Source::Buffer
       attr_reader :html_tags #: Hash[Integer, HtmlTag]
 
-      # @rbs source: Source
       # @rbs html_tags: Hash[Integer, HtmlTag]
-      def initialize(source, html_tags) #: void
-        @buffer = Parser::Source::Buffer.new("(erb)")
-        @buffer.source = source.code
+      # @rbs buffer: Parser::Source::Buffer
+      def initialize(html_tags, buffer) #: void
         @html_tags = html_tags
+        @buffer = buffer
         super()
       end
 
