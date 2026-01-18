@@ -21,7 +21,8 @@ module RuboCop
         path = processed_source.path
         return unless path && Configuration.supported_file?(path)
 
-        source = Converter.new.convert(processed_source.raw_source)
+        source = Converter.new(html_visualization: Configuration.html_visualization?)
+                          .convert(processed_source.raw_source)
         return unless source
 
         [{

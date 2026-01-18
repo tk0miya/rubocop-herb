@@ -20,8 +20,9 @@ module RuboCop
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs parse_result: ::Herb::ParseResult
-      def self.render(source, parse_result) #: String
-        renderer = new(source)
+      # @rbs html_visualization: bool
+      def self.render(source, parse_result, html_visualization: false) #: String
+        renderer = new(source, html_visualization: html_visualization)
         parse_result.visit(renderer)
         renderer.result
       end
@@ -33,9 +34,11 @@ module RuboCop
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :close_tag_counter #: Integer
+      attr_reader :html_visualization #: bool
 
       # @rbs source: Source
-      def initialize(source) #: void
+      # @rbs html_visualization: bool
+      def initialize(source, html_visualization: false) #: void
         @source = source
         @buffer = bleach_code(source.code)
         @result = ""
@@ -43,6 +46,7 @@ module RuboCop
         @comment_nodes = []
         @code_positions = {}
         @close_tag_counter = 0
+        @html_visualization = html_visualization
 
         super()
       end
@@ -184,7 +188,7 @@ module RuboCop
       # Renders as Ruby code like "p1; " to maintain byte length
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def visit_html_close_tag_node(node) #: void
-        render_close_tag_node(node)
+        render_close_tag_node(node) if html_visualization
         super
       end
 
@@ -257,17 +261,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def render_close_tag_node(node) #: void
         tag_name = node.tag_name.value
-        counter = next_close_tag_counter
-        ruby_code = "#{tag_name}#{counter}; "
+        ruby_code = "#{tag_name}#{close_tag_counter}; "
+        @close_tag_counter = close_tag_counter.succ % 10
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
-      end
-
-      def next_close_tag_counter #: Integer
-        current = @close_tag_counter
-        @close_tag_counter = (@close_tag_counter + 1) % 10
-        current
       end
 
       # Render collected comments that can be safely converted to Ruby comments

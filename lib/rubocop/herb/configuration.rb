@@ -39,11 +39,17 @@ module RuboCop
       ].freeze #: Array[String]
 
       # @rbs self.@supported_extensions: Array[String]
+      # @rbs self.@html_visualization: bool
 
       class << self
         # @rbs config: Hash[String, untyped]
         def setup(config) #: void
           @supported_extensions = config["extensions"] || DEFAULT_EXTENSIONS
+          @html_visualization = config["html_visualization"] || false
+        end
+
+        def html_visualization? #: bool
+          @html_visualization
         end
 
         # @rbs path: String
