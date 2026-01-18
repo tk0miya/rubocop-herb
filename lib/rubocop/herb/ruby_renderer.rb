@@ -9,13 +9,7 @@ module RuboCop
     # Comments are collected during traversal and rendered at the end
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
-      LF = 0x0A
-      CR = 0x0D
-      SPACE = 0x20
-      SEMICOLON = 0x3B
-      HASH = 0x23
-      UNDERSCORE = 0x5F
-      EQUALS = 0x3D
+      include Characters
 
       # Render ERB source to Ruby code
       # @rbs source: Source
@@ -200,6 +194,14 @@ module RuboCop
         super
       end
 
+      # Visit HTML text nodes (plain text content between tags)
+      # Renders underscore at first non-whitespace position to indicate content presence
+      # @rbs node: ::Herb::AST::HTMLTextNode
+      def visit_html_text_node(node) #: void
+        render_text_node(node) if html_visualization
+        super
+      end
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -285,6 +287,22 @@ module RuboCop
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+      end
+
+      # Render HTML text node by placing "_; " at first non-whitespace position
+      # This indicates content presence to avoid Lint/EmptyBlock and similar cops
+      # Requires at least 3 bytes from the first non-whitespace position to end
+      # @rbs node: ::Herb::AST::HTMLTextNode
+      def render_text_node(node) #: void
+        range = source.location_to_range(node.location)
+        match = source.byteslice(range).match(/\S/)
+        return unless match
+
+        pos = range.from + match.begin(0)
+        return unless pos + 3 <= range.to
+
+        buffer[pos] = UNDERSCORE
+        buffer[pos + 1] = SEMICOLON
       end
 
       # Render collected comments that can be safely converted to Ruby comments

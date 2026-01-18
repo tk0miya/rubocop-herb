@@ -6,19 +6,7 @@ module RuboCop
     # Comments are collected during traversal and rendered at the end
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor
-      LF: ::Integer
-
-      CR: ::Integer
-
-      SPACE: ::Integer
-
-      SEMICOLON: ::Integer
-
-      HASH: ::Integer
-
-      UNDERSCORE: ::Integer
-
-      EQUALS: ::Integer
+      include Characters
 
       # Render ERB source to Ruby code
       # @rbs source: Source
@@ -117,6 +105,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def visit_html_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
 
+      # Visit HTML text nodes (plain text content between tags)
+      # Renders underscore at first non-whitespace position to indicate content presence
+      # @rbs node: ::Herb::AST::HTMLTextNode
+      def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -153,6 +146,12 @@ module RuboCop
       # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
+
+      # Render HTML text node by placing "_; " at first non-whitespace position
+      # This indicates content presence to avoid Lint/EmptyBlock and similar cops
+      # Requires at least 3 bytes from the first non-whitespace position to end
+      # @rbs node: ::Herb::AST::HTMLTextNode
+      def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
       # Render collected comments that can be safely converted to Ruby comments
       def render_comments: () -> void

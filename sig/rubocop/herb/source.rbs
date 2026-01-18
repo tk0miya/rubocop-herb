@@ -3,7 +3,11 @@
 module RuboCop
   module Herb
     class Source
+      include Characters
+
       attr_reader code: String
+
+      attr_reader line_offsets: Array[Integer]
 
       # @rbs code: String
       def initialize: (String code) -> void
@@ -12,6 +16,19 @@ module RuboCop
       def byteslice: (::Herb::Range range) -> String
 
       def encoding: () -> Encoding
+
+      # Convert a Herb::Location to a Herb::Range
+      # @rbs location: ::Herb::Location
+      def location_to_range: (::Herb::Location location) -> ::Herb::Range
+
+      private
+
+      # Convert line and column (1-indexed line, 0-indexed column) to byte offset
+      # @rbs line: Integer
+      # @rbs column: Integer
+      def byte_offset: (Integer line, Integer column) -> Integer
+
+      def compute_line_offsets: () -> Array[Integer]
     end
   end
 end
