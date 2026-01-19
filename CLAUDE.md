@@ -200,19 +200,4 @@ Result = Data.define(
 
 ### Generating RBS Files
 
-Type definition files (`.rbs`) are generated from inline annotations using `rbs-inline`. **Never edit `.rbs` files directly** - always modify the inline annotations in Ruby source files and regenerate:
-
-```bash
-# Generate RBS for a specific file
-bundle exec rbs-inline --opt-out --output=sig/ [filename]
-
-# Generate RBS for all files
-bundle exec rbs-inline --opt-out --output=sig/ lib/
-```
-
-After modifying type annotations, always regenerate the RBS files and run type checking:
-
-```bash
-bundle exec rbs-inline --opt-out --output=sig/ lib/
-bundle exec steep check
-```
+Type definition files (`.rbs`) are generated automatically by the PostToolUse hook when `.rb` files in `lib/` are modified. **Never edit `.rbs` files directly** - always modify the inline annotations in Ruby source files.
