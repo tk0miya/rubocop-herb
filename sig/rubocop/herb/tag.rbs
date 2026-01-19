@@ -7,12 +7,14 @@ module RuboCop
     class Tag < Data
       attr_reader range(): ::Herb::Range
 
-      def self.new: (::Herb::Range range) -> instance
-                  | (range: ::Herb::Range) -> instance
+      attr_reader restore_source(): bool
 
-      def self.members: () -> [ :range ]
+      def self.new: (::Herb::Range range, bool restore_source) -> instance
+                  | (range: ::Herb::Range, restore_source: bool) -> instance
 
-      def members: () -> [ :range ]
+      def self.members: () -> [ :range, :restore_source ]
+
+      def members: () -> [ :range, :restore_source ]
     end
   end
 end
