@@ -8,10 +8,26 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor
       include Characters
 
+      # Result of rendering ERB source to Ruby code
+      class Result < Data
+        attr_reader source(): Source
+
+        attr_reader code(): String
+
+        attr_reader html_tags(): Hash[Integer, HtmlTag]
+
+        def self.new: (Source source, String code, Hash[Integer, HtmlTag] html_tags) -> instance
+                    | (source: Source, code: String, html_tags: Hash[Integer, HtmlTag]) -> instance
+
+        def self.members: () -> [ :source, :code, :html_tags ]
+
+        def members: () -> [ :source, :code, :html_tags ]
+      end
+
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs html_visualization: bool
-      def self.render: (Source source, ?html_visualization: bool) -> String
+      def self.render: (Source source, ?html_visualization: bool) -> Result
 
       attr_reader buffer: Array[Integer]
 
@@ -28,6 +44,8 @@ module RuboCop
       attr_reader close_tag_counter: Integer
 
       attr_reader html_visualization: bool
+
+      attr_reader html_tags: Hash[Integer, HtmlTag]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -96,7 +114,7 @@ module RuboCop
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
       # If the element contains ERB nodes, renders open tag with semicolon and processes children
-      # If the element contains no ERB nodes, renders only the open tag name
+      # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
@@ -133,10 +151,8 @@ module RuboCop
       def render_output_marker: (::Herb::AST::Node node) -> void
 
       # Get the byte range of an HTML node
-      # For HTMLElementNode: computed from open/close tag ranges
-      # For HTMLTextNode: computed from location (line/column to byte offset)
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
-      def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode node) -> ::Herb::Range
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode node) -> ::Herb::Range
 
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
       # Attributes are ignored, only the tag name is rendered
@@ -175,6 +191,10 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for: (::Herb::AST::Node node) -> String
+
+      # Record HTML tag info for AST restoration
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def record_html_tag_info: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode node) -> void
     end
   end
 end

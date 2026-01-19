@@ -11,13 +11,20 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       include Characters
 
+      # Result of rendering ERB source to Ruby code
+      Result = Data.define(
+        :source, #: Source
+        :code, #: String
+        :html_tags #: Hash[Integer, HtmlTag]
+      )
+
       # Render ERB source to Ruby code
       # @rbs source: Source
       # @rbs html_visualization: bool
-      def self.render(source, html_visualization: false) #: String
+      def self.render(source, html_visualization: false) #: Result
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        renderer.result
+        Result.new(source:, code: renderer.result, html_tags: renderer.html_tags)
       end
 
       attr_reader :buffer #: Array[Integer]
@@ -28,6 +35,7 @@ module RuboCop
       attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :close_tag_counter #: Integer
       attr_reader :html_visualization #: bool
+      attr_reader :html_tags #: Hash[Integer, HtmlTag]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -40,6 +48,7 @@ module RuboCop
         @code_positions = {}
         @close_tag_counter = 0
         @html_visualization = html_visualization
+        @html_tags = {}
 
         super()
       end
@@ -179,18 +188,23 @@ module RuboCop
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
       # If the element contains ERB nodes, renders open tag with semicolon and processes children
-      # If the element contains no ERB nodes, renders only the open tag name
+      # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
-        range = compute_node_range(node)
-        if source.contains_erb?(range)
-          render_open_tag_node(node.open_tag)
+        element_range = compute_node_range(node)
+        render_open_tag_node(node.open_tag)
+
+        if source.contains_erb?(element_range)
+          record_html_tag_info(node.open_tag)
           super
-          render_close_tag_node(node.close_tag) if node.close_tag
+          if node.close_tag
+            render_close_tag_node(node.close_tag)
+            record_html_tag_info(node.close_tag)
+          end
         else
-          render_open_tag_node(node.open_tag)
+          record_html_tag_info(node)
         end
       end
 
@@ -267,10 +281,8 @@ module RuboCop
       end
 
       # Get the byte range of an HTML node
-      # For HTMLElementNode: computed from open/close tag ranges
-      # For HTMLTextNode: computed from location (line/column to byte offset)
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
-      def compute_node_range(node) #: ::Herb::Range
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def compute_node_range(node) #: ::Herb::Range # rubocop:disable Metrics/AbcSize
         case node
         when ::Herb::AST::HTMLElementNode
           from = node.open_tag.tag_opening.range.from
@@ -278,6 +290,8 @@ module RuboCop
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
           source.location_to_range(node.location)
+        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
+          ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
         end
       end
 
@@ -379,6 +393,13 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
         source.byteslice(node.content.range)
+      end
+
+      # Record HTML tag info for AST restoration
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      def record_html_tag_info(node) #: void
+        range = compute_node_range(node)
+        html_tags[range.from] = HtmlTag.new(range)
       end
     end
   end

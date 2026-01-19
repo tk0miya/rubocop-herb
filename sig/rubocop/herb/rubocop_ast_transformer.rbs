@@ -1,0 +1,34 @@
+# Generated from lib/rubocop/herb/rubocop_ast_transformer.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor that restores original HTML tag information in AST nodes
+    # Uses Parser::AST::Processor to traverse and transform the AST
+    class RuboCopASTTransformer < Parser::AST::Processor
+      # Transform AST to restore original HTML tag information
+      # @rbs ast: Parser::AST::Node
+      # @rbs html_tags: Hash[Integer, HtmlTag]
+      def self.transform: (Parser::AST::Node ast, Hash[Integer, HtmlTag] html_tags) -> Parser::AST::Node
+
+      attr_reader html_tags: Hash[Integer, HtmlTag]
+
+      # @rbs html_tags: Hash[Integer, HtmlTag]
+      def initialize: (Hash[Integer, HtmlTag] html_tags) -> void
+
+      # Process send nodes which represent HTML tags (e.g., div, p0)
+      # @rbs node: RuboCop::AST::SendNode
+      def on_send: (RuboCop::AST::SendNode node) -> RuboCop::AST::SendNode
+
+      private
+
+      # Restore HTML location if this node matches an HTML tag
+      # @rbs node: Parser::AST::Node
+      def restore_html_location: (Parser::AST::Node node) -> Parser::AST::Node
+
+      # Build a new location map with HTML source range
+      # @rbs node: Parser::AST::Node
+      # @rbs html_tag: HtmlTag
+      def build_html_location: (Parser::AST::Node node, HtmlTag html_tag) -> Parser::Source::Map
+    end
+  end
+end

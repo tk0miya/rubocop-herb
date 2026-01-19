@@ -21,23 +21,27 @@ module RuboCop
         path = processed_source.path
         return unless path && Configuration.supported_file?(path)
 
-        source = Converter.new(html_visualization: Configuration.html_visualization?)
-                          .convert(processed_source.raw_source)
-        return unless source
+        result = Converter.new(html_visualization: Configuration.html_visualization?)
+                          .convert(path, processed_source.raw_source)
 
         [{
           offset: 0,
-          processed_source: build_processed_source(source)
+          processed_source: build_processed_source(result.ruby_code, result.hybrid_code, result.html_tags)
         }]
       end
 
       private
 
-      def build_processed_source(code) #: ::RuboCop::ProcessedSource
-        ::RuboCop::ProcessedSource.new(
-          code,
+      # @rbs ruby_code: String
+      # @rbs hybrid_code: String
+      # @rbs html_tags: Hash[Integer, HtmlTag]
+      def build_processed_source(ruby_code, hybrid_code, html_tags) #: ProcessedSource
+        ProcessedSource.new(
+          ruby_code,
           processed_source.ruby_version,
           processed_source.path,
+          hybrid_code:,
+          html_tags:,
           parser_engine: processed_source.parser_engine
         ).tap do |ps|
           ps.config = processed_source.config

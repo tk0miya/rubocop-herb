@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe RuboCop::Herb::Source do
   describe "#code" do
-    subject { described_class.new(code).code }
+    subject { described_class.new("test.html.erb", code).code }
 
     let(:code) { "hello\nworld" }
 
@@ -14,7 +14,7 @@ RSpec.describe RuboCop::Herb::Source do
   end
 
   describe "#byteslice" do
-    subject { described_class.new(code).byteslice(range) }
+    subject { described_class.new("test.html.erb", code).byteslice(range) }
 
     let(:range) { instance_double(Herb::Range, from:, to:) }
 
@@ -57,7 +57,7 @@ RSpec.describe RuboCop::Herb::Source do
   end
 
   describe "#encoding" do
-    subject { described_class.new(code).encoding }
+    subject { described_class.new("test.html.erb", code).encoding }
 
     let(:code) { "hello" }
 
@@ -67,7 +67,7 @@ RSpec.describe RuboCop::Herb::Source do
   end
 
   describe "#parse_result" do
-    subject { described_class.new(code).parse_result }
+    subject { described_class.new("test.html.erb", code).parse_result }
 
     let(:code) { "<div><%= @name %></div>" }
 
@@ -77,7 +77,7 @@ RSpec.describe RuboCop::Herb::Source do
   end
 
   describe "#erb_node_positions" do
-    subject { described_class.new(code).erb_node_positions }
+    subject { described_class.new("test.html.erb", code).erb_node_positions }
 
     context "with ERB content" do
       let(:code) { "<div><%= @name %></div>" }

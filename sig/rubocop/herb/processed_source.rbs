@@ -1,0 +1,35 @@
+# Generated from lib/rubocop/herb/processed_source.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # ProcessedSource subclass that restores original HTML tag information in AST
+    # After parsing Ruby code, it uses RuboCopASTTransformer visitor to replace locations
+    # of HTML tag nodes with their original HTML source
+    class ProcessedSource < ::RuboCop::AST::ProcessedSource
+      attr_reader hybrid_code: String
+
+      attr_reader html_tags: Hash[Integer, HtmlTag]
+
+      attr_reader ast: ::AST::Node?
+
+      # @rbs ruby_code: String
+      # @rbs ruby_version: Float
+      # @rbs path: String?
+      # @rbs hybrid_code: String
+      # @rbs html_tags: Hash[Integer, HtmlTag]
+      # @rbs parser_engine: Symbol
+      def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, ?html_tags: Hash[Integer, HtmlTag], ?parser_engine: Symbol) -> void
+
+      private
+
+      # Override parse to transform AST after parsing
+      # @rbs ruby_code: String
+      # @rbs ruby_version: Float
+      # @rbs parser_engine: Symbol
+      # @rbs prism_result: untyped
+      def parse: (String ruby_code, Float ruby_version, Symbol parser_engine, untyped prism_result) -> untyped
+
+      def transform_ast: () -> void
+    end
+  end
+end
