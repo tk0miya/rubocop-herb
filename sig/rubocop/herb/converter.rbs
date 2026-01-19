@@ -9,14 +9,14 @@ module RuboCop
 
         attr_reader hybrid_code(): String
 
-        attr_reader html_tags(): Hash[Integer, HtmlTag]
+        attr_reader tags(): Hash[Integer, Tag]
 
-        def self.new: (String ruby_code, String hybrid_code, Hash[Integer, HtmlTag] html_tags) -> instance
-                    | (ruby_code: String, hybrid_code: String, html_tags: Hash[Integer, HtmlTag]) -> instance
+        def self.new: (String ruby_code, String hybrid_code, Hash[Integer, Tag] tags) -> instance
+                    | (ruby_code: String, hybrid_code: String, tags: Hash[Integer, Tag]) -> instance
 
-        def self.members: () -> [ :ruby_code, :hybrid_code, :html_tags ]
+        def self.members: () -> [ :ruby_code, :hybrid_code, :tags ]
 
-        def members: () -> [ :ruby_code, :hybrid_code, :html_tags ]
+        def members: () -> [ :ruby_code, :hybrid_code, :tags ]
       end
 
       attr_reader html_visualization: bool
@@ -33,8 +33,8 @@ module RuboCop
       # Generate hybrid code by restoring original HTML at tag positions
       # @rbs ruby_code: String
       # @rbs source: Source
-      # @rbs html_tags: Hash[Integer, HtmlTag]
-      def generate_hybrid_code: (String ruby_code, Source source, Hash[Integer, HtmlTag] html_tags) -> String
+      # @rbs tags: Hash[Integer, Tag]
+      def generate_hybrid_code: (String ruby_code, Source source, Hash[Integer, Tag] tags) -> String
     end
   end
 end

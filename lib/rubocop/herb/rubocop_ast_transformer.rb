@@ -9,16 +9,16 @@ module RuboCop
     class RuboCopASTTransformer < Parser::AST::Processor
       # Transform AST to restore original HTML tag information
       # @rbs ast: Parser::AST::Node
-      # @rbs html_tags: Hash[Integer, HtmlTag]
-      def self.transform(ast, html_tags) #: Parser::AST::Node
-        new(html_tags).process(ast)
+      # @rbs tags: Hash[Integer, Tag]
+      def self.transform(ast, tags) #: Parser::AST::Node
+        new(tags).process(ast)
       end
 
-      attr_reader :html_tags #: Hash[Integer, HtmlTag]
+      attr_reader :tags #: Hash[Integer, Tag]
 
-      # @rbs html_tags: Hash[Integer, HtmlTag]
-      def initialize(html_tags) #: void
-        @html_tags = html_tags
+      # @rbs tags: Hash[Integer, Tag]
+      def initialize(tags) #: void
+        @tags = tags
         super()
       end
 
@@ -36,19 +36,19 @@ module RuboCop
       def restore_html_location(node) #: Parser::AST::Node
         return node unless node.location&.expression
 
-        html_tag = html_tags[node.location.expression.begin_pos]
-        return node unless html_tag
+        tag = tags[node.location.expression.begin_pos]
+        return node unless tag
 
-        location = build_html_location(node, html_tag)
+        location = build_html_location(node, tag)
         node.updated(nil, nil, location:)
       end
 
       # Build a new location map with HTML source range
       # @rbs node: Parser::AST::Node
-      # @rbs html_tag: HtmlTag
-      def build_html_location(node, html_tag) #: Parser::Source::Map
+      # @rbs tag: Tag
+      def build_html_location(node, tag) #: Parser::Source::Map
         buffer = node.location.expression.source_buffer
-        range = Parser::Source::Range.new(buffer, html_tag.range.from, html_tag.range.to)
+        range = Parser::Source::Range.new(buffer, tag.range.from, tag.range.to)
 
         case node.location
         when Parser::Source::Map::Send

@@ -7,13 +7,13 @@ module RuboCop
     class RuboCopASTTransformer < Parser::AST::Processor
       # Transform AST to restore original HTML tag information
       # @rbs ast: Parser::AST::Node
-      # @rbs html_tags: Hash[Integer, HtmlTag]
-      def self.transform: (Parser::AST::Node ast, Hash[Integer, HtmlTag] html_tags) -> Parser::AST::Node
+      # @rbs tags: Hash[Integer, Tag]
+      def self.transform: (Parser::AST::Node ast, Hash[Integer, Tag] tags) -> Parser::AST::Node
 
-      attr_reader html_tags: Hash[Integer, HtmlTag]
+      attr_reader tags: Hash[Integer, Tag]
 
-      # @rbs html_tags: Hash[Integer, HtmlTag]
-      def initialize: (Hash[Integer, HtmlTag] html_tags) -> void
+      # @rbs tags: Hash[Integer, Tag]
+      def initialize: (Hash[Integer, Tag] tags) -> void
 
       # Process send nodes which represent HTML tags (e.g., div, p0)
       # @rbs node: RuboCop::AST::SendNode
@@ -27,8 +27,8 @@ module RuboCop
 
       # Build a new location map with HTML source range
       # @rbs node: Parser::AST::Node
-      # @rbs html_tag: HtmlTag
-      def build_html_location: (Parser::AST::Node node, HtmlTag html_tag) -> Parser::Source::Map
+      # @rbs tag: Tag
+      def build_html_location: (Parser::AST::Node node, Tag tag) -> Parser::Source::Map
     end
   end
 end

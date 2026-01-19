@@ -17,7 +17,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         hybrid_code: conversion_result.hybrid_code,
-        html_tags: conversion_result.html_tags
+        tags: conversion_result.tags
       )
     end
 
@@ -38,7 +38,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         hybrid_code: conversion_result.hybrid_code,
-        html_tags: conversion_result.html_tags
+        tags: conversion_result.tags
       )
     end
 
@@ -55,7 +55,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         hybrid_code: conversion_result.hybrid_code,
-        html_tags: conversion_result.html_tags
+        tags: conversion_result.tags
       )
     end
 
@@ -65,10 +65,10 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
     end
   end
 
-  describe "without html_tags" do
+  describe "without tags" do
     let(:erb_source) { "<div><%= @name %></div>" }
     let(:processed_source) do
-      described_class.new("div; @name; div0; ", 3.3, "test.html.erb", hybrid_code: erb_source, html_tags: {})
+      described_class.new("div; @name; div0; ", 3.3, "test.html.erb", hybrid_code: erb_source, tags: {})
     end
 
     it "keeps original AST unchanged" do

@@ -15,7 +15,7 @@ module RuboCop
       Result = Data.define(
         :source, #: Source
         :code, #: String
-        :html_tags #: Hash[Integer, HtmlTag]
+        :tags #: Hash[Integer, Tag]
       )
 
       # Render ERB source to Ruby code
@@ -24,7 +24,7 @@ module RuboCop
       def self.render(source, html_visualization: false) #: Result
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        Result.new(source:, code: renderer.result, html_tags: renderer.html_tags)
+        Result.new(source:, code: renderer.result, tags: renderer.tags)
       end
 
       attr_reader :buffer #: Array[Integer]
@@ -35,7 +35,7 @@ module RuboCop
       attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :close_tag_counter #: Integer
       attr_reader :html_visualization #: bool
-      attr_reader :html_tags #: Hash[Integer, HtmlTag]
+      attr_reader :tags #: Hash[Integer, Tag]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -48,7 +48,7 @@ module RuboCop
         @code_positions = {}
         @close_tag_counter = 0
         @html_visualization = html_visualization
-        @html_tags = {}
+        @tags = {}
 
         super()
       end
@@ -197,14 +197,14 @@ module RuboCop
         render_open_tag_node(node.open_tag)
 
         if source.contains_erb?(element_range)
-          record_html_tag_info(node.open_tag)
+          record_tag_info(node.open_tag)
           super
           if node.close_tag
             render_close_tag_node(node.close_tag)
-            record_html_tag_info(node.close_tag)
+            record_tag_info(node.close_tag)
           end
         else
-          record_html_tag_info(node)
+          record_tag_info(node)
         end
       end
 
@@ -333,7 +333,7 @@ module RuboCop
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SEMICOLON
 
-        record_html_tag_info(node)
+        record_tag_info(node)
       end
 
       # Render collected comments that can be safely converted to Ruby comments
@@ -397,11 +397,11 @@ module RuboCop
         source.byteslice(node.content.range)
       end
 
-      # Record HTML tag info for AST restoration
+      # Record tag info for AST restoration
       # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
-      def record_html_tag_info(node) #: void
+      def record_tag_info(node) #: void
         range = compute_node_range(node)
-        html_tags[range.from] = HtmlTag.new(range)
+        tags[range.from] = Tag.new(range)
       end
     end
   end
