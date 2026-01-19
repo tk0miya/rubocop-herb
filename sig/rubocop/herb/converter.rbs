@@ -31,6 +31,7 @@ module RuboCop
       private
 
       # Generate hybrid code by restoring original HTML at tag positions
+      # Only restores tags with restore_source: true
       # @rbs ruby_code: String
       # @rbs source: Source
       # @rbs tags: Hash[Integer, Tag]

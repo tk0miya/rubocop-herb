@@ -29,14 +29,16 @@ module RuboCop
       private
 
       # Generate hybrid code by restoring original HTML at tag positions
+      # Only restores tags with restore_source: true
       # @rbs ruby_code: String
       # @rbs source: Source
       # @rbs tags: Hash[Integer, Tag]
       def generate_hybrid_code(ruby_code, source, tags) #: String
-        return ruby_code if tags.empty?
+        restorable_tags = tags.select { |_, tag| tag.restore_source }
+        return ruby_code if restorable_tags.empty?
 
         result = ruby_code.bytes.dup
-        tags.each do |position, tag|
+        restorable_tags.each do |position, tag|
           original_html_bytes = source.byteslice(tag.range).bytes
           result[position, original_html_bytes.length] = original_html_bytes
         end

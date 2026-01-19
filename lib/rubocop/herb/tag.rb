@@ -5,7 +5,8 @@ module RuboCop
     # Data class for storing tag information
     # Used for mapping simplified Ruby code back to original HTML/text/ERB
     Tag = Data.define(
-      :range #: ::Herb::Range
+      :range, #: ::Herb::Range
+      :restore_source #: bool
     )
   end
 end
