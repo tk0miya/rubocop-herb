@@ -1,0 +1,28 @@
+# Generated from lib/rubocop/herb/patch/erb_ast.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    module Patch
+      # Monkey patches for AST classes to handle ERB tag ranges
+      # When ERB tag ranges (keyword, else, end) are adjusted to include
+      # the full ERB tags (e.g., "<% if %>" instead of just "if"),
+      # methods like if?, is?, etc. need to extract the actual Ruby keyword.
+      module ErbAst
+        KEYWORD_PATTERN: Regexp
+
+        # Patches for RuboCop::AST::IfNode
+        module IfNodePatch
+          # Override keyword to extract actual keyword from ERB tag
+          def keyword: () -> String
+        end
+
+        # Patches for Parser::Source::Range
+        module RangePatch
+          # Override is? to handle ERB-wrapped content
+          # @rbs what: Array[String]
+          def is?: (*untyped what) -> bool
+        end
+      end
+    end
+  end
+end

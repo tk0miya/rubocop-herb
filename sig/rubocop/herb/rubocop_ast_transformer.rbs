@@ -19,6 +19,10 @@ module RuboCop
       # @rbs node: RuboCop::AST::SendNode
       def on_send: (RuboCop::AST::SendNode node) -> RuboCop::AST::SendNode
 
+      # Process if nodes to restore ERB tag locations
+      # @rbs node: RuboCop::AST::IfNode
+      def on_if: (RuboCop::AST::IfNode node) -> RuboCop::AST::IfNode
+
       private
 
       # Restore HTML location if this node matches an HTML tag
@@ -29,6 +33,31 @@ module RuboCop
       # @rbs node: Parser::AST::Node
       # @rbs tag: Tag
       def build_html_location: (Parser::AST::Node node, Tag tag) -> Parser::Source::Map
+
+      # Restore ERB if/end tag locations (keyword, else, end, and expression)
+      # Uses monkey-patched if?/is? methods to handle ERB-wrapped keywords
+      # @rbs node: Parser::AST::Node
+      def restore_erb_if_location: (Parser::AST::Node node) -> Parser::AST::Node
+
+      # @rbs node: Parser::AST::Node
+      def restore_erb_condition_location: (Parser::AST::Node node) -> Parser::AST::Node
+
+      # Collect ERB tags for keyword, else, and end positions
+      # @rbs loc: Parser::Source::Map::Condition
+      def collect_erb_if_tags: (Parser::Source::Map::Condition loc) -> Hash[Symbol, Tag?]
+
+      # Build a new location map with adjusted keyword, else, end, and expression ranges
+      # @rbs node: Parser::AST::Node
+      # @rbs keyword_tag: Tag?
+      # @rbs else_tag: Tag?
+      # @rbs end_tag: Tag?
+      def build_erb_if_location: (Parser::AST::Node node, keyword_tag: Tag?, else_tag: Tag?, end_tag: Tag?) -> Parser::Source::Map::Condition
+
+      # Build an ERB-adjusted range from original range and tag info
+      # @rbs buffer: Parser::Source::Buffer
+      # @rbs original: Parser::Source::Range
+      # @rbs tag: Tag?
+      def build_erb_range: (Parser::Source::Buffer buffer, Parser::Source::Range original, Tag? tag) -> Parser::Source::Range
     end
   end
 end
