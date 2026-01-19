@@ -173,6 +173,7 @@ This project uses [rbs-inline](https://github.com/soutaro/rbs-inline) style anno
 - **Return types**: Use `#: Type` comment at the end of the `def` line
 - **Attributes**: Use `#: Type` comment at the end of `attr_accessor`/`attr_reader` (also defines instance variable type)
 - **Instance variables**: Use `@rbs @name: Type` comment (must have blank line before method definition)
+- **Data classes**: Use `#: Type` comment at the end of each member in `Data.define`
 
 ```ruby
 # @rbs name: String
@@ -188,6 +189,13 @@ attr_reader :name #: String
 def initialize
   @count = 0
 end
+
+# Data class with typed members
+Result = Data.define(
+  :source, #: Source
+  :code, #: String
+  :tags #: Hash[Integer, Tag]
+)
 ```
 
 ### Generating RBS Files
