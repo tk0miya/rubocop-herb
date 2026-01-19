@@ -24,6 +24,9 @@ Metrics/ParameterLists:
 RSpec/MultipleMemoizedHelpers:
   Max: 10
 
+RSpec/MultipleExpectations:
+  Enabled: false
+
 RSpec/NamedSubject:
   Enabled: false
 
