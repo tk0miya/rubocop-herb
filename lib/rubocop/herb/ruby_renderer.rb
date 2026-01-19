@@ -102,6 +102,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
         render_code_node(node)
+        record_erb_tag(node)
         push_block(node.statements, returning_value: true)
         super
         pop_block
@@ -120,6 +121,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
         render_code_node(node)
+        record_erb_tag(node)
         push_block(node.statements, returning_value: true)
         super
         pop_block
@@ -183,6 +185,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node(node) #: void
         render_code_node(node)
+        record_erb_tag(node)
         super
       end
 
@@ -252,7 +255,6 @@ module RuboCop
         return unless node.respond_to?(:content) && node.content
 
         record_code_position(node)
-        record_erb_tag(node)
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
@@ -281,8 +283,10 @@ module RuboCop
         buffer[pos + 2] = EQUALS
       end
 
-      # Get the byte range of an HTML node
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      # Get the byte range of a node
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
+      #          | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      #          | ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode
       def compute_node_range(node) #: ::Herb::Range # rubocop:disable Metrics/AbcSize
         case node
         when ::Herb::AST::HTMLElementNode
@@ -291,9 +295,18 @@ module RuboCop
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
           source.location_to_range(node.location)
-        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
+        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode,
+             ::Herb::AST::ERBIfNode, ::Herb::AST::ERBElseNode, ::Herb::AST::ERBEndNode
           ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
         end
+      end
+
+      # Compute the position of the keyword in ERB content (skipping leading whitespace)
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode
+      def compute_erb_keyword_position(node) #: Integer
+        content = source.byteslice(node.content.range)
+        leading_spaces = content.match(/\A\s*/)[0].bytesize
+        node.content.range.from + leading_spaces
       end
 
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
@@ -405,11 +418,14 @@ module RuboCop
         tags[range.from] = Tag.new(range:, restore_source: true)
       end
 
-      # Record ERB tag for AST restoration (without restoring source in hybrid code)
-      # @rbs node: ::Herb::AST::Node
+      # Record ERB tag info for AST restoration
+      # The key is the position of the keyword in the content (skipping leading whitespace)
+      # The value is the full ERB tag range (including <% and %>)
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode
       def record_erb_tag(node) #: void
-        range = ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
-        tags[range.from] = Tag.new(range:, restore_source: false)
+        keyword_pos = compute_erb_keyword_position(node)
+        range = compute_node_range(node)
+        tags[keyword_pos] = Tag.new(range:, restore_source: false)
       end
     end
   end

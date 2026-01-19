@@ -150,9 +150,15 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
 
-      # Get the byte range of an HTML node
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
-      def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode node) -> ::Herb::Range
+      # Get the byte range of a node
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode
+      #          | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      #          | ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode
+      def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode node) -> ::Herb::Range
+
+      # Compute the position of the keyword in ERB content (skipping leading whitespace)
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode
+      def compute_erb_keyword_position: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode node) -> Integer
 
       # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
       # Attributes are ignored, only the tag name is rendered
@@ -196,9 +202,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
       def record_tag_info: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode node) -> void
 
-      # Record ERB tag for AST restoration (without restoring source in hybrid code)
-      # @rbs node: ::Herb::AST::Node
-      def record_erb_tag: (::Herb::AST::Node node) -> void
+      # Record ERB tag info for AST restoration
+      # The key is the position of the keyword in the content (skipping leading whitespace)
+      # The value is the full ERB tag range (including <% and %>)
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode
+      def record_erb_tag: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBEndNode node) -> void
     end
   end
 end
