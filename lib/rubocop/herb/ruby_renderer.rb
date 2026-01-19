@@ -332,6 +332,8 @@ module RuboCop
 
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = SEMICOLON
+
+        record_html_tag_info(node)
       end
 
       # Render collected comments that can be safely converted to Ruby comments
@@ -396,7 +398,7 @@ module RuboCop
       end
 
       # Record HTML tag info for AST restoration
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
       def record_html_tag_info(node) #: void
         range = compute_node_range(node)
         html_tags[range.from] = HtmlTag.new(range)
