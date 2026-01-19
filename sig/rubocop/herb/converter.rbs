@@ -3,13 +3,38 @@
 module RuboCop
   module Herb
     class Converter
+      # Result of converting ERB source
+      class Result < Data
+        attr_reader ruby_code(): String
+
+        attr_reader hybrid_code(): String
+
+        attr_reader html_tags(): Hash[Integer, HtmlTag]
+
+        def self.new: (String ruby_code, String hybrid_code, Hash[Integer, HtmlTag] html_tags) -> instance
+                    | (ruby_code: String, hybrid_code: String, html_tags: Hash[Integer, HtmlTag]) -> instance
+
+        def self.members: () -> [ :ruby_code, :hybrid_code, :html_tags ]
+
+        def members: () -> [ :ruby_code, :hybrid_code, :html_tags ]
+      end
+
       attr_reader html_visualization: bool
 
       # @rbs html_visualization: bool
       def initialize: (?html_visualization: bool) -> void
 
+      # @rbs path: String
       # @rbs code: String
-      def convert: (String code) -> String?
+      def convert: (String path, String code) -> Result
+
+      private
+
+      # Generate hybrid code by restoring original HTML at tag positions
+      # @rbs ruby_code: String
+      # @rbs source: Source
+      # @rbs html_tags: Hash[Integer, HtmlTag]
+      def generate_hybrid_code: (String ruby_code, Source source, Hash[Integer, HtmlTag] html_tags) -> String
     end
   end
 end

@@ -15,7 +15,10 @@ module RuboCop
 
       private
 
-      def build_processed_source: (untyped code) -> ::RuboCop::ProcessedSource
+      # @rbs ruby_code: String
+      # @rbs hybrid_code: String
+      # @rbs html_tags: Hash[Integer, HtmlTag]
+      def build_processed_source: (String ruby_code, String hybrid_code, Hash[Integer, HtmlTag] html_tags) -> ProcessedSource
     end
   end
 end
