@@ -14,14 +14,14 @@ module RuboCop
 
         attr_reader code(): String
 
-        attr_reader html_tags(): Hash[Integer, HtmlTag]
+        attr_reader tags(): Hash[Integer, Tag]
 
-        def self.new: (Source source, String code, Hash[Integer, HtmlTag] html_tags) -> instance
-                    | (source: Source, code: String, html_tags: Hash[Integer, HtmlTag]) -> instance
+        def self.new: (Source source, String code, Hash[Integer, Tag] tags) -> instance
+                    | (source: Source, code: String, tags: Hash[Integer, Tag]) -> instance
 
-        def self.members: () -> [ :source, :code, :html_tags ]
+        def self.members: () -> [ :source, :code, :tags ]
 
-        def members: () -> [ :source, :code, :html_tags ]
+        def members: () -> [ :source, :code, :tags ]
       end
 
       # Render ERB source to Ruby code
@@ -45,7 +45,7 @@ module RuboCop
 
       attr_reader html_visualization: bool
 
-      attr_reader html_tags: Hash[Integer, HtmlTag]
+      attr_reader tags: Hash[Integer, Tag]
 
       # @rbs source: Source
       # @rbs html_visualization: bool
@@ -192,9 +192,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for: (::Herb::AST::Node node) -> String
 
-      # Record HTML tag info for AST restoration
+      # Record tag info for AST restoration
       # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
-      def record_html_tag_info: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode node) -> void
+      def record_tag_info: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode node) -> void
     end
   end
 end

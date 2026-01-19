@@ -26,7 +26,7 @@ module RuboCop
 
         [{
           offset: 0,
-          processed_source: build_processed_source(result.ruby_code, result.hybrid_code, result.html_tags)
+          processed_source: build_processed_source(result.ruby_code, result.hybrid_code, result.tags)
         }]
       end
 
@@ -34,14 +34,14 @@ module RuboCop
 
       # @rbs ruby_code: String
       # @rbs hybrid_code: String
-      # @rbs html_tags: Hash[Integer, HtmlTag]
-      def build_processed_source(ruby_code, hybrid_code, html_tags) #: ProcessedSource
+      # @rbs tags: Hash[Integer, Tag]
+      def build_processed_source(ruby_code, hybrid_code, tags) #: ProcessedSource
         ProcessedSource.new(
           ruby_code,
           processed_source.ruby_version,
           processed_source.path,
           hybrid_code:,
-          html_tags:,
+          tags:,
           parser_engine: processed_source.parser_engine
         ).tap do |ps|
           ps.config = processed_source.config

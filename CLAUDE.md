@@ -58,7 +58,7 @@ Source (parsing + ERB position collection)
     ↓
 RubyRenderer (AST visitor-based rendering)
     ↓
-Converter (generates ruby_code, hybrid_code, html_tags)
+Converter (generates ruby_code, hybrid_code, tags)
     ↓
 Extractor (RuboCop integration)
     ↓
@@ -71,7 +71,7 @@ Diagnostics (with HTML tag restoration)
 
 1. **Source** parses ERB using `Herb.parse()`, collects ERB node positions and line offsets
 2. **RubyRenderer** traverses the Herb AST using visitor pattern, extracts Ruby code by "bleaching" (replacing HTML with spaces to maintain line/column positions)
-3. **Converter** orchestrates the process and produces `ruby_code`, `hybrid_code` (for display), and `html_tags` mapping
+3. **Converter** orchestrates the process and produces `ruby_code`, `hybrid_code` (for display), and `tags` mapping
 4. **ProcessedSource** wraps RuboCop's ProcessedSource and uses **RuboCopASTTransformer** to restore HTML tag information in the AST
 5. RuboCop analyzes the extracted Ruby code with proper position mapping
 
@@ -116,14 +116,14 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **Source** (`lib/rubocop/herb/source.rb`): Parses ERB using `Herb.parse()`, collects ERB node positions and line offsets, provides utility methods for byte slicing and range conversion
 - **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML visualization
 - **RubyRenderer::BlockContext** (`lib/rubocop/herb/ruby_renderer/block_context.rb`): Tracks block context for determining tail expressions in control flow
-- **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `html_tags` mapping
+- **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **ErbNodePositionCollector** (`lib/rubocop/herb/erb_node_position_collector.rb`): Visitor that collects ERB node positions for determining if HTML elements contain ERB
 
 #### RuboCop Integration
 
 - **Plugin** (`lib/rubocop/herb/plugin.rb`): LintRoller plugin entry point, registers the Extractor with RuboCop
 - **Extractor** (`lib/rubocop/herb/extractor.rb`): RuboCop extractor interface that converts ERB files to Ruby for analysis
-- **ProcessedSource** (`lib/rubocop/herb/processed_source.rb`): RuboCop ProcessedSource subclass that stores hybrid_code and html_tags, transforms AST after parsing
+- **ProcessedSource** (`lib/rubocop/herb/processed_source.rb`): RuboCop ProcessedSource subclass that stores hybrid_code and tags, transforms AST after parsing
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes
 - **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and html_visualization setting
 - **patch/team.rb** (`lib/rubocop/herb/patch/team.rb`): Monkey patch for RuboCop Team class to fix autocorrect with ruby_extractors
@@ -131,7 +131,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 #### Utilities
 
 - **Characters** (`lib/rubocop/herb/characters.rb`): Byte constants for character manipulation (LF, CR, SPACE, HASH, SEMICOLON, etc.)
-- **HtmlTag** (`lib/rubocop/herb/html_tag.rb`): Data class storing HTML tag range information for AST restoration
+- **Tag** (`lib/rubocop/herb/tag.rb`): Data class storing tag range information for AST restoration
 
 ### Dependencies
 
