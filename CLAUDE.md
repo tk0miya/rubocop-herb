@@ -75,6 +75,40 @@ Diagnostics (with HTML tag restoration)
 4. **ProcessedSource** wraps RuboCop's ProcessedSource and uses **RuboCopASTTransformer** to restore HTML tag information in the AST
 5. RuboCop analyzes the extracted Ruby code with proper position mapping
 
+### Source Code Transformations
+
+The converter produces three representations of the source code:
+
+#### 1. Input File (HTML + ERB)
+
+The original ERB template containing HTML markup and embedded Ruby code.
+
+```erb
+<div class="user">
+  <%= @user.name %>
+</div>
+```
+
+#### 2. Ruby Code
+
+The input file parsed and converted to valid Ruby code. ERB tags are extracted as-is, and HTML tags are converted to Ruby-like identifiers (when `html_visualization` is enabled). RuboCop parses this Ruby code to build an AST for analysis.
+
+```ruby
+div           ;
+  @user.name;
+p0;
+```
+
+#### 3. Hybrid Code
+
+The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during linting and formatting to understand and display the original input file's content in diagnostics.
+
+```
+<div class="user">
+  @user.name;
+</div>
+```
+
 ### Key Components
 
 #### Core Processing
