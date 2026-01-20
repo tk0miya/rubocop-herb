@@ -764,17 +764,26 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with open tag with attributes" do
         let(:source) { "<div class=\"foo\" id=\"bar\"><%= x %></div>" }
-        let(:expected) { "div;                      _ = x;  div0; " }
+        let(:expected) { "div {                     _ = x;  }     " }
         let(:expected_hybrid) { "<div class=\"foo\" id=\"bar\">_ = x;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       # HTML tags without ERB nodes should render tag name only and skip processing children
+      # Even with attributes (enough space for brace), use semicolon notation to avoid syntax errors
       describe "with HTML tag without ERB nodes" do
         let(:source) { "<div>text</div>" }
         let(:expected) { "div;           " }
         let(:expected_hybrid) { "<div>text</div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with HTML tag with attributes but without ERB nodes" do
+        let(:source) { '<span class="admin">Admin</span>' }
+        let(:expected) { "span;                           " }
+        let(:expected_hybrid) { '<span class="admin">Admin</span>' }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -791,6 +800,32 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { "<div><%= x %><p>text</p></div>" }
         let(:expected) { "div; _ = x;  p;         div0; " }
         let(:expected_hybrid) { "<div>_ = x;  <p>text</p></div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with if-else containing HTML tags with attributes but without ERB" do
+        let(:source) do
+          ["<% if admin? %>",
+           "  <span class=\"admin\">Admin</span>",
+           "<% else %>",
+           "  <span class=\"user\">User</span>",
+           "<% end %>"].join("\n")
+        end
+        let(:expected) do
+          ["   if admin?;  ",
+           "  span;                           ",
+           "   else;  ",
+           "  span;                         ",
+           "   end;  "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["   if admin?;  ",
+           "  <span class=\"admin\">Admin</span>",
+           "   else;  ",
+           "  <span class=\"user\">User</span>",
+           "   end;  "].join("\n")
+        end
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
