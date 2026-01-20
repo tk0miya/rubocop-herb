@@ -17,7 +17,23 @@ require_relative "herb/version"
 
 module RuboCop
   module Herb
+    # @rbs!
+    #   # Union type for all ERB nodes
+    #   type erb_node = ::Herb::AST::ERBIfNode
+    #                 | ::Herb::AST::ERBUnlessNode
+    #                 | ::Herb::AST::ERBElseNode
+    #                 | ::Herb::AST::ERBCaseNode
+    #                 | ::Herb::AST::ERBWhenNode
+    #                 | ::Herb::AST::ERBBeginNode
+    #                 | ::Herb::AST::ERBRescueNode
+    #                 | ::Herb::AST::ERBEnsureNode
+    #                 | ::Herb::AST::ERBBlockNode
+    #                 | ::Herb::AST::ERBForNode
+    #                 | ::Herb::AST::ERBWhileNode
+    #                 | ::Herb::AST::ERBUntilNode
+    #                 | ::Herb::AST::ERBContentNode
+    #                 | ::Herb::AST::ERBEndNode
+
     class Error < StandardError; end
-    # Your code goes here...
   end
 end
