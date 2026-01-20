@@ -1,0 +1,8 @@
+# Development configuration for testing rubocop-herb
+# Usage: bin/rubocop -c config/develop/rubocop.yml [files...]
+
+plugins:
+  - rubocop-herb
+
+AllCops:
+  NewCops: enable

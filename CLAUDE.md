@@ -47,6 +47,24 @@ echo '<div><%= @name %></div>' | bin/erb2ruby --disable-html-visualization
 bin/erb2ruby < app/views/users/show.html.erb
 ```
 
+#### Testing with RuboCop
+
+Use `config/develop/rubocop.yml` to test rubocop-herb on ERB files:
+
+```bash
+# Run lint
+echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop.yml --stdin test.html.erb
+
+# Run lint with HTML visualization enabled
+echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop-html-visualization.yml --stdin test.html.erb
+
+# Run autocorrect
+echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop.yml -a --stdin test.html.erb
+
+# Run specific cops only
+echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop.yml --only Style/StringLiterals --stdin test.html.erb
+```
+
 ## Architecture
 
 ### Processing Pipeline
@@ -143,10 +161,11 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 The plugin supports these configuration options in `.rubocop.yml`:
 
 ```yaml
-rubocop-herb:
-  extensions:
-    - .html.erb           # Default: [".html.erb"]
-  html_visualization: true # Default: false - renders HTML tags as Ruby identifiers
+plugins:
+  - rubocop-herb:
+      extensions:
+        - .html.erb           # Default: [".html.erb"]
+      html_visualization: true # Default: false - renders HTML tags as Ruby identifiers
 ```
 
 **HTML Visualization**: When enabled, HTML tags are rendered as Ruby identifiers (e.g., `<div>` → `div;`) to avoid false positives from cops like `Lint/EmptyBlock`. The original HTML is restored in diagnostics via AST transformation.
