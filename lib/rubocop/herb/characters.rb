@@ -11,6 +11,8 @@ module RuboCop
       SEMICOLON = 0x3B #: Integer
       EQUALS = 0x3D #: Integer
       UNDERSCORE = 0x5F #: Integer
+      LEFT_BRACE = 0x7B #: Integer
+      RIGHT_BRACE = 0x7D #: Integer
     end
   end
 end

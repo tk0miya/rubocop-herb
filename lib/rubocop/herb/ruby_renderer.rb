@@ -187,23 +187,25 @@ module RuboCop
       end
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag with semicolon and processes children
+      # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
         element_range = compute_node_range(node)
-        render_open_tag_node(node.open_tag)
 
         if source.contains_erb?(element_range)
+          as_brace = use_brace_notation?(node.open_tag)
+          render_open_tag_node(node.open_tag, as_brace:)
           record_tag_info(node.open_tag)
           super
           if node.close_tag
-            render_close_tag_node(node.close_tag)
+            render_close_tag_node(node.close_tag, as_brace:)
             record_tag_info(node.close_tag)
           end
         else
+          render_open_tag_node(node.open_tag, as_brace: false)
           record_tag_info(node)
         end
       end
@@ -296,27 +298,45 @@ module RuboCop
         end
       end
 
-      # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
-      # Attributes are ignored, only the tag name is rendered
+      # Check if brace notation should be used for the given open tag
+      # Brace notation requires at least 3 bytes beyond tag name for " { "
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def render_open_tag_node(node) #: void
+      def use_brace_notation?(node) #: bool
         tag_name = node.tag_name.value
-        ruby_code = "#{tag_name}; "
+        tag_length = node.tag_closing.range.to - node.tag_opening.range.from
+        min_brace_length = tag_name.bytesize + 3 # "tag { " needs tag + " { "
+        tag_length >= min_brace_length
+      end
+
+      # Render HTML open tag as Ruby code
+      # When as_brace is true, uses brace notation: "div { "
+      # Otherwise, uses semicolon notation: "div; "
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      # @rbs as_brace: bool
+      def render_open_tag_node(node, as_brace:) #: void
+        tag_name = node.tag_name.value
+        ruby_code = as_brace ? "#{tag_name} { " : "#{tag_name}; "
 
         start_pos = node.tag_opening.range.from
         buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
       end
 
-      # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
-      # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # Render HTML close tag as Ruby code
+      # When as_brace is true, renders "}" only
+      # Otherwise, renders "tag0; " with counter to distinguish closing tags
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
-      def render_close_tag_node(node) #: void
-        tag_name = node.tag_name.value
-        ruby_code = "#{tag_name}#{close_tag_counter}; "
-        @close_tag_counter = close_tag_counter.succ % 10
-
+      # @rbs as_brace: bool
+      def render_close_tag_node(node, as_brace:) #: void
         start_pos = node.tag_opening.range.from
-        buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+
+        if as_brace
+          buffer[start_pos] = RIGHT_BRACE
+        else
+          tag_name = node.tag_name.value
+          ruby_code = "#{tag_name}#{close_tag_counter}; "
+          @close_tag_counter = close_tag_counter.succ % 10
+          buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+        end
       end
 
       # Render HTML text node by placing "_; " at first non-whitespace position

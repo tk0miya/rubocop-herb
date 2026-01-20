@@ -59,9 +59,11 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       )
     end
 
+    # When brace notation is used (tag has attributes), the closing tag becomes "}"
+    # which is part of the block syntax, not a separate send node
     it "restores full HTML tag including attributes" do
       sources = collect_send_sources(processed_source.ast)
-      expect(sources).to eq(['<div class="container">', "content", "</div>"])
+      expect(sources).to eq(['<div class="container">', "content"])
     end
   end
 

@@ -113,7 +113,7 @@ module RuboCop
       def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag with semicolon and processes children
+      # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
@@ -154,15 +154,24 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
       def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode node) -> ::Herb::Range
 
-      # Render HTML open tag as Ruby code (e.g., "<div>" -> "div; ")
-      # Attributes are ignored, only the tag name is rendered
+      # Check if brace notation should be used for the given open tag
+      # Brace notation requires at least 3 bytes beyond tag name for " { "
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def render_open_tag_node: (::Herb::AST::HTMLOpenTagNode node) -> void
+      def use_brace_notation?: (::Herb::AST::HTMLOpenTagNode node) -> bool
 
-      # Render HTML close tag as Ruby code (e.g., "</p>" -> "p1; ")
-      # Maintains byte length: "</" (2) + tag_name + ">" (1) = tag_name + counter (1) + "; " (2)
+      # Render HTML open tag as Ruby code
+      # When as_brace is true, uses brace notation: "div { "
+      # Otherwise, uses semicolon notation: "div; "
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      # @rbs as_brace: bool
+      def render_open_tag_node: (::Herb::AST::HTMLOpenTagNode node, as_brace: bool) -> void
+
+      # Render HTML close tag as Ruby code
+      # When as_brace is true, renders "}" only
+      # Otherwise, renders "tag0; " with counter to distinguish closing tags
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
-      def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
+      # @rbs as_brace: bool
+      def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node, as_brace: bool) -> void
 
       # Render HTML text node by placing "_; " at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops

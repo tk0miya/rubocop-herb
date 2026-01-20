@@ -17,6 +17,10 @@ module RuboCop
       EQUALS: Integer
 
       UNDERSCORE: Integer
+
+      LEFT_BRACE: Integer
+
+      RIGHT_BRACE: Integer
     end
   end
 end
