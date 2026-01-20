@@ -20,11 +20,11 @@ OptionParser.new do |opts|
 end.parse!
 
 source = $stdin.read
-result = RuboCop::Herb::Converter.new(html_visualization: options[:html_visualization]).convert(source)
+result = RuboCop::Herb::Converter.new(html_visualization: options[:html_visualization]).convert("(stdin)", source)
 
 if result.nil?
   warn "Error: Failed to parse ERB"
   exit 1
 end
 
-puts result
+puts result.ruby_code

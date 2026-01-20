@@ -1,0 +1,9 @@
+# Development configuration for testing rubocop-herb with HTML visualization
+# Usage: bin/rubocop -c config/develop/rubocop-html-visualization.yml [files...]
+
+plugins:
+  - rubocop-herb:
+      html_visualization: true
+
+AllCops:
+  NewCops: enable
