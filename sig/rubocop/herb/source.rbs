@@ -13,7 +13,7 @@ module RuboCop
 
       attr_reader parse_result: ::Herb::ParseResult
 
-      attr_reader erb_node_positions: Set[Integer]
+      attr_reader erb_node_ranges: Hash[Integer, ::Herb::Range]
 
       # @rbs path: String
       # @rbs code: String

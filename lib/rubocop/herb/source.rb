@@ -11,7 +11,7 @@ module RuboCop
       attr_reader :path #: String
       attr_reader :line_offsets #: Array[Integer]
       attr_reader :parse_result #: ::Herb::ParseResult
-      attr_reader :erb_node_positions #: Set[Integer]
+      attr_reader :erb_node_ranges #: Hash[Integer, ::Herb::Range]
 
       # @rbs path: String
       # @rbs code: String
@@ -24,7 +24,7 @@ module RuboCop
       # Check if a range contains any ERB nodes
       # @rbs range: ::Herb::Range
       def contains_erb?(range) #: bool
-        erb_node_positions.any? { |pos| pos >= range.from && pos < range.to }
+        erb_node_ranges.keys.any? { |pos| pos >= range.from && pos < range.to }
       end
 
       # @rbs range: ::Herb::Range
@@ -48,7 +48,7 @@ module RuboCop
 
       def parse #: void
         @parse_result = ::Herb.parse(code)
-        @erb_node_positions = ErbNodePositionCollector.collect(@parse_result)
+        @erb_node_ranges = ErbNodeRangeCollector.collect(@parse_result)
         @line_offsets = compute_line_offsets
       end
 
