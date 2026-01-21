@@ -192,25 +192,26 @@ module RuboCop
       # Visit HTML element nodes (container for open tag, content, and close tag)
       # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
+      # When using brace notation, pushes a block context since it creates a real Ruby block
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void
+      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity
         return super unless html_visualization
 
         element_range = compute_node_range(node)
 
-        if source.contains_erb?(element_range)
-          as_brace = use_brace_notation?(node.open_tag)
-          render_open_tag_node(node.open_tag, as_brace:)
-          record_tag_info(node.open_tag)
-          super
-          if node.close_tag
-            render_close_tag_node(node.close_tag, as_brace:)
-            record_tag_info(node.close_tag)
-          end
-        else
+        unless source.contains_erb?(element_range)
           render_open_tag_node(node.open_tag, as_brace: false)
-          record_tag_info(node)
+          return record_tag_info(node)
         end
+
+        as_brace = use_brace_notation?(node.open_tag)
+        render_open_tag_node(node.open_tag, as_brace:)
+        record_tag_info(node.open_tag)
+        push_block(node.body || [], returning_value: false) if as_brace
+        super
+        pop_block if as_brace
+        render_close_tag_node(node.close_tag, as_brace:) if node.close_tag
+        record_tag_info(node.close_tag) if node.close_tag
       end
 
       # Visit HTML text nodes (plain text content between tags)
