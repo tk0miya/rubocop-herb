@@ -24,12 +24,12 @@ module RuboCop
       def self.render(source, html_visualization: false) #: Result
         renderer = new(source, html_visualization:)
         source.parse_result.visit(renderer)
-        Result.new(source:, code: renderer.result, tags: renderer.tags)
+        renderer.result
       end
 
       attr_reader :buffer #: Array[Integer]
       attr_reader :source #: Source
-      attr_reader :result #: String
+      attr_reader :result #: Result
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
@@ -42,7 +42,6 @@ module RuboCop
       def initialize(source, html_visualization: false) #: void
         @source = source
         @buffer = bleach_code(source.code)
-        @result = ""
         @block_stack = []
         @comment_nodes = []
         @code_positions = {}
@@ -58,7 +57,8 @@ module RuboCop
       def visit_document_node(node) #: void
         super
         render_comments
-        @result = buffer.pack("C*").force_encoding(source.encoding)
+        code = buffer.pack("C*").force_encoding(source.encoding)
+        @result = Result.new(source:, code:, tags:)
       end
 
       # Visit ERB block nodes (iterators like each, times, loop)

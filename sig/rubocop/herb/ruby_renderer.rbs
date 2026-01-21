@@ -33,7 +33,7 @@ module RuboCop
 
       attr_reader source: Source
 
-      attr_reader result: String
+      attr_reader result: Result
 
       attr_reader block_stack: Array[BlockContext]
 
