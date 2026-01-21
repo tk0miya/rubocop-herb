@@ -166,5 +166,14 @@ RSpec.describe RuboCop::Herb::ErbNodeRangeCollector do
         expect(subject[15]).to have_attributes(from: 15, to: 27)
       end
     end
+
+    context "with HTML comment containing ERB" do
+      let(:code) { "<!-- <%= @name %> -->" }
+
+      it "collects the ERB range inside the comment" do
+        expect(subject.keys).to eq([5])
+        expect(subject[5]).to have_attributes(from: 5, to: 17)
+      end
+    end
   end
 end
