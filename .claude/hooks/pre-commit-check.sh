@@ -12,19 +12,15 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
-# Initialize rbenv with Ruby 3.3.6
-eval "$(rbenv init -)" 2>/dev/null || true
-export RBENV_VERSION=3.3.6
-
 echo "Running pre-commit checks..." >&2
 
 # Generate RBS and run all checks
-if ! bundle exec rbs-inline --opt-out --output=sig/ lib/ >&2; then
+if ! "$CLAUDE_PROJECT_DIR/bin/rbs-inline" --opt-out --output=sig/ lib/ >&2; then
     echo "Error: RBS generation failed" >&2
     exit 2
 fi
 
-if ! bundle exec rake >&2; then
+if ! "$CLAUDE_PROJECT_DIR/bin/rake" >&2; then
     echo "Error: rake checks failed" >&2
     exit 2
 fi
