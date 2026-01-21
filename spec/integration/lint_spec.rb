@@ -63,6 +63,24 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing if-else-end with output tags wrapped in HTML elements" do
+      let(:source) do
+        <<~ERB
+          <% if page.current? %>
+            <li class="active"><%= content_tag :a, page %></li>
+          <% else %>
+            <li><%= link_to page, url %></li>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Style/ConditionalAssignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
     context "when analyzing each block with output tags" do
       let(:source) do
         <<~ERB
@@ -108,6 +126,26 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing if-else-end with output tags wrapped in HTML elements" do
+      let(:source) do
+        <<~ERB
+          <% if page.current? %>
+            <li class="active"><%= content_tag :a, page %></li>
+          <% else %>
+            <li><%= link_to page, url %></li>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Style/ConditionalAssignment but triggers Layout/SpaceInsideBlockBraces" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        # Layout/SpaceInsideBlockBraces is triggered because the AST positions (from ruby_code)
+        # don't match the source content (hybrid_code where HTML tags are restored)
+        expect(offenses).to eq ["Layout/SpaceInsideBlockBraces"]
       end
     end
 
