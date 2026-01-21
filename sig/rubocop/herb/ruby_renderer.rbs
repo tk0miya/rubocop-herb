@@ -173,9 +173,10 @@ module RuboCop
       # @rbs as_brace: bool
       def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node, as_brace: bool) -> void
 
-      # Render HTML text node by placing "_; " at first non-whitespace position
+      # Render HTML text node by placing "__;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Requires at least 3 bytes from the first non-whitespace position to end
+      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # Requires at least 4 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
 

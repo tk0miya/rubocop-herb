@@ -631,7 +631,7 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:expected) do
           ["div; ",
            "     if admin?;  ",
-           "    _;           ",
+           "    __;          ",
            "     end;  ",
            "div0; "].join("\n")
         end
@@ -766,7 +766,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with multiple content tags on same line" do
         let(:source) { "<p><%= first %> and <%= second %></p>" }
-        let(:expected) { "p; _ = first;   _;  _ = second;  p0; " }
+        let(:expected) { "p; _ = first;   __; _ = second;  p0; " }
         let(:expected_hybrid) { "<p>_ = first;   and _ = second;  </p>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
