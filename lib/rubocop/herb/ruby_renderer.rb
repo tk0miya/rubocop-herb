@@ -11,6 +11,13 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       include Characters
 
+      # @rbs!
+      #   type html_node = ::Herb::AST::HTMLElementNode
+      #                  | ::Herb::AST::HTMLTextNode
+      #                  | ::Herb::AST::HTMLOpenTagNode
+      #                  | ::Herb::AST::HTMLCloseTagNode
+      #                  | ::Herb::AST::HTMLCommentNode
+
       # Result of rendering ERB source to Ruby code
       Result = Data.define(
         :source, #: Source
@@ -221,6 +228,21 @@ module RuboCop
         super
       end
 
+      # Visit HTML comment nodes (<!-- ... -->)
+      # Comments containing ERB are processed normally (super visits children)
+      # Pure HTML comments are rendered as "__;" to indicate content presence (like text nodes)
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def visit_html_comment_node(node) #: void
+        comment_range = compute_node_range(node)
+
+        if source.contains_erb?(comment_range)
+          super
+        elsif html_visualization
+          render_html_comment_node(node)
+        end
+        # When html_visualization is disabled and no ERB, comment is bleached (all spaces)
+      end
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -286,7 +308,7 @@ module RuboCop
       end
 
       # Get the byte range of an HTML node
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
+      # @rbs node: html_node
       def compute_node_range(node) #: ::Herb::Range # rubocop:disable Metrics/AbcSize
         case node
         when ::Herb::AST::HTMLElementNode
@@ -297,6 +319,8 @@ module RuboCop
           source.location_to_range(node.location)
         when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
           ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
+        when ::Herb::AST::HTMLCommentNode
+          ::Herb::Range.new(node.comment_start.range.from, node.comment_end.range.to)
         end
       end
 
@@ -364,7 +388,7 @@ module RuboCop
       # Render collected comments that can be safely converted to Ruby comments
       def render_comments #: void
         comment_nodes.each do |node|
-          render_comment_node(node) if renderable_comment?(node)
+          render_erb_comment_node(node) if renderable_comment?(node)
         end
       end
 
@@ -380,7 +404,7 @@ module RuboCop
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode
-      def render_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
         hash_pos = node.tag_opening.range.to - 1
         buffer[hash_pos] = HASH
 
@@ -389,6 +413,26 @@ module RuboCop
         hash_column = node.tag_opening.location.start.column + 2
         formatted_code = format_multiline_comment(ruby_code, hash_column)
         buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+      end
+
+      # Render HTML comment as "__;" to indicate content presence (like text nodes)
+      # Places "__;" at the start of the comment
+      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def render_html_comment_node(node) #: void
+        pos = node.comment_start.range.from
+        buffer[pos] = UNDERSCORE
+        buffer[pos + 1] = UNDERSCORE
+        buffer[pos + 2] = SEMICOLON
+
+        record_html_comment_tag(node)
+      end
+
+      # Record tag info for HTML comment AST restoration
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def record_html_comment_tag(node) #: void
+        range = compute_node_range(node)
+        tags[range.from] = Tag.new(range:, restore_source: true)
       end
 
       # @rbs code: String
@@ -423,7 +467,7 @@ module RuboCop
       end
 
       # Record tag info for AST restoration
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
+      # @rbs node: html_node
       def record_tag_info(node) #: void
         range = compute_node_range(node)
         tags[range.from] = Tag.new(range:, restore_source: true)

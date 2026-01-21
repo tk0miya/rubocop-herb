@@ -8,6 +8,8 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor
       include Characters
 
+      type html_node = ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLCommentNode
+
       # Result of rendering ERB source to Ruby code
       class Result < Data
         attr_reader source(): Source
@@ -123,6 +125,12 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
+      # Visit HTML comment nodes (<!-- ... -->)
+      # Comments containing ERB are processed normally (super visits children)
+      # Pure HTML comments are rendered as "__;" to indicate content presence (like text nodes)
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def visit_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
+
       private
 
       # @rbs statements: Array[::Herb::AST::Node]
@@ -151,8 +159,8 @@ module RuboCop
       def render_output_marker: (::Herb::AST::Node node) -> void
 
       # Get the byte range of an HTML node
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode
-      def compute_node_range: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode node) -> ::Herb::Range
+      # @rbs node: html_node
+      def compute_node_range: (html_node node) -> ::Herb::Range
 
       # Check if brace notation should be used for the given open tag
       # Brace notation requires at least 3 bytes beyond tag name for " { "
@@ -190,7 +198,17 @@ module RuboCop
       def renderable_comment?: (::Herb::AST::ERBContentNode node) -> bool
 
       # @rbs node: ::Herb::AST::ERBContentNode
-      def render_comment_node: (::Herb::AST::ERBContentNode node) -> void
+      def render_erb_comment_node: (::Herb::AST::ERBContentNode node) -> void
+
+      # Render HTML comment as "__;" to indicate content presence (like text nodes)
+      # Places "__;" at the start of the comment
+      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def render_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
+
+      # Record tag info for HTML comment AST restoration
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def record_html_comment_tag: (::Herb::AST::HTMLCommentNode node) -> void
 
       # @rbs code: String
       # @rbs hash_column: Integer
@@ -203,8 +221,8 @@ module RuboCop
       def ruby_code_for: (::Herb::AST::Node node) -> String
 
       # Record tag info for AST restoration
-      # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
-      def record_tag_info: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode node) -> void
+      # @rbs node: html_node
+      def record_tag_info: (html_node node) -> void
     end
   end
 end

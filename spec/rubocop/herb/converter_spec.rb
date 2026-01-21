@@ -48,6 +48,36 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      # HTML comments (rendered as spaces when html_visualization is disabled)
+      describe "with an HTML comment tag" do
+        let(:source) { "<div><!-- user.name --></div>" }
+        let(:expected) { "                             " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an HTML comment tag followed by ERB" do
+        let(:source) do
+          ["<!-- comment -->",
+           "<% if :cond %>",
+           "<% end %>"].join("\n")
+        end
+        let(:expected) do
+          ["                ",
+           "   if :cond;  ",
+           "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an HTML comment containing ERB" do
+        let(:source) { "<!-- <%= foo %> -->" }
+        let(:expected) { "     _ = foo;      " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       describe "with execution tag without output" do
         let(:source) { "<div><% @counter += 1 %></div>" }
         let(:expected) { "        @counter += 1;        " }
@@ -607,6 +637,42 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { "<div><%# user.name %></div>" }
         let(:expected) { "div;   # user.name   div0; " }
         let(:expected_hybrid) { "<div>  # user.name   </div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an HTML comment tag" do
+        let(:source) { "<div><!-- user.name --></div>" }
+        let(:expected) { "div;                         " }
+        let(:expected_hybrid) { "<div><!-- user.name --></div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an HTML comment tag followed by ERB" do
+        let(:source) do
+          ["<!-- comment -->",
+           "<% if :cond %>",
+           "<% end %>"].join("\n")
+        end
+        let(:expected) do
+          ["__;             ",
+           "   if :cond;  ",
+           "   end;  "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["<!-- comment -->",
+           "   if :cond;  ",
+           "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an HTML comment containing ERB" do
+        let(:source) { "<div><!-- <%= foo %> --></div>" }
+        let(:expected) { "div;      _ = foo;      div0; " }
+        let(:expected_hybrid) { "<div>     _ = foo;      </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
