@@ -164,5 +164,15 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing block with HTML content on single line" do
+      let(:source) { "<%= link_to root_path do %><span>Home</span><% end %>" }
+
+      it "does not trigger Style/SingleLineDoEndBlock" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 end
