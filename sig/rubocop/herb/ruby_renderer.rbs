@@ -204,10 +204,6 @@ module RuboCop
       # Record tag info for AST restoration
       # @rbs node: ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode
       def record_tag_info: (::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLTextNode node) -> void
-
-      # Record ERB tag for AST restoration (without restoring source in hybrid code)
-      # @rbs node: ::Herb::AST::Node
-      def record_erb_tag: (::Herb::AST::Node node) -> void
     end
   end
 end

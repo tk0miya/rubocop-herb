@@ -57,6 +57,9 @@ module RuboCop
       def visit_document_node(node) #: void
         super
         render_comments
+        source.erb_node_ranges.each do |from, range|
+          tags[from] = Tag.new(range:, restore_source: false)
+        end
         code = buffer.pack("C*").force_encoding(source.encoding)
         @result = Result.new(source:, code:, tags:)
       end
@@ -254,7 +257,6 @@ module RuboCop
         return unless node.respond_to?(:content) && node.content
 
         record_code_position(node)
-        record_erb_tag(node)
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
@@ -423,13 +425,6 @@ module RuboCop
       def record_tag_info(node) #: void
         range = compute_node_range(node)
         tags[range.from] = Tag.new(range:, restore_source: true)
-      end
-
-      # Record ERB tag for AST restoration (without restoring source in hybrid code)
-      # @rbs node: ::Herb::AST::Node
-      def record_erb_tag(node) #: void
-        range = ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
-        tags[range.from] = Tag.new(range:, restore_source: false)
       end
     end
   end
