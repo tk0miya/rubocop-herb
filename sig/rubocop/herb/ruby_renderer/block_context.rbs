@@ -18,6 +18,7 @@ module RuboCop
 
       private
 
+      # Recursively find the last ERB node in statements, including inside HTML elements
       # @rbs statements: Array[::Herb::AST::Node]
       def find_last_erb_node: (Array[::Herb::AST::Node] statements) -> ::Herb::AST::Node?
     end

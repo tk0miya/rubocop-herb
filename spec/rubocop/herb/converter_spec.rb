@@ -333,6 +333,26 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with if-else containing output tags wrapped in HTML elements" do
+        let(:source) do
+          ["<% if page.current? %>",
+           "  <li><%= content_tag :a, page %></li>",
+           "<% else %>",
+           "  <li><%= link_to page, url %></li>",
+           "<% end %>"].join("\n")
+        end
+        # Control flow returns value, so last statements (inside HTML) don't need _ =
+        let(:expected) do
+          ["   if page.current?;  ",
+           "          content_tag :a, page;       ",
+           "   else;  ",
+           "          link_to page, url;       ",
+           "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       describe "with multiple content tags on same line" do
         let(:source) { "<p><%= first %> and <%= second %></p>" }
         let(:expected) { "   _ = first;       _ = second;      " }
@@ -621,6 +641,33 @@ RSpec.describe RuboCop::Herb::Converter do
            "    Hello, Admin!",
            "     end;  ",
            "</div>"].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with if-else containing output tags wrapped in HTML elements" do
+        let(:source) do
+          ["<% if page.current? %>",
+           "  <li><%= content_tag :a, page %></li>",
+           "<% else %>",
+           "  <li><%= link_to page, url %></li>",
+           "<% end %>"].join("\n")
+        end
+        # Control flow returns value, so last statements (inside HTML) don't need _ =
+        let(:expected) do
+          ["   if page.current?;  ",
+           "  li;     content_tag :a, page;  li0; ",
+           "   else;  ",
+           "  li;     link_to page, url;  li1; ",
+           "   end;  "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["   if page.current?;  ",
+           "  <li>    content_tag :a, page;  </li>",
+           "   else;  ",
+           "  <li>    link_to page, url;  </li>",
+           "   end;  "].join("\n")
         end
 
         it_behaves_like "a Ruby code extractor for ERB"
