@@ -17,15 +17,16 @@ When using Claude Code on the web (claude.ai/code), the environment is automatic
 bin/setup                    # Install dependencies
 
 # Development
-bundle exec rake             # Run all checks (tests + linting)
-bundle exec rake spec        # Run RSpec tests only
-bundle exec rake rubocop     # Run RuboCop only
+bin/rake                     # Run all checks (tests + linting)
+bin/rake spec                # Run RSpec tests only
+bin/rake rubocop             # Run RuboCop only
+bin/rspec                    # Run RSpec tests directly
 bin/console                  # Start IRB with gem loaded
 bin/erb2ruby < file.erb      # Convert ERB to Ruby (dev tool)
 
 # Gem management
-bundle exec rake install     # Install gem locally
-bundle exec rake release     # Release to RubyGems
+bin/rake install             # Install gem locally
+bin/rake release             # Release to RubyGems
 ```
 
 ### Development Tools
