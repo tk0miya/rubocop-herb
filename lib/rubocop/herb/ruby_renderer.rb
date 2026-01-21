@@ -341,9 +341,10 @@ module RuboCop
         end
       end
 
-      # Render HTML text node by placing "_; " at first non-whitespace position
+      # Render HTML text node by placing "__;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Requires at least 3 bytes from the first non-whitespace position to end
+      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # Requires at least 4 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = compute_node_range(node)
@@ -351,10 +352,11 @@ module RuboCop
         return unless match
 
         pos = range.from + match.begin(0)
-        return unless pos + 3 <= range.to
+        return unless pos + 4 <= range.to
 
         buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = SEMICOLON
+        buffer[pos + 1] = UNDERSCORE
+        buffer[pos + 2] = SEMICOLON
 
         record_tag_info(node)
       end
