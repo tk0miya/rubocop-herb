@@ -876,6 +876,58 @@ RSpec.describe RuboCop::Herb::Converter do
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
+
+      # When output tag is followed by HTML (without ERB), output marker is needed
+      # because HTML renders as Ruby code and the output is not the tail expression
+      describe "with output tag followed by HTML tag in control flow" do
+        let(:source) do
+          ["<% if condition %>",
+           "  <%= value %><p>text</p>",
+           "<% end %>"].join("\n")
+        end
+        # value needs _ = because <p>text</p> renders as "p;" after it
+        # (HTML without ERB only renders open tag)
+        let(:expected) do
+          ["   if condition;  ",
+           "  _ = value;  p;         ",
+           "   end;  "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["   if condition;  ",
+           "  _ = value;  <p>text</p>",
+           "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with output tag followed by HTML tag in if-else" do
+        let(:source) do
+          ["<% if condition %>",
+           "  <%= value1 %><span>a</span>",
+           "<% else %>",
+           "  <%= value2 %><span>b</span>",
+           "<% end %>"].join("\n")
+        end
+        # Both values need _ = because HTML follows each output tag
+        # (HTML without ERB only renders open tag)
+        let(:expected) do
+          ["   if condition;  ",
+           "  _ = value1;  span;         ",
+           "   else;  ",
+           "  _ = value2;  span;         ",
+           "   end;  "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["   if condition;  ",
+           "  _ = value1;  <span>a</span>",
+           "   else;  ",
+           "  _ = value2;  <span>b</span>",
+           "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
     end
   end
 end

@@ -226,7 +226,7 @@ module RuboCop
       # @rbs statements: Array[::Herb::AST::Node]
       # @rbs returning_value: bool
       def push_block(statements, returning_value: false) #: void
-        block_stack.push(BlockContext.new(statements, returning_value:))
+        block_stack.push(BlockContext.new(statements, returning_value:, html_visualization:, source:))
       end
 
       def pop_block #: void
