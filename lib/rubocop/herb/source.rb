@@ -60,11 +60,9 @@ module RuboCop
       end
 
       def compute_line_offsets #: Array[Integer]
-        offsets = [0]
-        code.bytes.each_with_index do |byte, index|
-          offsets << (index + 1) if byte == LF
+        code.split("\n", -1)[0...-1].inject([0]) do |offsets, line|
+          offsets << (offsets.last + line.bytesize + 1)
         end
-        offsets
       end
     end
   end
