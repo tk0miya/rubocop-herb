@@ -25,9 +25,9 @@ module RuboCop
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
 
-      # Cops temporarily excluded due to HTML parts being replaced with whitespace.
-      # These may be removed once HTML visualization is implemented.
-      HTML_RELATED_EXCLUDED_COPS = [
+      # Cops excluded when HTML visualization is disabled.
+      # HTML parts are replaced with whitespace, causing false positives.
+      HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS = [
         "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
         "Lint/EmptyBlock", # Block bodies may contain only HTML (no Ruby code)
         "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
@@ -36,6 +36,12 @@ module RuboCop
         "Style/IdenticalConditionalBranches", # Branches may differ only in HTML content
         "Style/Next", # Loop conditions may guard HTML output, not suitable for next
         "Style/RedundantCondition" # Condition may appear redundant when HTML is removed
+      ].freeze #: Array[String]
+
+      # Cops excluded when HTML visualization is enabled.
+      # HTML tags rendered as Ruby identifiers cause false positives.
+      HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS = [
+        "Layout/SpaceInsideBlockBraces" # HTML rendered as `tag { }` triggers space warnings
       ].freeze #: Array[String]
 
       # @rbs self.@supported_extensions: Array[String]
@@ -62,10 +68,20 @@ module RuboCop
           globs = @supported_extensions.flat_map { |ext| ["**/*#{ext}", "/**/*#{ext}"] }
 
           config = { "AllCops" => { "Include" => globs } }
-          (EXCLUDED_COPS + HTML_RELATED_EXCLUDED_COPS).each do |cop|
+          excluded_cops.each do |cop|
             config[cop] = { "Exclude" => globs }
           end
           config
+        end
+
+        def excluded_cops #: Array[String]
+          cops = EXCLUDED_COPS.dup
+          if html_visualization?
+            cops.concat(HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS)
+          else
+            cops.concat(HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS)
+          end
+          cops
         end
       end
     end
