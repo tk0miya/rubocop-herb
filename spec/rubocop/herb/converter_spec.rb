@@ -23,6 +23,10 @@ RSpec.describe RuboCop::Herb::Converter do
       expect(subject.hybrid_code.bytesize).to eq(source.bytesize)
     end
 
+    it "preserves character length between ruby_code and hybrid_code" do
+      expect(subject.ruby_code.length).to eq(subject.hybrid_code.length)
+    end
+
     it "generates valid Ruby code" do
       parse_result = Prism.parse(subject.ruby_code)
       expect(parse_result.errors).to be_empty
@@ -679,9 +683,20 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with an HTML comment containing multi-byte characters" do
         let(:source) { "<body><!-- あいう --><%= render 'foo' %></body>" }
-        # The comment "<!-- あいう -->" is 20 bytes (4 + 9 + 1 + 3 + 3), rendered as "__;" at start
+        # The comment "<!-- あいう -->" is 20 bytes, rendered as "__;" at start
+        # Comments with multi-byte chars are not restored to preserve character count
         let(:expected) { "body; __;               _ = render 'foo';  body0; " }
-        let(:expected_hybrid) { "<body><!-- あいう -->_ = render 'foo';  </body>" }
+        let(:expected_hybrid) { "<body>__;               _ = render 'foo';  </body>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with text node containing multi-byte characters" do
+        let(:source) { "<div>表示件数<%= @count %></div>" }
+        # "表示件数" is 4 characters, 12 bytes - bleached to 12 spaces with "__;" marker
+        # Text nodes with multi-byte chars are not restored to preserve character count
+        let(:expected) { "div; __;         _ = @count;  div0; " }
+        let(:expected_hybrid) { "<div>__;         _ = @count;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end

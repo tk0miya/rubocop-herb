@@ -370,9 +370,10 @@ module RuboCop
       # Uses double underscore to avoid conflict with output markers (_ = value;)
       # Requires at least 4 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
-      def render_text_node(node) #: void
+      def render_text_node(node) #: void # rubocop:disable Metrics/AbcSize
         range = compute_node_range(node)
-        match = source.byteslice(range).match(/\S/)
+        text = source.byteslice(range)
+        match = text.match(/\S/)
         return unless match
 
         pos = range.from + match.begin(0)
@@ -382,7 +383,10 @@ module RuboCop
         buffer[pos + 1] = UNDERSCORE
         buffer[pos + 2] = SEMICOLON
 
-        record_tag_info(node)
+        # Skip recording tag info for text with multi-byte characters
+        # Multi-byte chars are bleached to multiple spaces, changing character count
+        # If we restore the original text, character positions would mismatch
+        record_tag_info(node) unless text.bytesize != text.length
       end
 
       # Render collected comments that can be safely converted to Ruby comments
@@ -420,12 +424,17 @@ module RuboCop
       # Uses double underscore to avoid conflict with output markers (_ = value;)
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
+        range = compute_node_range(node)
+        text = source.byteslice(range)
+
         pos = node.comment_start.range.from
         buffer[pos] = UNDERSCORE
         buffer[pos + 1] = UNDERSCORE
         buffer[pos + 2] = SEMICOLON
 
-        record_html_comment_tag(node)
+        # Skip recording tag info for comments with multi-byte characters
+        # to preserve character count between ruby_code and hybrid_code
+        record_html_comment_tag(node) unless text.bytesize != text.length
       end
 
       # Record tag info for HTML comment AST restoration
