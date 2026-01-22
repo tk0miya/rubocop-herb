@@ -43,6 +43,7 @@ module RuboCop
       # HTML tags rendered as Ruby identifiers cause false positives.
       HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS = [
         "Layout/MultilineBlockLayout", # HTML rendered as `tag { }` triggers block layout warnings
+        "Layout/SpaceBeforeBlockBraces", # HTML rendered as `tag { }` triggers space warnings
         "Layout/SpaceInsideBlockBraces", # HTML rendered as `tag { }` triggers space warnings
         "Style/SingleLineDoEndBlock" # Multi-line ERB blocks become single-line when HTML is rendered
       ].freeze #: Array[String]
