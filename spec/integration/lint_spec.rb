@@ -235,5 +235,15 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing block with text node inside" do
+      let(:source) { "<%= items.each do %>hello<% end %>" }
+
+      it "does not trigger Style/NumberedParameters" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 end

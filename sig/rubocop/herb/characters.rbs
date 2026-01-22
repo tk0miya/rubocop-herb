@@ -20,6 +20,8 @@ module RuboCop
 
       DIGIT_ZERO: Integer
 
+      LOWERCASE_A: Integer
+
       LEFT_BRACE: Integer
 
       RIGHT_BRACE: Integer

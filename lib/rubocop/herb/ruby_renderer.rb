@@ -437,15 +437,16 @@ module RuboCop
         record_html_comment_tag(node) unless text.bytesize != text.length
       end
 
-      # Render tag marker "_N;" at the given position and increment counter
+      # Render tag marker "_x;" at the given position and increment counter
+      # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
       # @rbs pos: Integer
       def render_tag_marker(pos) #: void
         buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = DIGIT_ZERO + next_tag_counter
+        buffer[pos + 1] = LOWERCASE_A + next_tag_counter
         buffer[pos + 2] = SEMICOLON
       end
 
-      # Increment tag counter and return new value
+      # Increment tag counter and return new value (cycles through 0-9)
       def next_tag_counter #: Integer
         @tag_counter = tag_counter.succ % 10
       end
