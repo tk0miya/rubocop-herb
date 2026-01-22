@@ -43,7 +43,7 @@ module RuboCop
 
       attr_reader code_positions: Hash[Integer, Integer]
 
-      attr_reader close_tag_counter: Integer
+      attr_reader tag_counter: Integer
 
       attr_reader html_visualization: bool
 
@@ -180,14 +180,14 @@ module RuboCop
 
       # Render HTML close tag as Ruby code
       # When as_brace is true, renders "}" only
-      # Otherwise, renders "tag0; " with counter to distinguish closing tags
+      # Otherwise, renders "tagN; " with counter to distinguish closing tags
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       # @rbs as_brace: bool
       def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node, as_brace: bool) -> void
 
-      # Render HTML text node by placing "__;" at first non-whitespace position
+      # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # Requires at least 4 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
@@ -204,11 +204,18 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBContentNode
       def render_erb_comment_node: (::Herb::AST::ERBContentNode node) -> void
 
-      # Render HTML comment as "__;" to indicate content presence (like text nodes)
-      # Places "__;" at the start of the comment
-      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # Render HTML comment as "_N;" to indicate content presence (like text nodes)
+      # Places "_N;" at the start of the comment with counter
+      # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
+
+      # Render tag marker "_N;" at the given position and increment counter
+      # @rbs pos: Integer
+      def render_tag_marker: (Integer pos) -> void
+
+      # Increment tag counter and return new value
+      def next_tag_counter: () -> Integer
 
       # Record tag info for HTML comment AST restoration
       # @rbs node: ::Herb::AST::HTMLCommentNode

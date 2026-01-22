@@ -40,7 +40,7 @@ module RuboCop
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :code_positions #: Hash[Integer, Integer]
-      attr_reader :close_tag_counter #: Integer
+      attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
       attr_reader :tags #: Hash[Integer, Tag]
 
@@ -52,7 +52,7 @@ module RuboCop
         @block_stack = []
         @comment_nodes = []
         @code_positions = {}
-        @close_tag_counter = 0
+        @tag_counter = 0
         @html_visualization = html_visualization
         @tags = {}
 
@@ -355,7 +355,7 @@ module RuboCop
 
       # Render HTML close tag as Ruby code
       # When as_brace is true, renders "}" only
-      # Otherwise, renders "tag0; " with counter to distinguish closing tags
+      # Otherwise, renders "tagN; " with counter to distinguish closing tags
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       # @rbs as_brace: bool
       def render_close_tag_node(node, as_brace:) #: void
@@ -365,18 +365,17 @@ module RuboCop
           buffer[start_pos] = RIGHT_BRACE
         else
           tag_name = node.tag_name.value
-          ruby_code = "#{tag_name}#{close_tag_counter}; "
-          @close_tag_counter = close_tag_counter.succ % 10
+          ruby_code = "#{tag_name}#{next_tag_counter}; "
           buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
         end
       end
 
-      # Render HTML text node by placing "__;" at first non-whitespace position
+      # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # Requires at least 4 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
-      def render_text_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def render_text_node(node) #: void
         range = compute_node_range(node)
         text = source.byteslice(range)
         match = text.match(/\S/)
@@ -385,9 +384,7 @@ module RuboCop
         pos = range.from + match.begin(0)
         return unless pos + 4 <= range.to
 
-        buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = UNDERSCORE
-        buffer[pos + 2] = SEMICOLON
+        render_tag_marker(pos)
 
         # Skip recording tag info for text with multi-byte characters
         # Multi-byte chars are bleached to multiple spaces, changing character count
@@ -425,22 +422,32 @@ module RuboCop
         buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
       end
 
-      # Render HTML comment as "__;" to indicate content presence (like text nodes)
-      # Places "__;" at the start of the comment
-      # Uses double underscore to avoid conflict with output markers (_ = value;)
+      # Render HTML comment as "_N;" to indicate content presence (like text nodes)
+      # Places "_N;" at the start of the comment with counter
+      # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
         range = compute_node_range(node)
         text = source.byteslice(range)
 
-        pos = node.comment_start.range.from
-        buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = UNDERSCORE
-        buffer[pos + 2] = SEMICOLON
+        render_tag_marker(node.comment_start.range.from)
 
         # Skip recording tag info for comments with multi-byte characters
         # to preserve character count between ruby_code and hybrid_code
         record_html_comment_tag(node) unless text.bytesize != text.length
+      end
+
+      # Render tag marker "_N;" at the given position and increment counter
+      # @rbs pos: Integer
+      def render_tag_marker(pos) #: void
+        buffer[pos] = UNDERSCORE
+        buffer[pos + 1] = DIGIT_ZERO + next_tag_counter
+        buffer[pos + 2] = SEMICOLON
+      end
+
+      # Increment tag counter and return new value
+      def next_tag_counter #: Integer
+        @tag_counter = tag_counter.succ % 10
       end
 
       # Record tag info for HTML comment AST restoration

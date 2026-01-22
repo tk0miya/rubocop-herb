@@ -18,6 +18,8 @@ module RuboCop
 
       UNDERSCORE: Integer
 
+      DIGIT_ZERO: Integer
+
       LEFT_BRACE: Integer
 
       RIGHT_BRACE: Integer
