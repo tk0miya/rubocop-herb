@@ -668,7 +668,7 @@ RSpec.describe RuboCop::Herb::Converter do
       # Basic ERB tags with HTML open/close tag rendering
       describe "with a content ERB tag" do
         let(:source) { "<div><%= user.name %></div>" }
-        let(:expected) { "div; _ = user.name;  div0; " }
+        let(:expected) { "div; _ = user.name;  div1; " }
         let(:expected_hybrid) { "<div>_ = user.name;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -676,7 +676,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with a comment ERB tag" do
         let(:source) { "<div><%# user.name %></div>" }
-        let(:expected) { "div;   # user.name   div0; " }
+        let(:expected) { "div;   # user.name   div1; " }
         let(:expected_hybrid) { "<div>  # user.name   </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -697,7 +697,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "<% end %>"].join("\n")
         end
         let(:expected) do
-          ["__;             ",
+          ["_1;             ",
            "   if :cond;  ",
            "   end;  "].join("\n")
         end
@@ -712,7 +712,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with an HTML comment containing ERB" do
         let(:source) { "<div><!-- <%= foo %> --></div>" }
-        let(:expected) { "div;      _ = foo;      div0; " }
+        let(:expected) { "div;      _ = foo;      div1; " }
         let(:expected_hybrid) { "<div>     _ = foo;      </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -720,27 +720,29 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with an HTML comment containing multi-byte characters" do
         let(:source) { "<body><!-- あいう --><%= render 'foo' %></body>" }
-        # The comment "<!-- あいう -->" is 20 bytes, rendered as "__;" at start
+        # The comment "<!-- あいう -->" is 20 bytes, rendered as "_1;" at start
         # Comments with multi-byte chars are not restored to preserve character count
-        let(:expected) { "body; __;               _ = render 'foo';  body0; " }
-        let(:expected_hybrid) { "<body>__;               _ = render 'foo';  </body>" }
+        # Close tag uses counter 1 because comment already used counter 0
+        let(:expected) { "body; _1;               _ = render 'foo';  body2; " }
+        let(:expected_hybrid) { "<body>_1;               _ = render 'foo';  </body>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with text node containing multi-byte characters" do
         let(:source) { "<div>表示件数<%= @count %></div>" }
-        # "表示件数" is 4 characters, 12 bytes - bleached to 12 spaces with "__;" marker
+        # "表示件数" is 4 characters, 12 bytes - bleached to 12 spaces with "_1;" marker
         # Text nodes with multi-byte chars are not restored to preserve character count
-        let(:expected) { "div; __;         _ = @count;  div0; " }
-        let(:expected_hybrid) { "<div>__;         _ = @count;  </div>" }
+        # Close tag uses counter 1 because text node already used counter 0
+        let(:expected) { "div; _1;         _ = @count;  div2; " }
+        let(:expected_hybrid) { "<div>_1;         _ = @count;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with execution tag without output" do
         let(:source) { "<div><% @counter += 1 %></div>" }
-        let(:expected) { "div;    @counter += 1;  div0; " }
+        let(:expected) { "div;    @counter += 1;  div1; " }
         let(:expected_hybrid) { "<div>   @counter += 1;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -755,12 +757,13 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <% end %>",
            "</div>"].join("\n")
         end
+        # Close tag uses counter 1 because text node already used counter 0
         let(:expected) do
           ["div; ",
            "     if admin?;  ",
-           "    __;          ",
+           "    _1;          ",
            "     end;  ",
-           "div0; "].join("\n")
+           "div2; "].join("\n")
         end
         let(:expected_hybrid) do
           ["<div>",
@@ -784,9 +787,9 @@ RSpec.describe RuboCop::Herb::Converter do
         # Control flow returns value, so last statements (inside HTML) don't need _ =
         let(:expected) do
           ["   if page.current?;  ",
-           "  li;     content_tag :a, page;  li0; ",
+           "  li;     content_tag :a, page;  li1; ",
            "   else;  ",
-           "  li;     link_to page, url;  li1; ",
+           "  li;     link_to page, url;  li2; ",
            "   end;  "].join("\n")
         end
         let(:expected_hybrid) do
@@ -812,9 +815,9 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:expected) do
           ["ul; ",
            "     users.each do |user|;  ",
-           "    li; _ = user.name;  li0; ",
+           "    li; _ = user.name;  li1; ",
            "     end;  ",
-           "ul1; "].join("\n")
+           "ul2; "].join("\n")
         end
         let(:expected_hybrid) do
           ["<ul>",
@@ -838,9 +841,9 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:expected) do
           ["div; ",
            "     3.times do |i|;  ",
-           "    p; _ = i;  p0; ",
+           "    p; _ = i;  p1; ",
            "     end;  ",
-           "div1; "].join("\n")
+           "div2; "].join("\n")
         end
         let(:expected_hybrid) do
           ["<div>",
@@ -870,11 +873,11 @@ RSpec.describe RuboCop::Herb::Converter do
            "     if show_list?;  ",
            "    ul; ",
            "         items.each do |item|;  ",
-           "        li; _ = item.name;  li0; ",
+           "        li; _ = item.name;  li1; ",
            "         end;  ",
-           "    ul1; ",
+           "    ul2; ",
            "     end;  ",
-           "div2; "].join("\n")
+           "div3; "].join("\n")
         end
         let(:expected_hybrid) do
           ["<div>",
@@ -893,7 +896,8 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with multiple content tags on same line" do
         let(:source) { "<p><%= first %> and <%= second %></p>" }
-        let(:expected) { "p; _ = first;   __; _ = second;  p0; " }
+        # Close tag uses counter 1 because text node already used counter 0
+        let(:expected) { "p; _ = first;   _1; _ = second;  p2; " }
         let(:expected_hybrid) { "<p>_ = first;   and _ = second;  </p>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -901,7 +905,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with raw output tag (-%>)" do
         let(:source) { "<div><%= value -%></div>" }
-        let(:expected) { "div; _ = value;   div0; " }
+        let(:expected) { "div; _ = value;   div1; " }
         let(:expected_hybrid) { "<div>_ = value;   </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -922,7 +926,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "    # multiline",
            "    # comment",
            "#   ",
-           "div0; "].join("\n")
+           "div1; "].join("\n")
         end
         let(:expected_hybrid) do
           ["<div>",
@@ -972,7 +976,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with parent tag containing ERB but child tag without ERB" do
         let(:source) { "<div><%= x %><p>text</p></div>" }
-        let(:expected) { "div; _ = x;  p;         div0; " }
+        let(:expected) { "div; _ = x;  p;         div1; " }
         let(:expected_hybrid) { "<div>_ = x;  <p>text</p></div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -1056,6 +1060,42 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { '<meta content="<%= x %>">' }
         let(:expected) { "meta;          _ = x;    " }
         let(:expected_hybrid) { "meta;          _ = x;    " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # Each HTML content gets unique counter to avoid Style/IdenticalConditionalBranches false positive
+      describe "with if-else containing different HTML content in each branch" do
+        let(:source) do
+          ["<span>",
+           "  <% if total_count.zero? %>",
+           "    <!-- do noting -->",
+           "  <% else %>",
+           "    1<br>",
+           "    &nbsp;",
+           "  <% end %>",
+           "</span>"].join("\n")
+        end
+        let(:expected) do
+          ["span; ",
+           "     if total_count.zero?;  ",
+           "    _1;               ",
+           "     else;  ",
+           "     br; ",
+           "    _2;   ",
+           "     end;  ",
+           "span3; "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["<span>",
+           "     if total_count.zero?;  ",
+           "    <!-- do noting -->",
+           "     else;  ",
+           "     <br>",
+           "    &nbsp;",
+           "     end;  ",
+           "</span>"].join("\n")
+        end
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
