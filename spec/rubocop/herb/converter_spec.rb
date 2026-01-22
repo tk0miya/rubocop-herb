@@ -1048,6 +1048,17 @@ RSpec.describe RuboCop::Herb::Converter do
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
+
+      # Void elements (no close tag) should use semicolon notation, not brace notation
+      # Even with enough space for braces, using braces would cause Lint/Syntax error
+      # because there's no close tag to render the closing brace
+      describe "with void element containing ERB in attributes" do
+        let(:source) { '<meta content="<%= x %>">' }
+        let(:expected) { "meta;          _ = x;    " }
+        let(:expected_hybrid) { "meta;          _ = x;    " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
     end
   end
 end
