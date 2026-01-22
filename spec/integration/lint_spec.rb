@@ -191,5 +191,21 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing yield ERB tag inside HTML element" do
+      let(:source) do
+        <<~ERB
+          <div class="portlet-body form">
+            <div class="form-body"><%= yield if block_given? %></div>
+          </div>
+        ERB
+      end
+
+      it "does not trigger Lint/EmptyBlock" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 end
