@@ -697,7 +697,7 @@ RSpec.describe RuboCop::Herb::Converter do
            "<% end %>"].join("\n")
         end
         let(:expected) do
-          ["_1;             ",
+          ["_b;             ",
            "   if :cond;  ",
            "   end;  "].join("\n")
         end
@@ -720,22 +720,22 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with an HTML comment containing multi-byte characters" do
         let(:source) { "<body><!-- あいう --><%= render 'foo' %></body>" }
-        # The comment "<!-- あいう -->" is 20 bytes, rendered as "_1;" at start
+        # The comment "<!-- あいう -->" is 20 bytes, rendered as "_b;" at start
         # Comments with multi-byte chars are not restored to preserve character count
-        # Close tag uses counter 1 because comment already used counter 0
-        let(:expected) { "body; _1;               _ = render 'foo';  body2; " }
-        let(:expected_hybrid) { "<body>_1;               _ = render 'foo';  </body>" }
+        # Close tag uses counter 2 because comment already used counter 1
+        let(:expected) { "body; _b;               _ = render 'foo';  body2; " }
+        let(:expected_hybrid) { "<body>_b;               _ = render 'foo';  </body>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with text node containing multi-byte characters" do
         let(:source) { "<div>表示件数<%= @count %></div>" }
-        # "表示件数" is 4 characters, 12 bytes - bleached to 12 spaces with "_1;" marker
+        # "表示件数" is 4 characters, 12 bytes - bleached to 12 spaces with "_b;" marker
         # Text nodes with multi-byte chars are not restored to preserve character count
-        # Close tag uses counter 1 because text node already used counter 0
-        let(:expected) { "div; _1;         _ = @count;  div2; " }
-        let(:expected_hybrid) { "<div>_1;         _ = @count;  </div>" }
+        # Close tag uses counter 2 because text node already used counter 1
+        let(:expected) { "div; _b;         _ = @count;  div2; " }
+        let(:expected_hybrid) { "<div>_b;         _ = @count;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -757,11 +757,11 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <% end %>",
            "</div>"].join("\n")
         end
-        # Close tag uses counter 1 because text node already used counter 0
+        # Close tag uses counter 2 because text node already used counter 1
         let(:expected) do
           ["div; ",
            "     if admin?;  ",
-           "    _1;          ",
+           "    _b;          ",
            "     end;  ",
            "div2; "].join("\n")
         end
@@ -896,8 +896,8 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with multiple content tags on same line" do
         let(:source) { "<p><%= first %> and <%= second %></p>" }
-        # Close tag uses counter 1 because text node already used counter 0
-        let(:expected) { "p; _ = first;   _1; _ = second;  p2; " }
+        # Close tag uses counter 2 because text node already used counter 1
+        let(:expected) { "p; _ = first;   _b; _ = second;  p2; " }
         let(:expected_hybrid) { "<p>_ = first;   and _ = second;  </p>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -1079,10 +1079,10 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:expected) do
           ["span; ",
            "     if total_count.zero?;  ",
-           "    _1;               ",
+           "    _b;               ",
            "     else;  ",
            "     br; ",
-           "    _2;   ",
+           "    _c;   ",
            "     end;  ",
            "span3; "].join("\n")
         end
