@@ -52,10 +52,10 @@ module RuboCop
         @line_offsets = compute_line_offsets
       end
 
-      # Convert line and column (1-indexed line, 0-indexed column) to byte offset
+      # Convert line and column to byte offset
       # Handles multi-byte characters correctly by converting character column to byte offset
-      # @rbs line: Integer
-      # @rbs column: Integer
+      # @rbs line: Integer -- 1-indexed line number
+      # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
       def byte_offset(line, column) #: Integer
         line_start = line_offsets[line - 1]
         next_line_start = line_offsets[line] || code.bytesize
