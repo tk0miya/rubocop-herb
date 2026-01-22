@@ -24,6 +24,9 @@ RSpec.describe RuboCop::Herb::Converter do
     end
 
     it "generates valid Ruby code" do
+      # Skip for yield tests - yield is not valid Ruby outside of a method
+      skip "yield is not valid Ruby outside of a method" if defined?(skip_valid_ruby_check) && skip_valid_ruby_check
+
       parse_result = Prism.parse(subject.ruby_code)
       expect(parse_result.errors).to be_empty
     end
@@ -393,6 +396,40 @@ RSpec.describe RuboCop::Herb::Converter do
       describe "with raw output tag (-%>)" do
         let(:source) { "<div><%= value -%></div>" }
         let(:expected) { "     _ = value;         " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # ERB yield tags
+      # Note: yield is not valid Ruby outside of a method, so skip_valid_ruby_check is set
+      describe "with yield ERB tag" do
+        let(:source) { "<%= yield %>" }
+        let(:expected) { "_ = yield;  " }
+        let(:skip_valid_ruby_check) { true }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with yield ERB tag with arguments" do
+        let(:source) { "<%= yield :sidebar %>" }
+        let(:expected) { "_ = yield :sidebar;  " }
+        let(:skip_valid_ruby_check) { true }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with yield ERB tag with conditional" do
+        let(:source) { "<%= yield if block_given? %>" }
+        let(:expected) { "_ = yield if block_given?;  " }
+        let(:skip_valid_ruby_check) { true }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with yield ERB tag inside HTML element" do
+        let(:source) { "<div><%= yield %></div>" }
+        let(:expected) { "     _ = yield;        " }
+        let(:skip_valid_ruby_check) { true }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -948,6 +985,42 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <span class=\"user\">User</span>",
            "   end;  "].join("\n")
         end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # ERB yield tags with HTML visualization
+      # Note: yield is not valid Ruby outside of a method, so skip_valid_ruby_check is set
+      describe "with yield ERB tag" do
+        let(:source) { "<%= yield %>" }
+        let(:expected) { "_ = yield;  " }
+        let(:skip_valid_ruby_check) { true }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with yield ERB tag with arguments" do
+        let(:source) { "<%= yield :sidebar %>" }
+        let(:expected) { "_ = yield :sidebar;  " }
+        let(:skip_valid_ruby_check) { true }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with yield ERB tag inside HTML element with brace notation" do
+        let(:source) { '<div class="a"><%= yield %></div>' }
+        let(:expected) { "div {          _ = yield;  }     " }
+        let(:expected_hybrid) { '<div class="a">_ = yield;  </div>' }
+        let(:skip_valid_ruby_check) { true }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with yield ERB tag with conditional inside HTML element" do
+        let(:source) { '<div class="form-body"><%= yield if block_given? %></div>' }
+        let(:expected) { "div {                  _ = yield if block_given?;  }     " }
+        let(:expected_hybrid) { '<div class="form-body">_ = yield if block_given?;  </div>' }
+        let(:skip_valid_ruby_check) { true }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end

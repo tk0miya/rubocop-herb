@@ -189,6 +189,13 @@ module RuboCop
         super
       end
 
+      # Visit ERB yield nodes (<%= yield %> or <%= yield(...) %>)
+      # @rbs node: ::Herb::AST::ERBYieldNode
+      def visit_erb_yield_node(node) #: void
+        render_code_node(node)
+        super
+      end
+
       # Visit ERB end nodes
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node(node) #: void

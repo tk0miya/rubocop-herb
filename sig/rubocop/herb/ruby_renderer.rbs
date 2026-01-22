@@ -110,6 +110,10 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> void
 
+      # Visit ERB yield nodes (<%= yield %> or <%= yield(...) %>)
+      # @rbs node: ::Herb::AST::ERBYieldNode
+      def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
+
       # Visit ERB end nodes
       # @rbs node: ::Herb::AST::ERBEndNode
       def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
