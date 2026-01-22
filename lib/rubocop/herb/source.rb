@@ -53,10 +53,14 @@ module RuboCop
       end
 
       # Convert line and column (1-indexed line, 0-indexed column) to byte offset
+      # Handles multi-byte characters correctly by converting character column to byte offset
       # @rbs line: Integer
       # @rbs column: Integer
       def byte_offset(line, column) #: Integer
-        line_offsets[line - 1] + column
+        line_start = line_offsets[line - 1]
+        next_line_start = line_offsets[line] || code.bytesize
+        line_content = code.byteslice(line_start, next_line_start - line_start)
+        line_start + line_content.chars[0, column].join.bytesize
       end
 
       def compute_line_offsets #: Array[Integer]

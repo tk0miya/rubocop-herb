@@ -677,6 +677,15 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with an HTML comment containing multi-byte characters" do
+        let(:source) { "<body><!-- あいう --><%= render 'foo' %></body>" }
+        # The comment "<!-- あいう -->" is 20 bytes (4 + 9 + 1 + 3 + 3), rendered as "__;" at start
+        let(:expected) { "body; __;               _ = render 'foo';  body0; " }
+        let(:expected_hybrid) { "<body><!-- あいう -->_ = render 'foo';  </body>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       describe "with execution tag without output" do
         let(:source) { "<div><% @counter += 1 %></div>" }
         let(:expected) { "div;    @counter += 1;  div0; " }
