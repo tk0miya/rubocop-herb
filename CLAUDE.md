@@ -180,6 +180,14 @@ plugins:
 
 ### Testing Conventions
 
+#### Choosing Between Integration Spec and Converter Spec
+
+- **Converter spec** (`spec/rubocop/herb/converter_spec.rb`): Use when testing the extraction of `ruby_code` and `hybrid_code` from ERB templates. Focus on verifying the conversion logic itself.
+- **Integration spec** (`spec/integration/`): Use when testing RuboCop lint results, such as which cops are triggered or how offenses are reported.
+- **When in doubt, use Converter spec**: If you're unsure which to use, write tests in the Converter spec. It's better to test the conversion logic directly.
+
+#### Writing Integration Specs
+
 - In integration specs, always use `eq` instead of `include` when comparing offenses
   - Using `include` hides other unexpected offenses, making debugging difficult
   - Example: `expect(offenses).to eq []` instead of `expect(offenses).not_to include("Lint/Void")`
