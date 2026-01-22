@@ -211,7 +211,8 @@ module RuboCop
         return super unless html_visualization
 
         if contains_erb?(node)
-          as_brace = use_brace_notation?(node.open_tag)
+          # Only use brace notation if element has a close tag (not for void elements like <meta>, <br>)
+          as_brace = node.close_tag && use_brace_notation?(node.open_tag)
           render_open_tag_node(node.open_tag, as_brace:)
           # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
           # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
