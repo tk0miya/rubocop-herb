@@ -217,5 +217,23 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing HTML element with attributes containing ERB" do
+      let(:source) do
+        <<~ERB
+          <html lang="en">
+            <head>
+              <title><%= title %></title>
+            </head>
+          </html>
+        ERB
+      end
+
+      it "does not trigger Layout/SpaceBeforeBlockBraces" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 end
