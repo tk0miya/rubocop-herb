@@ -1024,6 +1024,15 @@ RSpec.describe RuboCop::Herb::Converter do
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
+
+      describe "with open tag containing ERB in attributes" do
+        let(:source) { '<th class="<%= class_name %>"><%= content %></th>' }
+        let(:expected) { "th {       _ = class_name;    _ = content;  }    " }
+        # Open tag is NOT restored because it contains ERB (would cause Layout/SpaceAroundOperators false positive)
+        let(:expected_hybrid) { "th {       _ = class_name;    _ = content;  </th>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
     end
   end
 end

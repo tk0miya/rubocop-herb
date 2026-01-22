@@ -227,6 +227,10 @@ module RuboCop
       # Record tag info for AST restoration
       # @rbs node: html_node
       def record_tag_info: (html_node node) -> void
+
+      # Check if an HTML node contains ERB
+      # @rbs node: html_node
+      def contains_erb?: (html_node node) -> bool
     end
   end
 end

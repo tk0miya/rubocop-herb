@@ -210,12 +210,12 @@ module RuboCop
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
-        element_range = compute_node_range(node)
-
-        if source.contains_erb?(element_range)
+        if contains_erb?(node)
           as_brace = use_brace_notation?(node.open_tag)
           render_open_tag_node(node.open_tag, as_brace:)
-          record_tag_info(node.open_tag)
+          # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
+          # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
+          record_tag_info(node.open_tag) unless contains_erb?(node.open_tag)
           super
           if node.close_tag
             render_close_tag_node(node.close_tag, as_brace:)
@@ -240,9 +240,7 @@ module RuboCop
       # Pure HTML comments are rendered as "__;" to indicate content presence (like text nodes)
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def visit_html_comment_node(node) #: void
-        comment_range = compute_node_range(node)
-
-        if source.contains_erb?(comment_range)
+        if contains_erb?(node)
           super
         elsif html_visualization
           render_html_comment_node(node)
@@ -478,6 +476,12 @@ module RuboCop
       def record_tag_info(node) #: void
         range = compute_node_range(node)
         tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Check if an HTML node contains ERB
+      # @rbs node: html_node
+      def contains_erb?(node) #: bool
+        source.contains_erb?(compute_node_range(node))
       end
     end
   end

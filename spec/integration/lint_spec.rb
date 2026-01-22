@@ -207,5 +207,15 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing output tag inside HTML attribute" do
+      let(:source) { '<th class="<%= class_name %>"><%= content %></th>' }
+
+      it "does not trigger Layout/SpaceAroundOperators" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 end
