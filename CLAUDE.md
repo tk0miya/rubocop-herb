@@ -189,15 +189,15 @@ plugins:
 
 This project uses [rbs-inline](https://github.com/soutaro/rbs-inline) style annotations. Types are written as comments in Ruby source files:
 
-- **Argument types**: Use `@rbs argname: Type` comments before the method
+- **Argument types**: Use `@rbs argname: Type` comments before the method. Add `-- description` for documentation (e.g., `@rbs column: Integer -- 0-based column number`)
 - **Return types**: Use `#: Type` comment at the end of the `def` line
 - **Attributes**: Use `#: Type` comment at the end of `attr_accessor`/`attr_reader` (also defines instance variable type)
 - **Instance variables**: Use `@rbs @name: Type` comment (must have blank line before method definition)
 - **Data classes**: Use `#: Type` comment at the end of each member in `Data.define`
 
 ```ruby
-# @rbs name: String
-# @rbs age: Integer
+# @rbs name: String -- the user's name
+# @rbs age: Integer -- the user's age in years
 def greet(name, age) #: String
   "Hello, #{name}! You are #{age} years old."
 end
