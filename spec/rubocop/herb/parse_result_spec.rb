@@ -2,19 +2,11 @@
 
 require "spec_helper"
 
-RSpec.describe RuboCop::Herb::Source do
-  describe "#code" do
-    subject { described_class.new("test.html.erb", code).code }
-
-    let(:code) { "hello\nworld" }
-
-    it "returns the original source code" do
-      expect(subject).to eq("hello\nworld")
-    end
-  end
+RSpec.describe RuboCop::Herb::ParseResult do
+  let(:parse_result) { RuboCop::Herb::ErbParser.parse("test.html.erb", code) }
 
   describe "#byteslice" do
-    subject { described_class.new("test.html.erb", code).byteslice(range) }
+    subject { parse_result.byteslice(range) }
 
     let(:range) { instance_double(Herb::Range, from:, to:) }
 
@@ -56,30 +48,9 @@ RSpec.describe RuboCop::Herb::Source do
     end
   end
 
-  describe "#encoding" do
-    subject { described_class.new("test.html.erb", code).encoding }
-
-    let(:code) { "hello" }
-
-    it "returns the encoding of the source" do
-      expect(subject).to eq(Encoding::UTF_8)
-    end
-  end
-
-  describe "#parse_result" do
-    subject { described_class.new("test.html.erb", code).parse_result }
-
-    let(:code) { "<div><%= @name %></div>" }
-
-    it "returns the Herb parse result" do
-      expect(subject).to be_a(Herb::ParseResult)
-    end
-  end
-
   describe "#location_to_range" do
-    subject { source.location_to_range(location) }
+    subject { parse_result.location_to_range(location) }
 
-    let(:source) { described_class.new("test.html.erb", code) }
     let(:location) do
       instance_double(
         Herb::Location,

@@ -1,0 +1,53 @@
+# Generated from lib/rubocop/herb/parse_result.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Data class holding the results of parsing an ERB file.
+    # Contains the parsed AST, collected ERB locations, and precomputed data
+    # needed for rendering. Logic is minimal - mostly data access and simple queries.
+    class ParseResult
+      include Characters
+
+      attr_reader code: String
+
+      attr_reader path: String
+
+      attr_reader ast: ::Herb::ParseResult
+
+      attr_reader erb_locations: Hash[Integer, ErbLocation]
+
+      attr_reader erb_max_columns: Hash[Integer, Integer]
+
+      attr_reader line_offsets: Array[Integer]
+
+      # @rbs path: String
+      # @rbs code: String
+      # @rbs ast: ::Herb::ParseResult
+      # @rbs erb_locations: Hash[Integer, ErbLocation]
+      # @rbs erb_max_columns: Hash[Integer, Integer]
+      # @rbs line_offsets: Array[Integer]
+      def initialize: (path: String, code: String, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], line_offsets: Array[Integer]) -> void
+
+      # Check if a range contains any ERB nodes
+      # @rbs range: ::Herb::Range
+      def contains_erb?: (::Herb::Range range) -> bool
+
+      # @rbs range: ::Herb::Range
+      def byteslice: (::Herb::Range range) -> String
+
+      def encoding: () -> Encoding
+
+      # Convert a Herb::Location to a Herb::Range
+      # @rbs location: ::Herb::Location
+      def location_to_range: (::Herb::Location location) -> ::Herb::Range
+
+      private
+
+      # Convert line and column to byte offset
+      # Handles multi-byte characters correctly by converting character column to byte offset
+      # @rbs line: Integer -- 1-indexed line number
+      # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
+      def byte_offset: (Integer line, Integer column) -> Integer
+    end
+  end
+end

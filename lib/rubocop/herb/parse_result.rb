@@ -4,22 +4,32 @@ require "herb"
 
 module RuboCop
   module Herb
-    class Source
+    # Data class holding the results of parsing an ERB file.
+    # Contains the parsed AST, collected ERB locations, and precomputed data
+    # needed for rendering. Logic is minimal - mostly data access and simple queries.
+    class ParseResult
       include Characters
 
       attr_reader :code #: String
       attr_reader :path #: String
-      attr_reader :line_offsets #: Array[Integer]
-      attr_reader :parse_result #: ::Herb::ParseResult
+      attr_reader :ast #: ::Herb::ParseResult
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
+      attr_reader :line_offsets #: Array[Integer]
 
       # @rbs path: String
       # @rbs code: String
-      def initialize(path, code) #: void
+      # @rbs ast: ::Herb::ParseResult
+      # @rbs erb_locations: Hash[Integer, ErbLocation]
+      # @rbs erb_max_columns: Hash[Integer, Integer]
+      # @rbs line_offsets: Array[Integer]
+      def initialize(path:, code:, ast:, erb_locations:, erb_max_columns:, line_offsets:) #: void
         @path = path
         @code = code
-        parse
+        @ast = ast
+        @erb_locations = erb_locations
+        @erb_max_columns = erb_max_columns
+        @line_offsets = line_offsets
       end
 
       # Check if a range contains any ERB nodes
@@ -47,14 +57,6 @@ module RuboCop
 
       private
 
-      def parse #: void
-        @parse_result = ::Herb.parse(code)
-        result = ErbLocationCollector.collect(@parse_result)
-        @erb_locations = result.locations
-        @erb_max_columns = result.erb_max_columns
-        @line_offsets = compute_line_offsets
-      end
-
       # Convert line and column to byte offset
       # Handles multi-byte characters correctly by converting character column to byte offset
       # @rbs line: Integer -- 1-indexed line number
@@ -64,12 +66,6 @@ module RuboCop
         next_line_start = line_offsets[line] || code.bytesize
         line_content = code.byteslice(line_start, next_line_start - line_start)
         line_start + line_content.chars[0, column].join.bytesize
-      end
-
-      def compute_line_offsets #: Array[Integer]
-        code.split("\n", -1)[0...-1].inject([0]) do |offsets, line|
-          offsets << (offsets.last + line.bytesize + 1)
-        end
       end
     end
   end
