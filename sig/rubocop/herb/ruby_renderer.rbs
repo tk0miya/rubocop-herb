@@ -134,7 +134,7 @@ module RuboCop
       def render_open_tag_node: (::Herb::AST::HTMLOpenTagNode node, as_brace: bool) -> void
 
       # Render HTML close tag as Ruby code
-      # When as_brace is true, renders "}" only
+      # When as_brace is true, renders "};" to ensure valid Ruby after block
       # Otherwise, renders "tagN; " with counter to distinguish closing tags
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       # @rbs as_brace: bool

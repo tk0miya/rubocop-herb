@@ -942,7 +942,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with open tag with attributes" do
         let(:source) { "<div class=\"foo\" id=\"bar\"><%= x %></div>" }
-        let(:expected) { "div {                     _ = x;  }     " }
+        let(:expected) { "div {                     _ = x;  };    " }
         let(:expected_hybrid) { "<div class=\"foo\" id=\"bar\">_ = x;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -978,6 +978,16 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { "<div><%= x %><p>text</p></div>" }
         let(:expected) { "div; _ = x;  p;         div1; " }
         let(:expected_hybrid) { "<div>_ = x;  <p>text</p></div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # Nested inline elements where child uses brace notation but parent doesn't
+      # The closing brace needs semicolon before parent's closing tag identifier
+      describe "with nested inline elements where child has brace notation" do
+        let(:source) { '<p><code id="x"><%= y %></code></p>' }
+        let(:expected) { "p; code {       _ = y;  };     p1; " }
+        let(:expected_hybrid) { "<p><code id=\"x\">_ = y;  </code></p>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -1028,7 +1038,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with yield ERB tag inside HTML element with brace notation" do
         let(:source) { '<div class="a"><%= yield %></div>' }
-        let(:expected) { "div {          _ = yield;  }     " }
+        let(:expected) { "div {          _ = yield;  };    " }
         let(:expected_hybrid) { '<div class="a">_ = yield;  </div>' }
         let(:skip_valid_ruby_check) { true }
 
@@ -1037,7 +1047,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with yield ERB tag with conditional inside HTML element" do
         let(:source) { '<div class="form-body"><%= yield if block_given? %></div>' }
-        let(:expected) { "div {                  _ = yield if block_given?;  }     " }
+        let(:expected) { "div {                  _ = yield if block_given?;  };    " }
         let(:expected_hybrid) { '<div class="form-body">_ = yield if block_given?;  </div>' }
         let(:skip_valid_ruby_check) { true }
 
@@ -1056,9 +1066,9 @@ RSpec.describe RuboCop::Herb::Converter do
         end
         let(:expected) do
           ["   if condition;  ",
-           "  div {            _ = @name;  }     ",
+           "  div {            _ = @name;  };    ",
            "   else;  ",
-           "  div {            _ = @other;  }     ",
+           "  div {            _ = @other;  };    ",
            "   end;  "].join("\n")
         end
         let(:expected_hybrid) do
@@ -1085,10 +1095,10 @@ RSpec.describe RuboCop::Herb::Converter do
         end
         let(:expected) do
           ["   if condition;  ",
-           "  div {            _ = @name;  }     ",
+           "  div {            _ = @name;  };    ",
            "      @extra;  ",
            "   else;  ",
-           "  div {            _ = @other;  }     ",
+           "  div {            _ = @other;  };    ",
            "      @extra2;  ",
            "   end;  "].join("\n")
         end
@@ -1107,7 +1117,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with open tag containing ERB in attributes" do
         let(:source) { '<th class="<%= class_name %>"><%= content %></th>' }
-        let(:expected) { "th {       _ = class_name;    _ = content;  }    " }
+        let(:expected) { "th {       _ = class_name;    _ = content;  };   " }
         # Open tag is NOT restored because it contains ERB (would cause Layout/SpaceAroundOperators false positive)
         let(:expected_hybrid) { "th {       _ = class_name;    _ = content;  </th>" }
 
