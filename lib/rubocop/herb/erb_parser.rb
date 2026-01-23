@@ -3,6 +3,7 @@
 require "herb"
 require_relative "erb_parser/erb_location_collector"
 require_relative "erb_parser/html_block_collector"
+require_relative "erb_parser/tail_expression_collector"
 
 module RuboCop
   module Herb
@@ -23,6 +24,7 @@ module RuboCop
         ast = ::Herb.parse(code)
         erb_result = ErbLocationCollector.collect(ast)
         html_block_positions = HtmlBlockCollector.collect(ast, erb_result.locations)
+        tail_expressions = TailExpressionCollector.collect(ast, html_block_positions)
         line_offsets = compute_line_offsets(code)
 
         ParseResult.new(
@@ -32,7 +34,8 @@ module RuboCop
           erb_locations: erb_result.locations,
           erb_max_columns: erb_result.erb_max_columns,
           line_offsets:,
-          html_block_positions:
+          html_block_positions:,
+          tail_expressions:
         )
       end
 

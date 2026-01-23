@@ -23,6 +23,7 @@ module RuboCop
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
       attr_reader :line_offsets #: Array[Integer]
       attr_reader :html_block_positions #: Set[Integer]
+      attr_reader :tail_expressions #: Set[Integer]
 
       # @rbs path: String
       # @rbs code: String
@@ -31,8 +32,10 @@ module RuboCop
       # @rbs erb_max_columns: Hash[Integer, Integer]
       # @rbs line_offsets: Array[Integer]
       # @rbs html_block_positions: Set[Integer]
+      # @rbs tail_expressions: Set[Integer]
       def initialize( #: void
-        path:, code:, ast:, erb_locations:, erb_max_columns:, line_offsets:, html_block_positions: Set.new
+        path:, code:, ast:, erb_locations:, erb_max_columns:, line_offsets:,
+        html_block_positions: Set.new, tail_expressions: Set.new
       )
         @path = path
         @code = code
@@ -41,6 +44,7 @@ module RuboCop
         @erb_max_columns = erb_max_columns
         @line_offsets = line_offsets
         @html_block_positions = html_block_positions
+        @tail_expressions = tail_expressions
       end
 
       # Check if a range contains any ERB nodes
@@ -52,6 +56,12 @@ module RuboCop
       # Get all ERB comment nodes
       def erb_comment_nodes #: Array[::Herb::AST::ERBContentNode]
         erb_locations.values.select(&:comment?).map(&:node)
+      end
+
+      # Check if a node is a tail expression (output node at end of returning block)
+      # @rbs node: ::Herb::AST::Node
+      def tail_expression?(node) #: bool
+        tail_expressions.include?(node.tag_opening.range.from)
       end
 
       # @rbs range: ::Herb::Range
