@@ -151,7 +151,7 @@ module RuboCop
       # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         return super unless html_visualization
 
         if contains_erb?(node)
@@ -160,7 +160,11 @@ module RuboCop
           # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
           # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
           record_tag_info(node.open_tag) unless contains_erb?(node.open_tag)
+          # When using brace notation, push a block context so that ERB nodes inside
+          # are not treated as tail expressions of outer blocks (HTML blocks don't return values)
+          push_block(node.body || []) if as_brace
           super
+          pop_block if as_brace
           if node.close_tag
             render_close_tag_node(node.close_tag, as_brace:)
             record_tag_info(node.close_tag)
