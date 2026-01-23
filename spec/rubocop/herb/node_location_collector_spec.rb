@@ -4,13 +4,12 @@ require "spec_helper"
 
 RSpec.describe RuboCop::Herb::NodeLocationCollector do
   describe ".collect" do
-    subject(:result) { described_class.collect(parse_result) }
-
+    let(:result) { described_class.collect(parse_result) }
     let(:parse_result) { Herb.parse(code) }
-    let(:erb_locations) { result.erb_locations }
-    let(:html_block_positions) { result.html_block_positions }
 
-    describe "ERB location collection" do
+    describe "erb_locations" do
+      subject(:erb_locations) { result.erb_locations }
+
       context "with a content ERB tag" do
         let(:code) { "<% hello %>" }
 
@@ -86,7 +85,55 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       end
     end
 
-    describe "HTML block position collection" do
+    describe "erb_max_columns" do
+      subject(:erb_max_columns) { result.erb_max_columns }
+
+      context "with single ERB tag" do
+        let(:code) { "  <%= hello %>" }
+
+        it "records the column of the ERB tag" do
+          expect(erb_max_columns[1]).to eq(2)
+        end
+      end
+
+      context "with multiple ERB tags on different lines" do
+        let(:code) { "<%= a %>\n    <%= b %>\n  <%= c %>" }
+
+        it "records the column for each line" do
+          expect(erb_max_columns[1]).to eq(0)
+          expect(erb_max_columns[2]).to eq(4)
+          expect(erb_max_columns[3]).to eq(2)
+        end
+      end
+
+      context "with multiple ERB tags on the same line" do
+        let(:code) { "<%= a %>  <%= b %>" }
+
+        it "records the maximum column" do
+          expect(erb_max_columns[1]).to eq(10)
+        end
+      end
+
+      context "with comment ERB tag" do
+        let(:code) { "<%# comment %>" }
+
+        it "does not record comment tags" do
+          expect(erb_max_columns).to be_empty
+        end
+      end
+
+      context "with mixed ERB tags including comment" do
+        let(:code) { "<%= a %><%# comment %>" }
+
+        it "only records non-comment tags" do
+          expect(erb_max_columns[1]).to eq(0)
+        end
+      end
+    end
+
+    describe "html_block_positions" do
+      subject(:html_block_positions) { result.html_block_positions }
+
       context "with HTML element containing ERB and close tag" do
         # <div class="x"> is 15 bytes, "div { " is 6 bytes - fits
         let(:code) { "<div class=\"x\"><%= hello %></div>" }
