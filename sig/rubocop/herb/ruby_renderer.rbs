@@ -41,8 +41,6 @@ module RuboCop
 
       attr_reader comment_nodes: Array[::Herb::AST::Node]
 
-      attr_reader code_positions: Hash[Integer, Integer]
-
       attr_reader tag_counter: Integer
 
       attr_reader html_visualization: bool
@@ -155,10 +153,6 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def render_code_node: (::Herb::AST::Node node) -> void
 
-      # Record line and column for comment filtering (keep maximum column per line)
-      # @rbs node: ::Herb::AST::Node
-      def record_code_position: (::Herb::AST::Node node) -> void
-
       # @rbs node: ::Herb::AST::Node
       def render_output_marker: (::Herb::AST::Node node) -> void
 
@@ -228,6 +222,9 @@ module RuboCop
 
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]
+
+      # Build ERB tags from source erb_locations for AST restoration
+      def build_erb_tags: () -> Hash[Integer, Tag]
 
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for: (::Herb::AST::Node node) -> String
