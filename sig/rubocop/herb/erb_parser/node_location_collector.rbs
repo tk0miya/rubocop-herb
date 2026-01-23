@@ -64,7 +64,7 @@ module RuboCop
 
       # Check if this HTML element can be rendered as a Ruby block
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def block_element?: (::Herb::AST::HTMLElementNode node) -> bool
+      def block_html_element?: (::Herb::AST::HTMLElementNode node) -> bool
 
       # Check if an HTML element contains ERB nodes
       # @rbs node: ::Herb::AST::HTMLElementNode

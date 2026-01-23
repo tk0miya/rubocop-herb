@@ -67,7 +67,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         super
-        html_block_positions.add(node.open_tag.tag_opening.range.from) if block_element?(node)
+        html_block_positions.add(node.open_tag.tag_opening.range.from) if block_html_element?(node)
       end
 
       private
@@ -115,7 +115,7 @@ module RuboCop
 
       # Check if this HTML element can be rendered as a Ruby block
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def block_element?(node) #: bool
+      def block_html_element?(node) #: bool
         return false unless node.close_tag
         return false unless contains_erb?(node)
         return false unless fits_block_notation?(node.open_tag)
