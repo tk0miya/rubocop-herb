@@ -151,11 +151,6 @@ module RuboCop
       # @rbs node: html_node
       def compute_node_range: (html_node node) -> ::Herb::Range
 
-      # Check if brace notation should be used for the given open tag
-      # Brace notation requires at least 3 bytes beyond tag name for " { "
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def use_brace_notation?: (::Herb::AST::HTMLOpenTagNode node) -> bool
-
       # Render HTML open tag as Ruby code
       # When as_brace is true, uses brace notation: "div { "
       # Otherwise, uses semicolon notation: "div; "

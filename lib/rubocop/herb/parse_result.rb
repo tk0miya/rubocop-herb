@@ -22,6 +22,7 @@ module RuboCop
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
       attr_reader :line_offsets #: Array[Integer]
+      attr_reader :html_block_positions #: Set[Integer]
 
       # @rbs path: String
       # @rbs code: String
@@ -29,13 +30,17 @@ module RuboCop
       # @rbs erb_locations: Hash[Integer, ErbLocation]
       # @rbs erb_max_columns: Hash[Integer, Integer]
       # @rbs line_offsets: Array[Integer]
-      def initialize(path:, code:, ast:, erb_locations:, erb_max_columns:, line_offsets:) #: void
+      # @rbs html_block_positions: Set[Integer]
+      def initialize( #: void
+        path:, code:, ast:, erb_locations:, erb_max_columns:, line_offsets:, html_block_positions: Set.new
+      )
         @path = path
         @code = code
         @ast = ast
         @erb_locations = erb_locations
         @erb_max_columns = erb_max_columns
         @line_offsets = line_offsets
+        @html_block_positions = html_block_positions
       end
 
       # Check if a range contains any ERB nodes
