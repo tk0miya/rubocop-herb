@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "herb"
+require_relative "erb_parser/erb_location_collector"
 
 module RuboCop
   module Herb

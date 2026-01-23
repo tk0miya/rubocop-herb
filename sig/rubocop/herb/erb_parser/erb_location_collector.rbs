@@ -1,4 +1,4 @@
-# Generated from lib/rubocop/herb/erb_location_collector.rb with RBS::Inline
+# Generated from lib/rubocop/herb/erb_parser/erb_location_collector.rb with RBS::Inline
 
 module RuboCop
   module Herb
