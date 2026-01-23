@@ -57,8 +57,6 @@ module RuboCop
       # @rbs node: ::Herb::AST::DocumentNode
       def visit_document_node: (::Herb::AST::DocumentNode node) -> void
 
-      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
-
       def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
 
       def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
@@ -71,8 +69,6 @@ module RuboCop
 
       def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
 
-      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
-
       def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
 
       def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
@@ -80,6 +76,10 @@ module RuboCop
       def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
 
       def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
+      # Visit ERB block nodes (iterators like each, times, loop)
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
       # Visit ERB case nodes (control flow without block)
       # @rbs override

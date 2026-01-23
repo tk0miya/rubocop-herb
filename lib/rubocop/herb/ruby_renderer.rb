@@ -72,25 +72,31 @@ module RuboCop
       end
 
       # @rbs!
-      #   def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
       #   def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
       #   def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
       #   def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
       #   def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
       #   def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
       #   def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
-      #   def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
       #   def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
       #   def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
       #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
       #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
 
+      # Visit ERB block nodes (iterators like each, times, loop)
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node(node) #: void
+        render_code_node(node)
+        push_block(node.body)
+        visit_child_nodes(node)
+        pop_block
+      end
+
       # Define visit methods for ERB loop nodes (return value is discarded)
-      # block: uses `body`, others: use `statements`
-      { block: :body, for: :statements, while: :statements, until: :statements }.each do |type, attr|
+      %i[for while until].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           render_code_node(node)
-          push_block(node.public_send(attr))
+          push_block(node.statements)
           visit_child_nodes(node)
           pop_block
         end
