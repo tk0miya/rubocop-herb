@@ -5,6 +5,9 @@ module RuboCop
     # Union type for all ERB nodes
     type erb_node = ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBCaseNode | ::Herb::AST::ERBWhenNode | ::Herb::AST::ERBBeginNode | ::Herb::AST::ERBRescueNode | ::Herb::AST::ERBEnsureNode | ::Herb::AST::ERBBlockNode | ::Herb::AST::ERBForNode | ::Herb::AST::ERBWhileNode | ::Herb::AST::ERBUntilNode | ::Herb::AST::ERBContentNode | ::Herb::AST::ERBEndNode
 
+    # Union type for all HTML nodes
+    type html_node = ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLCommentNode
+
     class Error < StandardError
     end
   end

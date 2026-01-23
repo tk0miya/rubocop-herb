@@ -52,9 +52,8 @@ module RuboCop
       # Check if an HTML element contains ERB nodes
       # @rbs node: ::Herb::AST::HTMLElementNode
       def contains_erb?(node) #: bool
-        from = node.open_tag.tag_opening.range.from
-        to = node.close_tag ? node.close_tag.tag_closing.range.to : node.open_tag.tag_closing.range.to
-        erb_locations.keys.any? { |pos| pos >= from && pos < to }
+        range = NodeRange.compute(node)
+        erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
       end
 
       # Check if block notation fits within the open tag space
