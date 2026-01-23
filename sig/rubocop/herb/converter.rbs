@@ -33,9 +33,9 @@ module RuboCop
       # Generate hybrid code by restoring original HTML at tag positions
       # Only restores tags with restore_source: true
       # @rbs ruby_code: String
-      # @rbs source: Source
+      # @rbs parse_result: ParseResult
       # @rbs tags: Hash[Integer, Tag]
-      def generate_hybrid_code: (String ruby_code, Source source, Hash[Integer, Tag] tags) -> String
+      def generate_hybrid_code: (String ruby_code, ParseResult parse_result, Hash[Integer, Tag] tags) -> String
     end
   end
 end

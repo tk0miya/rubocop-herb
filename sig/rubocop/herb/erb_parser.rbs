@@ -1,0 +1,24 @@
+# Generated from lib/rubocop/herb/erb_parser.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Parses ERB files and produces ParseResult objects.
+    # Handles the parsing phase: calling Herb.parse, collecting ERB locations,
+    # and computing line offsets.
+    class ErbParser
+      # Parse ERB code and return a ParseResult
+      # @rbs path: String
+      # @rbs code: String
+      def self.parse: (String path, String code) -> ParseResult
+
+      # @rbs path: String
+      # @rbs code: String
+      def parse: (String path, String code) -> ParseResult
+
+      private
+
+      # @rbs code: String
+      def compute_line_offsets: (String code) -> Array[Integer]
+    end
+  end
+end

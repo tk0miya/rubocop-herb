@@ -20,22 +20,22 @@ module RuboCop
 
       # Result of rendering ERB source to Ruby code
       Result = Data.define(
-        :source, #: Source
+        :parse_result, #: ParseResult
         :code, #: String
         :tags #: Hash[Integer, Tag]
       )
 
       # Render ERB source to Ruby code
-      # @rbs source: Source
+      # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
-      def self.render(source, html_visualization: false) #: Result
-        renderer = new(source, html_visualization:)
-        source.parse_result.visit(renderer)
+      def self.render(parse_result, html_visualization: false) #: Result
+        renderer = new(parse_result, html_visualization:)
+        parse_result.ast.visit(renderer)
         renderer.result
       end
 
       attr_reader :buffer #: Array[Integer]
-      attr_reader :source #: Source
+      attr_reader :parse_result #: ParseResult
       attr_reader :result #: Result
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
@@ -43,11 +43,11 @@ module RuboCop
       attr_reader :html_visualization #: bool
       attr_reader :tags #: Hash[Integer, Tag]
 
-      # @rbs source: Source
+      # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
-      def initialize(source, html_visualization: false) #: void
-        @source = source
-        @buffer = bleach_code(source.code)
+      def initialize(parse_result, html_visualization: false) #: void
+        @parse_result = parse_result
+        @buffer = bleach_code(parse_result.code)
         @block_stack = []
         @comment_nodes = []
         @tag_counter = 0
@@ -63,8 +63,8 @@ module RuboCop
         super
         render_comments
         all_tags = build_erb_tags.merge(tags)
-        code = buffer.pack("C*").force_encoding(source.encoding)
-        @result = Result.new(source:, code:, tags: all_tags)
+        code = buffer.pack("C*").force_encoding(parse_result.encoding)
+        @result = Result.new(parse_result:, code:, tags: all_tags)
       end
 
       # Visit ERB block nodes (iterators like each, times, loop)
@@ -308,7 +308,7 @@ module RuboCop
           to = node.close_tag ? node.close_tag.tag_closing.range.to : node.open_tag.tag_closing.range.to
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
-          source.location_to_range(node.location)
+          parse_result.location_to_range(node.location)
         when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
           ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
         when ::Herb::AST::HTMLCommentNode
@@ -363,7 +363,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = compute_node_range(node)
-        text = source.byteslice(range)
+        text = parse_result.byteslice(range)
         match = text.match(/\S/)
         return unless match
 
@@ -391,9 +391,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBContentNode
       def renderable_comment?(node) #: bool
         line = node.location.end.line
-        return true unless source.erb_max_columns.key?(line)
+        return true unless parse_result.erb_max_columns.key?(line)
 
-        node.location.start.column >= source.erb_max_columns[line]
+        node.location.start.column >= parse_result.erb_max_columns[line]
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode
@@ -414,7 +414,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
         range = compute_node_range(node)
-        text = source.byteslice(range)
+        text = parse_result.byteslice(range)
 
         render_tag_marker(node.comment_start.range.from)
 
@@ -470,16 +470,16 @@ module RuboCop
         end
       end
 
-      # Build ERB tags from source erb_locations for AST restoration
+      # Build ERB tags from parse_result erb_locations for AST restoration
       def build_erb_tags #: Hash[Integer, Tag]
-        source.erb_locations.transform_values do |loc|
+        parse_result.erb_locations.transform_values do |loc|
           Tag.new(range: loc.range, restore_source: false)
         end
       end
 
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
-        source.byteslice(node.content.range)
+        parse_result.byteslice(node.content.range)
       end
 
       # Record tag info for AST restoration
@@ -492,7 +492,7 @@ module RuboCop
       # Check if an HTML node contains ERB
       # @rbs node: html_node
       def contains_erb?(node) #: bool
-        source.contains_erb?(compute_node_range(node))
+        parse_result.contains_erb?(compute_node_range(node))
       end
     end
   end

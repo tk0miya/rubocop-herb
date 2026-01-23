@@ -12,28 +12,28 @@ module RuboCop
 
       # Result of rendering ERB source to Ruby code
       class Result < Data
-        attr_reader source(): Source
+        attr_reader parse_result(): ParseResult
 
         attr_reader code(): String
 
         attr_reader tags(): Hash[Integer, Tag]
 
-        def self.new: (Source source, String code, Hash[Integer, Tag] tags) -> instance
-                    | (source: Source, code: String, tags: Hash[Integer, Tag]) -> instance
+        def self.new: (ParseResult parse_result, String code, Hash[Integer, Tag] tags) -> instance
+                    | (parse_result: ParseResult, code: String, tags: Hash[Integer, Tag]) -> instance
 
-        def self.members: () -> [ :source, :code, :tags ]
+        def self.members: () -> [ :parse_result, :code, :tags ]
 
-        def members: () -> [ :source, :code, :tags ]
+        def members: () -> [ :parse_result, :code, :tags ]
       end
 
       # Render ERB source to Ruby code
-      # @rbs source: Source
+      # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
-      def self.render: (Source source, ?html_visualization: bool) -> Result
+      def self.render: (ParseResult parse_result, ?html_visualization: bool) -> Result
 
       attr_reader buffer: Array[Integer]
 
-      attr_reader source: Source
+      attr_reader parse_result: ParseResult
 
       attr_reader result: Result
 
@@ -47,9 +47,9 @@ module RuboCop
 
       attr_reader tags: Hash[Integer, Tag]
 
-      # @rbs source: Source
+      # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
-      def initialize: (Source source, ?html_visualization: bool) -> void
+      def initialize: (ParseResult parse_result, ?html_visualization: bool) -> void
 
       # Override to render comments and build result after document traversal completes
       # @rbs node: ::Herb::AST::DocumentNode
@@ -223,7 +223,7 @@ module RuboCop
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]
 
-      # Build ERB tags from source erb_locations for AST restoration
+      # Build ERB tags from parse_result erb_locations for AST restoration
       def build_erb_tags: () -> Hash[Integer, Tag]
 
       # @rbs node: ::Herb::AST::Node
