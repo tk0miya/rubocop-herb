@@ -245,5 +245,43 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing if-else with HTML blocks using brace notation" do
+      let(:source) do
+        <<~ERB
+          <% if condition %>
+            <div class="foo"><%= @name %></div>
+          <% else %>
+            <div class="bar"><%= @other %></div>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Style/ConditionalAssignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing if-else with HTML blocks followed by ERB" do
+      let(:source) do
+        <<~ERB
+          <% if condition %>
+            <div class="foo"><%= @name %></div>
+            <%= @extra %>
+          <% else %>
+            <div class="bar"><%= @other %></div>
+            <%= @extra2 %>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Style/ConditionalAssignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 end
