@@ -57,54 +57,33 @@ module RuboCop
       # @rbs node: ::Herb::AST::DocumentNode
       def visit_document_node: (::Herb::AST::DocumentNode node) -> void
 
-      # Visit ERB block nodes (iterators like each, times, loop)
-      # These are NOT control flow - return value is discarded
-      # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
-      # Visit ERB for nodes (for loops - return value is discarded)
-      # @rbs node: ::Herb::AST::ERBForNode
       def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
 
-      # Visit ERB while nodes (while loops - return value is discarded)
-      # @rbs node: ::Herb::AST::ERBWhileNode
       def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
 
-      # Visit ERB until nodes (until loops - return value is discarded)
-      # @rbs node: ::Herb::AST::ERBUntilNode
       def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
 
-      # Visit ERB if nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
 
-      # Visit ERB unless nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
 
-      # Visit ERB else nodes (control flow continuation - returns value)
-      # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
 
-      # Visit ERB case nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBCaseNode
       def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
 
-      # Visit ERB when nodes (control flow continuation - returns value)
-      # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
 
-      # Visit ERB begin nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBBeginNode
       def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
 
-      # Visit ERB rescue nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
 
-      # Visit ERB ensure nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
+      # Visit ERB case nodes (control flow without block)
+      # @rbs override
+      def visit_erb_case_node: ...
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
       # @rbs node: ::Herb::AST::ERBContentNode
@@ -217,10 +196,6 @@ module RuboCop
 
       # Increment tag counter and return new value (cycles through 0-9)
       def next_tag_counter: () -> Integer
-
-      # Record tag info for HTML comment AST restoration
-      # @rbs node: ::Herb::AST::HTMLCommentNode
-      def record_html_comment_tag: (::Herb::AST::HTMLCommentNode node) -> void
 
       # @rbs code: String
       # @rbs hash_column: Integer
