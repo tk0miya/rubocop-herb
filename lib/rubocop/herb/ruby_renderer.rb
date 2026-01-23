@@ -3,7 +3,6 @@
 require "forwardable"
 require "herb"
 require_relative "node_range"
-require_relative "ruby_renderer/block_context"
 
 module RuboCop
   module Herb
@@ -33,7 +32,6 @@ module RuboCop
       attr_reader :buffer #: Array[Integer]
       attr_reader :parse_result #: ParseResult
       attr_reader :result #: Result
-      attr_reader :block_stack #: Array[BlockContext]
       attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
       attr_reader :tags #: Hash[Integer, Tag]
@@ -45,15 +43,16 @@ module RuboCop
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
       #   def byteslice: (::Herb::Range) -> String
       #   def location_to_range: (::Herb::Location) -> ::Herb::Range
+      #   def tail_expression?: (::Herb::AST::Node) -> bool
       def_delegator :parse_result, :encoding, :source_encoding
-      def_delegators :parse_result, :erb_locations, :erb_max_columns, :erb_comment_nodes, :byteslice, :location_to_range
+      def_delegators :parse_result, :erb_locations, :erb_max_columns, :erb_comment_nodes,
+                     :byteslice, :location_to_range, :tail_expression?
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
       def initialize(parse_result, html_visualization: false) #: void
         @parse_result = parse_result
         @buffer = bleach_code(parse_result.code)
-        @block_stack = []
         @tag_counter = 0
         @html_visualization = html_visualization
         @tags = {}
@@ -72,6 +71,7 @@ module RuboCop
       end
 
       # @rbs!
+      #   def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
       #   def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
       #   def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
       #   def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
@@ -82,41 +82,16 @@ module RuboCop
       #   def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
       #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
       #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+      #   def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+      #   def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
+      #   def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
-      # Visit ERB block nodes (iterators like each, times, loop)
-      # @rbs node: ::Herb::AST::ERBBlockNode
-      def visit_erb_block_node(node) #: void
-        render_code_node(node)
-        push_block(node.body)
-        visit_child_nodes(node)
-        pop_block
-      end
-
-      # Define visit methods for ERB loop nodes (return value is discarded)
-      %i[for while until].each do |type|
+      # Define visit methods for ERB nodes that render code and continue traversal
+      %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           render_code_node(node)
-          push_block(node.statements)
-          visit_child_nodes(node)
-          pop_block
+          super(node)
         end
-      end
-
-      # Define visit methods for ERB control flow nodes (returns value)
-      %i[if unless else when begin rescue ensure].each do |type|
-        define_method(:"visit_erb_#{type}_node") do |node|
-          render_code_node(node)
-          push_block(node.statements, returning_value: true)
-          visit_child_nodes(node)
-          pop_block
-        end
-      end
-
-      # Visit ERB case nodes (control flow without block)
-      # @rbs override
-      def visit_erb_case_node(node) #: void
-        render_code_node(node)
-        super
       end
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
@@ -127,25 +102,11 @@ module RuboCop
         super
       end
 
-      # Visit ERB yield nodes (<%= yield %> or <%= yield(...) %>)
-      # @rbs node: ::Herb::AST::ERBYieldNode
-      def visit_erb_yield_node(node) #: void
-        render_code_node(node)
-        super
-      end
-
-      # Visit ERB end nodes
-      # @rbs node: ::Herb::AST::ERBEndNode
-      def visit_erb_end_node(node) #: void
-        render_code_node(node)
-        super
-      end
-
       # Visit HTML element nodes (container for open tag, content, and close tag)
       # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
+      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize
         return super unless html_visualization
 
         if contains_erb?(node)
@@ -154,11 +115,7 @@ module RuboCop
           # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
           # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
           record_tag_info(node.open_tag) unless contains_erb?(node.open_tag)
-          # When using brace notation, push a block context so that ERB nodes inside
-          # are not treated as tail expressions of outer blocks (HTML blocks don't return values)
-          push_block(node.body || []) if as_brace
           super
-          pop_block if as_brace
           if node.close_tag
             render_close_tag_node(node.close_tag, as_brace:)
             record_tag_info(node.close_tag)
@@ -192,33 +149,9 @@ module RuboCop
 
       private
 
-      # @rbs statements: Array[::Herb::AST::Node]
-      # @rbs returning_value: bool
-      def push_block(statements, returning_value: false) #: void
-        block_stack.push(BlockContext.new(statements, returning_value:))
-      end
-
-      def pop_block #: void
-        block_stack.pop
-      end
-
-      def current_block #: BlockContext?
-        block_stack.last
-      end
-
       # @rbs node: ::Herb::AST::ERBContentNode
       def output_node?(node) #: bool
         node.tag_opening.value == "<%="
-      end
-
-      # Check if this output node is a tail expression that doesn't need _ = marker
-      # @rbs node: ::Herb::AST::ERBContentNode
-      def tail_expression?(node) #: bool
-        return false unless current_block
-        return false unless current_block.returning_value
-        return false unless current_block.last_statement?(node)
-
-        true
       end
 
       # @rbs node: ::Herb::AST::Node

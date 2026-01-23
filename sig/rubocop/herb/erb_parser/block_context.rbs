@@ -1,4 +1,4 @@
-# Generated from lib/rubocop/herb/ruby_renderer/block_context.rb with RBS::Inline
+# Generated from lib/rubocop/herb/erb_parser/block_context.rb with RBS::Inline
 
 module RuboCop
   module Herb
