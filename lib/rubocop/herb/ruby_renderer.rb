@@ -191,7 +191,7 @@ module RuboCop
       end
 
       # Render HTML close tag as Ruby code
-      # When as_brace is true, renders "}" only
+      # When as_brace is true, renders "};" to ensure valid Ruby after block
       # Otherwise, renders "tagN; " with counter to distinguish closing tags
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       # @rbs as_brace: bool
@@ -200,6 +200,7 @@ module RuboCop
 
         if as_brace
           buffer[start_pos] = RIGHT_BRACE
+          buffer[start_pos + 1] = SEMICOLON
         else
           tag_name = node.tag_name.value
           ruby_code = "#{tag_name}#{next_tag_counter}; "
