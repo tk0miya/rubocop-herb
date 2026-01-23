@@ -1,0 +1,79 @@
+# Generated from lib/rubocop/herb/erb_parser/node_location_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor that collects both ERB locations and HTML block positions in a single AST traversal.
+    # Combines the functionality of ErbLocationCollector and HtmlBlockCollector.
+    class NodeLocationCollector < ::Herb::Visitor
+      NODE_TYPE_MAP: untyped
+
+      # Result of collecting node locations
+      class Result < Data
+        attr_reader erb_locations(): Hash[Integer, ErbLocation]
+
+        attr_reader erb_max_columns(): Hash[Integer, Integer]
+
+        attr_reader html_block_positions(): Set[Integer]
+
+        def self.new: (Hash[Integer, ErbLocation] erb_locations, Hash[Integer, Integer] erb_max_columns, Set[Integer] html_block_positions) -> instance
+                    | (erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[Integer]) -> instance
+
+        def self.members: () -> [ :erb_locations, :erb_max_columns, :html_block_positions ]
+
+        def members: () -> [ :erb_locations, :erb_max_columns, :html_block_positions ]
+      end
+
+      # Collect ERB locations and HTML block positions from a parse result
+      # @rbs parse_result: ::Herb::ParseResult
+      def self.collect: (::Herb::ParseResult parse_result) -> Result
+
+      attr_reader erb_locations: Hash[Integer, ErbLocation]
+
+      attr_reader erb_max_columns: Hash[Integer, Integer]
+
+      attr_reader html_block_positions: Set[Integer]
+
+      def initialize: () -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def visit_child_nodes: (::Herb::AST::Node node) -> void
+
+      # Visit HTML element nodes and determine if they can be rendered as blocks
+      # super is called first to traverse children and collect ERB locations,
+      # then we check if this element qualifies as a block element.
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
+
+      private
+
+      # @rbs node: ::Herb::AST::Node
+      def erb_node?: (::Herb::AST::Node node) -> bool
+
+      # Record the location of an ERB node
+      # @rbs node: erb_node
+      def record_erb_location: (erb_node node) -> void
+
+      # @rbs type: ErbLocation::erb_node_type
+      # @rbs line: Integer
+      # @rbs column: Integer
+      def update_erb_max_columns: (ErbLocation::erb_node_type type, Integer line, Integer column) -> void
+
+      # Determine the type of an ERB node
+      # @rbs node: erb_node
+      def determine_type: (erb_node node) -> ErbLocation::erb_node_type
+
+      # Check if this HTML element can be rendered as a Ruby block
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def block_html_element?: (::Herb::AST::HTMLElementNode node) -> bool
+
+      # Check if an HTML element contains ERB nodes
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def contains_erb?: (::Herb::AST::HTMLElementNode node) -> bool
+
+      # Check if block notation fits within the open tag space
+      # Block notation requires at least 3 bytes beyond tag name for " { "
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def fits_block_notation?: (::Herb::AST::HTMLOpenTagNode node) -> bool
+    end
+  end
+end

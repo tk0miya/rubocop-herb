@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require "herb"
-require_relative "erb_parser/erb_location_collector"
-require_relative "erb_parser/html_block_collector"
+require_relative "erb_parser/node_location_collector"
 require_relative "erb_parser/tail_expression_collector"
 
 module RuboCop
@@ -22,19 +21,18 @@ module RuboCop
       # @rbs code: String
       def parse(path, code) #: ParseResult
         ast = ::Herb.parse(code)
-        erb_result = ErbLocationCollector.collect(ast)
-        html_block_positions = HtmlBlockCollector.collect(ast, erb_result.locations)
-        tail_expressions = TailExpressionCollector.collect(ast, html_block_positions)
+        result = NodeLocationCollector.collect(ast)
+        tail_expressions = TailExpressionCollector.collect(ast, result.html_block_positions)
         line_offsets = compute_line_offsets(code)
 
         ParseResult.new(
           path:,
           code:,
           ast:,
-          erb_locations: erb_result.locations,
-          erb_max_columns: erb_result.erb_max_columns,
+          erb_locations: result.erb_locations,
+          erb_max_columns: result.erb_max_columns,
           line_offsets:,
-          html_block_positions:,
+          html_block_positions: result.html_block_positions,
           tail_expressions:
         )
       end
