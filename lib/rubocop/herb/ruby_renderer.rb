@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "forwardable"
 require "herb"
 require_relative "ruby_renderer/block_context"
 
@@ -9,6 +10,7 @@ module RuboCop
     # Comments are collected during traversal and rendered at the end
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
+      extend Forwardable
       include Characters
 
       # @rbs!
@@ -43,6 +45,15 @@ module RuboCop
       attr_reader :html_visualization #: bool
       attr_reader :tags #: Hash[Integer, Tag]
 
+      # @rbs!
+      #   def source_encoding: () -> Encoding
+      #   def erb_locations: () -> Hash[Integer, ErbLocation]
+      #   def erb_max_columns: () -> Hash[Integer, Integer]
+      #   def byteslice: (::Herb::Range) -> String
+      #   def location_to_range: (::Herb::Location) -> ::Herb::Range
+      def_delegator :parse_result, :encoding, :source_encoding
+      def_delegators :parse_result, :erb_locations, :erb_max_columns, :byteslice, :location_to_range
+
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
       def initialize(parse_result, html_visualization: false) #: void
@@ -63,7 +74,7 @@ module RuboCop
         super
         render_comments
         all_tags = build_erb_tags.merge(tags)
-        code = buffer.pack("C*").force_encoding(parse_result.encoding)
+        code = buffer.pack("C*").force_encoding(source_encoding)
         @result = Result.new(parse_result:, code:, tags: all_tags)
       end
 
@@ -308,7 +319,7 @@ module RuboCop
           to = node.close_tag ? node.close_tag.tag_closing.range.to : node.open_tag.tag_closing.range.to
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
-          parse_result.location_to_range(node.location)
+          location_to_range(node.location)
         when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
           ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
         when ::Herb::AST::HTMLCommentNode
@@ -363,7 +374,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = compute_node_range(node)
-        text = parse_result.byteslice(range)
+        text = byteslice(range)
         match = text.match(/\S/)
         return unless match
 
@@ -391,9 +402,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBContentNode
       def renderable_comment?(node) #: bool
         line = node.location.end.line
-        return true unless parse_result.erb_max_columns.key?(line)
+        return true unless erb_max_columns.key?(line)
 
-        node.location.start.column >= parse_result.erb_max_columns[line]
+        node.location.start.column >= erb_max_columns[line]
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode
@@ -414,7 +425,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
         range = compute_node_range(node)
-        text = parse_result.byteslice(range)
+        text = byteslice(range)
 
         render_tag_marker(node.comment_start.range.from)
 
@@ -470,16 +481,16 @@ module RuboCop
         end
       end
 
-      # Build ERB tags from parse_result erb_locations for AST restoration
+      # Build ERB tags from erb_locations for AST restoration
       def build_erb_tags #: Hash[Integer, Tag]
-        parse_result.erb_locations.transform_values do |loc|
+        erb_locations.transform_values do |loc|
           Tag.new(range: loc.range, restore_source: false)
         end
       end
 
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
-        parse_result.byteslice(node.content.range)
+        byteslice(node.content.range)
       end
 
       # Record tag info for AST restoration
