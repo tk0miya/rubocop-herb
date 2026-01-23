@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "forwardable"
 require "herb"
 
 module RuboCop
@@ -8,7 +9,12 @@ module RuboCop
     # Contains the parsed AST, collected ERB locations, and precomputed data
     # needed for rendering. Logic is minimal - mostly data access and simple queries.
     class ParseResult
+      extend Forwardable
       include Characters
+
+      # @rbs!
+      #   def encoding: () -> Encoding
+      def_delegators :code, :encoding
 
       attr_reader :code #: String
       attr_reader :path #: String
@@ -41,10 +47,6 @@ module RuboCop
       # @rbs range: ::Herb::Range
       def byteslice(range) #: String
         code.byteslice(range.from, range.to - range.from).force_encoding(code.encoding)
-      end
-
-      def encoding #: Encoding
-        code.encoding
       end
 
       # Convert a Herb::Location to a Herb::Range

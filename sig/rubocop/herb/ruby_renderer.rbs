@@ -6,6 +6,8 @@ module RuboCop
     # Comments are collected during traversal and rendered at the end
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor
+      extend Forwardable
+
       include Characters
 
       type html_node = ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLCommentNode
@@ -46,6 +48,16 @@ module RuboCop
       attr_reader html_visualization: bool
 
       attr_reader tags: Hash[Integer, Tag]
+
+      def source_encoding: () -> Encoding
+
+      def erb_locations: () -> Hash[Integer, ErbLocation]
+
+      def erb_max_columns: () -> Hash[Integer, Integer]
+
+      def byteslice: (::Herb::Range) -> String
+
+      def location_to_range: (::Herb::Location) -> ::Herb::Range
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
@@ -223,7 +235,7 @@ module RuboCop
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]
 
-      # Build ERB tags from parse_result erb_locations for AST restoration
+      # Build ERB tags from erb_locations for AST restoration
       def build_erb_tags: () -> Hash[Integer, Tag]
 
       # @rbs node: ::Herb::AST::Node
