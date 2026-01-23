@@ -1,0 +1,43 @@
+# Generated from lib/rubocop/herb/erb_parser/html_block_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor that collects HTML element positions that can be rendered as Ruby blocks.
+    # An element can be rendered as a block when:
+    # - It contains ERB nodes
+    # - It has a close tag (not a void element like <meta>, <br>)
+    # - The open tag has enough space for block notation (tag name + " { ")
+    class HtmlBlockCollector < ::Herb::Visitor
+      # Collect HTML block positions from an AST
+      # @rbs ast: ::Herb::ParseResult
+      # @rbs erb_locations: Hash[Integer, ErbLocation]
+      def self.collect: (::Herb::ParseResult ast, Hash[Integer, ErbLocation] erb_locations) -> Set[Integer]
+
+      attr_reader erb_locations: Hash[Integer, ErbLocation]
+
+      attr_reader html_block_positions: Set[Integer]
+
+      # @rbs erb_locations: Hash[Integer, ErbLocation]
+      def initialize: (Hash[Integer, ErbLocation] erb_locations) -> void
+
+      # Visit HTML element nodes and determine if they can be rendered as blocks
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
+
+      private
+
+      # Check if this HTML element can be rendered as a Ruby block
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def block_element?: (::Herb::AST::HTMLElementNode node) -> bool
+
+      # Check if an HTML element contains ERB nodes
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def contains_erb?: (::Herb::AST::HTMLElementNode node) -> bool
+
+      # Check if block notation fits within the open tag space
+      # Block notation requires at least 3 bytes beyond tag name for " { "
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def fits_block_notation?: (::Herb::AST::HTMLOpenTagNode node) -> bool
+    end
+  end
+end

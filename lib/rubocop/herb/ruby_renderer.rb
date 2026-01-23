@@ -151,12 +151,11 @@ module RuboCop
       # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void
+      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize
         return super unless html_visualization
 
         if contains_erb?(node)
-          # Only use brace notation if element has a close tag (not for void elements like <meta>, <br>)
-          as_brace = node.close_tag && use_brace_notation?(node.open_tag)
+          as_brace = parse_result.html_block_positions.include?(node.open_tag.tag_opening.range.from)
           render_open_tag_node(node.open_tag, as_brace:)
           # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
           # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
@@ -262,16 +261,6 @@ module RuboCop
         when ::Herb::AST::HTMLCommentNode
           ::Herb::Range.new(node.comment_start.range.from, node.comment_end.range.to)
         end
-      end
-
-      # Check if brace notation should be used for the given open tag
-      # Brace notation requires at least 3 bytes beyond tag name for " { "
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def use_brace_notation?(node) #: bool
-        tag_name = node.tag_name.value
-        tag_length = node.tag_closing.range.to - node.tag_opening.range.from
-        min_brace_length = tag_name.bytesize + 3 # "tag { " needs tag + " { "
-        tag_length >= min_brace_length
       end
 
       # Render HTML open tag as Ruby code

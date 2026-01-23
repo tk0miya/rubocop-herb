@@ -2,6 +2,7 @@
 
 require "herb"
 require_relative "erb_parser/erb_location_collector"
+require_relative "erb_parser/html_block_collector"
 
 module RuboCop
   module Herb
@@ -20,16 +21,18 @@ module RuboCop
       # @rbs code: String
       def parse(path, code) #: ParseResult
         ast = ::Herb.parse(code)
-        result = ErbLocationCollector.collect(ast)
+        erb_result = ErbLocationCollector.collect(ast)
+        html_block_positions = HtmlBlockCollector.collect(ast, erb_result.locations)
         line_offsets = compute_line_offsets(code)
 
         ParseResult.new(
           path:,
           code:,
           ast:,
-          erb_locations: result.locations,
-          erb_max_columns: result.erb_max_columns,
-          line_offsets:
+          erb_locations: erb_result.locations,
+          erb_max_columns: erb_result.erb_max_columns,
+          line_offsets:,
+          html_block_positions:
         )
       end
 

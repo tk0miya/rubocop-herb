@@ -24,13 +24,16 @@ module RuboCop
 
       attr_reader line_offsets: Array[Integer]
 
+      attr_reader html_block_positions: Set[Integer]
+
       # @rbs path: String
       # @rbs code: String
       # @rbs ast: ::Herb::ParseResult
       # @rbs erb_locations: Hash[Integer, ErbLocation]
       # @rbs erb_max_columns: Hash[Integer, Integer]
       # @rbs line_offsets: Array[Integer]
-      def initialize: (path: String, code: String, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], line_offsets: Array[Integer]) -> void
+      # @rbs html_block_positions: Set[Integer]
+      def initialize: (path: String, code: String, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], line_offsets: Array[Integer], ?html_block_positions: Set[Integer]) -> untyped
 
       # Check if a range contains any ERB nodes
       # @rbs range: ::Herb::Range
