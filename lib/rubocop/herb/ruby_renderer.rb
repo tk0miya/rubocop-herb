@@ -78,111 +78,52 @@ module RuboCop
         @result = Result.new(parse_result:, code:, tags: all_tags)
       end
 
+      # @rbs!
+      #   def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+      #   def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+      #   def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+      #   def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+      #   def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+      #   def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+      #   def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+      #   def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+      #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+      #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
       # Visit ERB block nodes (iterators like each, times, loop)
-      # These are NOT control flow - return value is discarded
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
         render_code_node(node)
         push_block(node.body)
-        super
+        visit_child_nodes(node)
         pop_block
       end
 
-      # Visit ERB for nodes (for loops - return value is discarded)
-      # @rbs node: ::Herb::AST::ERBForNode
-      def visit_erb_for_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements)
-        super
-        pop_block
+      # Define visit methods for ERB loop nodes (return value is discarded)
+      %i[for while until].each do |type|
+        define_method(:"visit_erb_#{type}_node") do |node|
+          render_code_node(node)
+          push_block(node.statements)
+          visit_child_nodes(node)
+          pop_block
+        end
       end
 
-      # Visit ERB while nodes (while loops - return value is discarded)
-      # @rbs node: ::Herb::AST::ERBWhileNode
-      def visit_erb_while_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements)
-        super
-        pop_block
+      # Define visit methods for ERB control flow nodes (returns value)
+      %i[if unless else when begin rescue ensure].each do |type|
+        define_method(:"visit_erb_#{type}_node") do |node|
+          render_code_node(node)
+          push_block(node.statements, returning_value: true)
+          visit_child_nodes(node)
+          pop_block
+        end
       end
 
-      # Visit ERB until nodes (until loops - return value is discarded)
-      # @rbs node: ::Herb::AST::ERBUntilNode
-      def visit_erb_until_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements)
-        super
-        pop_block
-      end
-
-      # Visit ERB if nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBIfNode
-      def visit_erb_if_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
-      end
-
-      # Visit ERB unless nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBUnlessNode
-      def visit_erb_unless_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
-      end
-
-      # Visit ERB else nodes (control flow continuation - returns value)
-      # @rbs node: ::Herb::AST::ERBElseNode
-      def visit_erb_else_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
-      end
-
-      # Visit ERB case nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBCaseNode
+      # Visit ERB case nodes (control flow without block)
+      # @rbs override
       def visit_erb_case_node(node) #: void
         render_code_node(node)
         super
-      end
-
-      # Visit ERB when nodes (control flow continuation - returns value)
-      # @rbs node: ::Herb::AST::ERBWhenNode
-      def visit_erb_when_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
-      end
-
-      # Visit ERB begin nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBBeginNode
-      def visit_erb_begin_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
-      end
-
-      # Visit ERB rescue nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBRescueNode
-      def visit_erb_rescue_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
-      end
-
-      # Visit ERB ensure nodes (control flow - returns value)
-      # @rbs node: ::Herb::AST::ERBEnsureNode
-      def visit_erb_ensure_node(node) #: void
-        render_code_node(node)
-        push_block(node.statements, returning_value: true)
-        super
-        pop_block
       end
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
@@ -431,7 +372,7 @@ module RuboCop
 
         # Skip recording tag info for comments with multi-byte characters
         # to preserve character count between ruby_code and hybrid_code
-        record_html_comment_tag(node) unless text.bytesize != text.length
+        record_tag_info(node) unless text.bytesize != text.length
       end
 
       # Render tag marker "_x;" at the given position and increment counter
@@ -446,13 +387,6 @@ module RuboCop
       # Increment tag counter and return new value (cycles through 0-9)
       def next_tag_counter #: Integer
         @tag_counter = tag_counter.succ % 10
-      end
-
-      # Record tag info for HTML comment AST restoration
-      # @rbs node: ::Herb::AST::HTMLCommentNode
-      def record_html_comment_tag(node) #: void
-        range = compute_node_range(node)
-        tags[range.from] = Tag.new(range:, restore_source: true)
       end
 
       # @rbs code: String
