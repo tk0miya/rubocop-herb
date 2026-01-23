@@ -7,7 +7,7 @@ require_relative "ruby_renderer/block_context"
 module RuboCop
   module Herb
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
-    # Comments are collected during traversal and rendered at the end
+    # Comments are retrieved from ParseResult and rendered at the end
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       extend Forwardable
@@ -40,7 +40,6 @@ module RuboCop
       attr_reader :parse_result #: ParseResult
       attr_reader :result #: Result
       attr_reader :block_stack #: Array[BlockContext]
-      attr_reader :comment_nodes #: Array[::Herb::AST::Node]
       attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
       attr_reader :tags #: Hash[Integer, Tag]
@@ -49,10 +48,11 @@ module RuboCop
       #   def source_encoding: () -> Encoding
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
+      #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
       #   def byteslice: (::Herb::Range) -> String
       #   def location_to_range: (::Herb::Location) -> ::Herb::Range
       def_delegator :parse_result, :encoding, :source_encoding
-      def_delegators :parse_result, :erb_locations, :erb_max_columns, :byteslice, :location_to_range
+      def_delegators :parse_result, :erb_locations, :erb_max_columns, :erb_comment_nodes, :byteslice, :location_to_range
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
@@ -60,7 +60,6 @@ module RuboCop
         @parse_result = parse_result
         @buffer = bleach_code(parse_result.code)
         @block_stack = []
-        @comment_nodes = []
         @tag_counter = 0
         @html_visualization = html_visualization
         @tags = {}
@@ -127,13 +126,10 @@ module RuboCop
       end
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
+      # Comments are skipped here and rendered later via render_comments
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
-        if node.tag_opening.value == "<%#"
-          comment_nodes << node
-        else
-          render_code_node(node)
-        end
+        render_code_node(node) unless node.tag_opening.value == "<%#"
         super
       end
 
@@ -332,7 +328,7 @@ module RuboCop
 
       # Render collected comments that can be safely converted to Ruby comments
       def render_comments #: void
-        comment_nodes.each do |node|
+        erb_comment_nodes.each do |node|
           render_erb_comment_node(node) if renderable_comment?(node)
         end
       end

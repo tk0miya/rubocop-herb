@@ -3,7 +3,7 @@
 module RuboCop
   module Herb
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
-    # Comments are collected during traversal and rendered at the end
+    # Comments are retrieved from ParseResult and rendered at the end
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
@@ -41,8 +41,6 @@ module RuboCop
 
       attr_reader block_stack: Array[BlockContext]
 
-      attr_reader comment_nodes: Array[::Herb::AST::Node]
-
       attr_reader tag_counter: Integer
 
       attr_reader html_visualization: bool
@@ -54,6 +52,8 @@ module RuboCop
       def erb_locations: () -> Hash[Integer, ErbLocation]
 
       def erb_max_columns: () -> Hash[Integer, Integer]
+
+      def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
 
       def byteslice: (::Herb::Range) -> String
 
@@ -96,6 +96,7 @@ module RuboCop
       def visit_erb_case_node: ...
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
+      # Comments are skipped here and rendered later via render_comments
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> void
 

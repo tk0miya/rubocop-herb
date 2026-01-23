@@ -44,6 +44,11 @@ module RuboCop
         erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
       end
 
+      # Get all ERB comment nodes
+      def erb_comment_nodes #: Array[::Herb::AST::ERBContentNode]
+        erb_locations.values.select(&:comment?).map(&:node)
+      end
+
       # @rbs range: ::Herb::Range
       def byteslice(range) #: String
         code.byteslice(range.from, range.to - range.from).force_encoding(code.encoding)
