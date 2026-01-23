@@ -1,0 +1,14 @@
+# Generated from lib/rubocop/herb/node_range.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Utility module for computing byte ranges of Herb AST nodes
+    module NodeRange
+      # Compute the byte range of an HTML node
+      # : (::Herb::AST::HTMLTextNode, ParseResult) -> ::Herb::Range
+      # : (html_node) -> ::Herb::Range
+      def self.compute: (::Herb::AST::HTMLTextNode, ParseResult) -> ::Herb::Range
+                      | (html_node) -> ::Herb::Range
+    end
+  end
+end

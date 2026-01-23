@@ -7,6 +7,7 @@ require_relative "herb/converter"
 require_relative "herb/erb_location"
 require_relative "herb/erb_parser"
 require_relative "herb/extractor"
+require_relative "herb/node_range"
 require_relative "herb/parse_result"
 require_relative "herb/patch/team"
 require_relative "herb/plugin"
@@ -34,6 +35,13 @@ module RuboCop
     #                 | ::Herb::AST::ERBUntilNode
     #                 | ::Herb::AST::ERBContentNode
     #                 | ::Herb::AST::ERBEndNode
+    #
+    #   # Union type for all HTML nodes
+    #   type html_node = ::Herb::AST::HTMLElementNode
+    #                  | ::Herb::AST::HTMLTextNode
+    #                  | ::Herb::AST::HTMLOpenTagNode
+    #                  | ::Herb::AST::HTMLCloseTagNode
+    #                  | ::Herb::AST::HTMLCommentNode
 
     class Error < StandardError; end
   end

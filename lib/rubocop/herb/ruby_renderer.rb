@@ -2,6 +2,7 @@
 
 require "forwardable"
 require "herb"
+require_relative "node_range"
 require_relative "ruby_renderer/block_context"
 
 module RuboCop
@@ -12,13 +13,6 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       extend Forwardable
       include Characters
-
-      # @rbs!
-      #   type html_node = ::Herb::AST::HTMLElementNode
-      #                  | ::Herb::AST::HTMLTextNode
-      #                  | ::Herb::AST::HTMLOpenTagNode
-      #                  | ::Herb::AST::HTMLCloseTagNode
-      #                  | ::Herb::AST::HTMLCommentNode
 
       # Result of rendering ERB source to Ruby code
       Result = Data.define(
@@ -250,23 +244,6 @@ module RuboCop
         buffer[pos + 2] = EQUALS
       end
 
-      # Get the byte range of an HTML node
-      # @rbs node: html_node
-      def compute_node_range(node) #: ::Herb::Range # rubocop:disable Metrics/AbcSize
-        case node
-        when ::Herb::AST::HTMLElementNode
-          from = node.open_tag.tag_opening.range.from
-          to = node.close_tag ? node.close_tag.tag_closing.range.to : node.open_tag.tag_closing.range.to
-          ::Herb::Range.new(from, to)
-        when ::Herb::AST::HTMLTextNode
-          location_to_range(node.location)
-        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode
-          ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
-        when ::Herb::AST::HTMLCommentNode
-          ::Herb::Range.new(node.comment_start.range.from, node.comment_end.range.to)
-        end
-      end
-
       # Render HTML open tag as Ruby code
       # When as_brace is true, uses brace notation: "div { "
       # Otherwise, uses semicolon notation: "div; "
@@ -303,7 +280,7 @@ module RuboCop
       # Requires at least 4 bytes from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
-        range = compute_node_range(node)
+        range = NodeRange.compute(node, parse_result)
         text = byteslice(range)
         match = text.match(/\S/)
         return unless match
@@ -354,7 +331,7 @@ module RuboCop
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
-        range = compute_node_range(node)
+        range = NodeRange.compute(node)
         text = byteslice(range)
 
         render_tag_marker(node.comment_start.range.from)
@@ -419,14 +396,14 @@ module RuboCop
       # Record tag info for AST restoration
       # @rbs node: html_node
       def record_tag_info(node) #: void
-        range = compute_node_range(node)
+        range = NodeRange.compute(node, parse_result)
         tags[range.from] = Tag.new(range:, restore_source: true)
       end
 
       # Check if an HTML node contains ERB
       # @rbs node: html_node
       def contains_erb?(node) #: bool
-        parse_result.contains_erb?(compute_node_range(node))
+        parse_result.contains_erb?(NodeRange.compute(node, parse_result))
       end
     end
   end
