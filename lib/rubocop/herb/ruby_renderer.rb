@@ -39,7 +39,6 @@ module RuboCop
       attr_reader :result #: Result
       attr_reader :block_stack #: Array[BlockContext]
       attr_reader :comment_nodes #: Array[::Herb::AST::Node]
-      attr_reader :code_positions #: Hash[Integer, Integer]
       attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
       attr_reader :tags #: Hash[Integer, Tag]
@@ -51,7 +50,6 @@ module RuboCop
         @buffer = bleach_code(source.code)
         @block_stack = []
         @comment_nodes = []
-        @code_positions = {}
         @tag_counter = 0
         @html_visualization = html_visualization
         @tags = {}
@@ -64,11 +62,9 @@ module RuboCop
       def visit_document_node(node) #: void
         super
         render_comments
-        source.erb_node_ranges.each do |from, range|
-          tags[from] = Tag.new(range:, restore_source: false)
-        end
+        all_tags = build_erb_tags.merge(tags)
         code = buffer.pack("C*").force_encoding(source.encoding)
-        @result = Result.new(source:, code:, tags:)
+        @result = Result.new(source:, code:, tags: all_tags)
       end
 
       # Visit ERB block nodes (iterators like each, times, loop)
@@ -284,8 +280,6 @@ module RuboCop
       def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
         return unless node.respond_to?(:content) && node.content
 
-        record_code_position(node)
-
         ruby_code = ruby_code_for(node)
         range = node.content.range
         buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
@@ -295,14 +289,6 @@ module RuboCop
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
 
         render_output_marker(node) if output_node?(node) && !tail_expression?(node)
-      end
-
-      # Record line and column for comment filtering (keep maximum column per line)
-      # @rbs node: ::Herb::AST::Node
-      def record_code_position(node) #: void
-        line = node.location.start.line
-        column = node.location.start.column
-        code_positions[line] = column if !code_positions.key?(line) || code_positions[line] < column
       end
 
       # @rbs node: ::Herb::AST::Node
@@ -405,9 +391,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBContentNode
       def renderable_comment?(node) #: bool
         line = node.location.end.line
-        return true unless code_positions.key?(line)
+        return true unless source.erb_max_columns.key?(line)
 
-        node.location.start.column >= code_positions[line]
+        node.location.start.column >= source.erb_max_columns[line]
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode
@@ -481,6 +467,13 @@ module RuboCop
           else
             SPACE
           end
+        end
+      end
+
+      # Build ERB tags from source erb_locations for AST restoration
+      def build_erb_tags #: Hash[Integer, Tag]
+        source.erb_locations.transform_values do |loc|
+          Tag.new(range: loc.range, restore_source: false)
         end
       end
 

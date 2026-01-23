@@ -1,0 +1,55 @@
+# Generated from lib/rubocop/herb/erb_location_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor that collects ErbLocation objects for all ERB nodes in a document.
+    class ErbLocationCollector < ::Herb::Visitor
+      NODE_TYPE_MAP: untyped
+
+      # Result of collecting ERB locations
+      class Result < Data
+        attr_reader locations(): Hash[Integer, ErbLocation]
+
+        attr_reader erb_max_columns(): Hash[Integer, Integer]
+
+        def self.new: (Hash[Integer, ErbLocation] locations, Hash[Integer, Integer] erb_max_columns) -> instance
+                    | (locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer]) -> instance
+
+        def self.members: () -> [ :locations, :erb_max_columns ]
+
+        def members: () -> [ :locations, :erb_max_columns ]
+      end
+
+      # Collect ERB locations from a parse result
+      # @rbs parse_result: ::Herb::ParseResult
+      def self.collect: (::Herb::ParseResult parse_result) -> Result
+
+      attr_reader locations: Hash[Integer, ErbLocation]
+
+      attr_reader erb_max_columns: Hash[Integer, Integer]
+
+      def initialize: () -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def visit_child_nodes: (::Herb::AST::Node node) -> void
+
+      private
+
+      # @rbs node: ::Herb::AST::Node
+      def erb_node?: (::Herb::AST::Node node) -> bool
+
+      # Record the location of an ERB node
+      # @rbs node: erb_node
+      def record_location: (erb_node node) -> void
+
+      # @rbs type: ErbLocation::erb_node_type
+      # @rbs line: Integer
+      # @rbs column: Integer
+      def update_erb_max_columns: (ErbLocation::erb_node_type type, Integer line, Integer column) -> void
+
+      # Determine the type of an ERB node
+      # @rbs node: erb_node
+      def determine_type: (erb_node node) -> ErbLocation::erb_node_type
+    end
+  end
+end

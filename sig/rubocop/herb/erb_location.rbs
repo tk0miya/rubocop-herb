@@ -1,0 +1,33 @@
+# Generated from lib/rubocop/herb/erb_location.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Represents the location and metadata of an ERB node
+    class ErbLocation
+      type erb_node_type = :content | :output | :comment | :block | :if | :unless | :else | :case | :when | :for | :while | :until | :begin | :rescue | :ensure | :yield | :end
+
+      attr_reader type: erb_node_type
+
+      attr_reader node: ::Herb::AST::Node
+
+      attr_reader range: ::Herb::Range
+
+      attr_reader line: Integer
+
+      attr_reader column: Integer
+
+      # @rbs type: erb_node_type
+      # @rbs node: ::Herb::AST::Node
+      # @rbs range: ::Herb::Range
+      # @rbs line: Integer
+      # @rbs column: Integer
+      def initialize: (type: erb_node_type, node: ::Herb::AST::Node, range: ::Herb::Range, line: Integer, column: Integer) -> void
+
+      # Check if this is an output node (<%= %>)
+      def output?: () -> bool
+
+      # Check if this is a comment node (<%# %>)
+      def comment?: () -> bool
+    end
+  end
+end

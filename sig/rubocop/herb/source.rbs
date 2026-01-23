@@ -13,7 +13,9 @@ module RuboCop
 
       attr_reader parse_result: ::Herb::ParseResult
 
-      attr_reader erb_node_ranges: Hash[Integer, ::Herb::Range]
+      attr_reader erb_locations: Hash[Integer, ErbLocation]
+
+      attr_reader erb_max_columns: Hash[Integer, Integer]
 
       # @rbs path: String
       # @rbs code: String
