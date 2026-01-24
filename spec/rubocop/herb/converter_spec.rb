@@ -299,18 +299,17 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:expected) do
           ["     ",
            "     begin;  ",
-           "        risky_operation;  ",
+           "    _ = risky_operation;  ",
            "     rescue StandardError => e;  ",
-           "        e.message;  ",
+           "    _ = e.message;  ",
            "     ensure;  ",
            "       cleanup;  ",
            "     end;  ",
            "      "].join("\n")
         end
 
-        # risky_operation and e.message don't have _ = because they're
-        # before rescue/ensure (branch boundaries). cleanup is execution tag,
-        # not output tag, so it never gets _ =.
+        # All output tags get _ = prefix when html_visualization is disabled.
+        # cleanup is execution tag, not output tag, so it never gets _ =.
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
@@ -344,8 +343,8 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with multiple ERB nodes on single line" do
         let(:source) { "<% if user %><%= user.name %><% end %>" }
-        # Control flow returns value, so last statement doesn't need _ =
-        let(:expected) { "   if user;      user.name;     end;  " }
+        # All output tags get _ = prefix when html_visualization is disabled
+        let(:expected) { "   if user;  _ = user.name;     end;  " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -358,12 +357,12 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <%= value2 %>",
            "<% end %>"].join("\n")
         end
-        # Control flow returns value, so last statements don't need _ =
+        # All output tags get _ = prefix when html_visualization is disabled
         let(:expected) do
           ["   if condition;  ",
-           "      value1;  ",
+           "  _ = value1;  ",
            "   else;  ",
-           "      value2;  ",
+           "  _ = value2;  ",
            "   end;  "].join("\n")
         end
 
@@ -378,12 +377,12 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <li><%= link_to page, url %></li>",
            "<% end %>"].join("\n")
         end
-        # Control flow returns value, so last statements (inside HTML) don't need _ =
+        # All output tags get _ = prefix when html_visualization is disabled
         let(:expected) do
           ["   if page.current?;  ",
-           "          content_tag :a, page;       ",
+           "      _ = content_tag :a, page;       ",
            "   else;  ",
-           "          link_to page, url;       ",
+           "      _ = link_to page, url;       ",
            "   end;  "].join("\n")
         end
 
@@ -400,13 +399,13 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <% end %>",
            "</div>"].join("\n")
         end
-        # ERB in HTML attributes should be detected as tail expressions
+        # All output tags get _ = prefix when html_visualization is disabled
         let(:expected) do
           ["     ",
            "     if campaign;  ",
-           "                      locale_class;      ",
+           "                  _ = locale_class;      ",
            "     else;  ",
-           "                            locale_class;      ",
+           "                        _ = locale_class;      ",
            "     end;  ",
            "      "].join("\n")
         end
