@@ -30,6 +30,7 @@ module RuboCop
       # HTML parts are replaced with whitespace, causing false positives.
       HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS = [
         "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
+        "Lint/DuplicateBranch", # Branches may differ only in HTML content
         "Lint/EmptyBlock", # Block bodies may contain only HTML (no Ruby code)
         "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
         "Lint/EmptyWhen", # When bodies may contain only HTML (no Ruby code)

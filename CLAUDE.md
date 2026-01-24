@@ -134,7 +134,6 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **ErbParser** (`lib/rubocop/herb/erb_parser.rb`): Responsible for parsing and analyzing ERB documents. Parses using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects tail expressions via `TailExpressionCollector`, and creates a `Source` object. Returns a `ParseResult`
 - **ParseResult** (`lib/rubocop/herb/parse_result.rb`): Data class holding parsed AST, ERB locations, line offsets, and utility methods for byte slicing and range conversion
 - **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Responsible for converting parsed results to Ruby code. Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML visualization
-- **BlockContext** (`lib/rubocop/herb/erb_parser/block_context.rb`): Tracks block context for determining tail expressions in control flow
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
 - **TailExpressionCollector** (`lib/rubocop/herb/erb_parser/tail_expression_collector.rb`): Collects tail expression positions for control flow handling
