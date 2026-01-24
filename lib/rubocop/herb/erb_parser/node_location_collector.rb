@@ -83,11 +83,16 @@ module RuboCop
       # Also collects tag info when html_visualization is enabled.
       # super is called first to traverse children and collect ERB locations,
       # then we check if this element qualifies as a block element.
+      # Block positions are only collected when html_visualization is enabled,
+      # otherwise TailExpressionCollector would incorrectly capture output nodes
+      # inside HTML elements instead of the outer ERB control flow context.
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         super
+        return unless html_visualization
+
         html_block_positions.add(node.open_tag.tag_opening.range.from) if block_html_element?(node)
-        record_html_element_tag(node) if html_visualization
+        record_html_element_tag(node)
       end
 
       # Visit HTML text nodes and collect tag info when html_visualization is enabled
