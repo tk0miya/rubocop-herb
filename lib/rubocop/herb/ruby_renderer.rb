@@ -13,35 +13,27 @@ module RuboCop
       extend Forwardable
       include Characters
 
-      # Result of rendering ERB source to Ruby code
-      Result = Data.define(
-        :parse_result, #: ParseResult
-        :code, #: String
-        :tags #: Hash[Integer, Tag]
-      )
-
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
-      def self.render(parse_result, html_visualization: false) #: Result
+      def self.render(parse_result, html_visualization: false) #: String
         renderer = new(parse_result, html_visualization:)
         parse_result.ast.visit(renderer)
-        renderer.result
+        renderer.code
       end
 
       attr_reader :buffer #: Array[Integer]
       attr_reader :parse_result #: ParseResult
-      attr_reader :result #: Result
+      attr_reader :code #: String
       attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
-      attr_reader :tags #: Hash[Integer, Tag]
 
       # @rbs!
       #   def source_encoding: () -> Encoding
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
-      #   def byteslice: (::Herb::Range) -> String
+      #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
       #   def location_to_range: (::Herb::Location) -> ::Herb::Range
       #   def tail_expression?: (::Herb::AST::Node) -> bool
       def_delegator :parse_result, :encoding, :source_encoding
@@ -55,19 +47,16 @@ module RuboCop
         @buffer = bleach_code(parse_result.code)
         @tag_counter = 0
         @html_visualization = html_visualization
-        @tags = {}
 
         super()
       end
 
-      # Override to render comments and build result after document traversal completes
+      # Override to render comments and build code after document traversal completes
       # @rbs node: ::Herb::AST::DocumentNode
       def visit_document_node(node) #: void
         super
         render_comments
-        all_tags = build_erb_tags.merge(tags)
-        code = buffer.pack("C*").force_encoding(source_encoding)
-        @result = Result.new(parse_result:, code:, tags: all_tags)
+        @code = buffer.pack("C*").force_encoding(source_encoding)
       end
 
       # @rbs!
@@ -106,23 +95,16 @@ module RuboCop
       # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def visit_html_element_node(node) #: void
         return super unless html_visualization
 
         if contains_erb?(node)
           as_brace = parse_result.html_block_positions.include?(node.open_tag.tag_opening.range.from)
           render_open_tag_node(node.open_tag, as_brace:)
-          # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
-          # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
-          record_tag_info(node.open_tag) unless contains_erb?(node.open_tag)
           super
-          if node.close_tag
-            render_close_tag_node(node.close_tag, as_brace:)
-            record_tag_info(node.close_tag)
-          end
+          render_close_tag_node(node.close_tag, as_brace:) if node.close_tag
         else
           render_open_tag_node(node.open_tag, as_brace: false)
-          record_tag_info(node)
         end
       end
 
@@ -223,11 +205,6 @@ module RuboCop
         return unless pos + 4 <= range.to
 
         render_tag_marker(pos)
-
-        # Skip recording tag info for text with multi-byte characters
-        # Multi-byte chars are bleached to multiple spaces, changing character count
-        # If we restore the original text, character positions would mismatch
-        record_tag_info(node) unless text.bytesize != text.length
       end
 
       # Render collected comments that can be safely converted to Ruby comments
@@ -265,14 +242,7 @@ module RuboCop
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
-        range = NodeRange.compute(node)
-        text = byteslice(range)
-
         render_tag_marker(node.comment_start.range.from)
-
-        # Skip recording tag info for comments with multi-byte characters
-        # to preserve character count between ruby_code and hybrid_code
-        record_tag_info(node) unless text.bytesize != text.length
       end
 
       # Render tag marker "_x;" at the given position and increment counter
@@ -315,23 +285,9 @@ module RuboCop
         end
       end
 
-      # Build ERB tags from erb_locations for AST restoration
-      def build_erb_tags #: Hash[Integer, Tag]
-        erb_locations.transform_values do |loc|
-          Tag.new(range: loc.range, restore_source: false)
-        end
-      end
-
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for(node) #: String
         byteslice(node.content.range)
-      end
-
-      # Record tag info for AST restoration
-      # @rbs node: html_node
-      def record_tag_info(node) #: void
-        range = NodeRange.compute(node, parse_result)
-        tags[range.from] = Tag.new(range:, restore_source: true)
       end
 
       # Check if an HTML node contains ERB

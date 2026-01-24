@@ -8,19 +8,16 @@ RSpec.describe RuboCop::Herb::ParseResult do
   describe "#byteslice" do
     subject { parse_result.byteslice(range) }
 
-    let(:range) { instance_double(Herb::Range, from:, to:) }
-
     context "with ASCII characters" do
       let(:code) { "hello\nworld\nfoo" }
-      let(:from) { 0 }
-      let(:to) { 5 }
+      let(:range) { Herb::Range.new(0, 5) }
 
       it "extracts substring by byte range" do
         expect(subject).to eq("hello")
       end
 
       context "when spanning multiple lines" do
-        let(:to) { 11 }
+        let(:range) { Herb::Range.new(0, 11) }
 
         it "extracts substring spanning multiple lines" do
           expect(subject).to eq("hello\nworld")
@@ -28,8 +25,7 @@ RSpec.describe RuboCop::Herb::ParseResult do
       end
 
       context "when extracting from middle" do
-        let(:from) { 1 }
-        let(:to) { 4 }
+        let(:range) { Herb::Range.new(1, 4) }
 
         it "extracts substring from middle" do
           expect(subject).to eq("ell")
@@ -39,8 +35,7 @@ RSpec.describe RuboCop::Herb::ParseResult do
 
     context "with multibyte characters" do
       let(:code) { "こんにちは\nworld" }
-      let(:from) { 0 }
-      let(:to) { 15 } # 5 chars × 3 bytes = 15 bytes
+      let(:range) { Herb::Range.new(0, 15) } # 5 chars × 3 bytes = 15 bytes
 
       it "extracts multibyte substring correctly" do
         expect(subject).to eq("こんにちは")

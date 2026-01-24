@@ -20,10 +20,10 @@ module RuboCop
       # @rbs path: String
       # @rbs code: String
       def convert(path, code) #: Result
-        parse_result = ErbParser.parse(path, code)
-        render_result = RubyRenderer.render(parse_result, html_visualization:)
-        hybrid_code = generate_hybrid_code(render_result.code, parse_result, render_result.tags)
-        Result.new(ruby_code: render_result.code, hybrid_code:, tags: render_result.tags)
+        parse_result = ErbParser.parse(path, code, html_visualization:)
+        ruby_code = RubyRenderer.render(parse_result, html_visualization:)
+        hybrid_code = generate_hybrid_code(ruby_code, parse_result, parse_result.tags)
+        Result.new(ruby_code:, hybrid_code:, tags: parse_result.tags)
       end
 
       private

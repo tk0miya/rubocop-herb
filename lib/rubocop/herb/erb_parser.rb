@@ -13,37 +13,29 @@ module RuboCop
       # Parse ERB code and return a ParseResult
       # @rbs path: String
       # @rbs code: String
-      def self.parse(path, code) #: ParseResult
-        new.parse(path, code)
+      # @rbs html_visualization: bool
+      def self.parse(path, code, html_visualization: false) #: ParseResult
+        new.parse(path, code, html_visualization:)
       end
 
       # @rbs path: String
       # @rbs code: String
-      def parse(path, code) #: ParseResult
+      # @rbs html_visualization: bool
+      def parse(path, code, html_visualization: false) #: ParseResult
+        source = Source.new(path:, code:)
         ast = ::Herb.parse(code)
-        result = NodeLocationCollector.collect(ast)
+        result = NodeLocationCollector.collect(source, ast, html_visualization:)
         tail_expressions = TailExpressionCollector.collect(ast, result.html_block_positions)
-        line_offsets = compute_line_offsets(code)
 
         ParseResult.new(
-          path:,
-          code:,
+          source:,
           ast:,
           erb_locations: result.erb_locations,
           erb_max_columns: result.erb_max_columns,
-          line_offsets:,
           html_block_positions: result.html_block_positions,
-          tail_expressions:
+          tail_expressions:,
+          tags: result.tags
         )
-      end
-
-      private
-
-      # @rbs code: String
-      def compute_line_offsets(code) #: Array[Integer]
-        code.split("\n", -1)[0...-1].inject([0]) do |offsets, line|
-          offsets << (offsets.last + line.bytesize + 1)
-        end
       end
     end
   end

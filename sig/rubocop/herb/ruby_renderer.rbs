@@ -10,38 +10,20 @@ module RuboCop
 
       include Characters
 
-      # Result of rendering ERB source to Ruby code
-      class Result < Data
-        attr_reader parse_result(): ParseResult
-
-        attr_reader code(): String
-
-        attr_reader tags(): Hash[Integer, Tag]
-
-        def self.new: (ParseResult parse_result, String code, Hash[Integer, Tag] tags) -> instance
-                    | (parse_result: ParseResult, code: String, tags: Hash[Integer, Tag]) -> instance
-
-        def self.members: () -> [ :parse_result, :code, :tags ]
-
-        def members: () -> [ :parse_result, :code, :tags ]
-      end
-
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
-      def self.render: (ParseResult parse_result, ?html_visualization: bool) -> Result
+      def self.render: (ParseResult parse_result, ?html_visualization: bool) -> String
 
       attr_reader buffer: Array[Integer]
 
       attr_reader parse_result: ParseResult
 
-      attr_reader result: Result
+      attr_reader code: String
 
       attr_reader tag_counter: Integer
 
       attr_reader html_visualization: bool
-
-      attr_reader tags: Hash[Integer, Tag]
 
       def source_encoding: () -> Encoding
 
@@ -51,7 +33,7 @@ module RuboCop
 
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
 
-      def byteslice: (::Herb::Range) -> String
+      def byteslice: (::Herb::Range | ::Herb::Location) -> String
 
       def location_to_range: (::Herb::Location) -> ::Herb::Range
 
@@ -61,7 +43,7 @@ module RuboCop
       # @rbs html_visualization: bool
       def initialize: (ParseResult parse_result, ?html_visualization: bool) -> void
 
-      # Override to render comments and build result after document traversal completes
+      # Override to render comments and build code after document traversal completes
       # @rbs node: ::Herb::AST::DocumentNode
       def visit_document_node: (::Herb::AST::DocumentNode node) -> void
 
@@ -180,15 +162,8 @@ module RuboCop
       # @rbs code: String
       def bleach_code: (String code) -> Array[Integer]
 
-      # Build ERB tags from erb_locations for AST restoration
-      def build_erb_tags: () -> Hash[Integer, Tag]
-
       # @rbs node: ::Herb::AST::Node
       def ruby_code_for: (::Herb::AST::Node node) -> String
-
-      # Record tag info for AST restoration
-      # @rbs node: html_node
-      def record_tag_info: (html_node node) -> void
 
       # Check if an HTML node contains ERB
       # @rbs node: html_node
