@@ -48,14 +48,25 @@ module RuboCop
       # ERB block nodes and loop nodes: return value is discarded
       %i[block for while until].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
+          record_node(node)
           push_block
           super(node)
           pop_block
         end
       end
 
-      # Control flow nodes: returns value, so last output is tail expression
-      %i[if unless else when begin rescue ensure].each do |type|
+      # Control flow nodes that start a statement: returns value, so last output is tail expression
+      %i[if unless begin case].each do |type|
+        define_method(:"visit_erb_#{type}_node") do |node|
+          record_node(node)
+          push_block
+          super(node)
+          pop_block(returning_value: true)
+        end
+      end
+
+      # Control flow branch nodes: internal to parent statement, not recorded in grandparent
+      %i[else when rescue ensure].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           push_block
           super(node)
@@ -66,14 +77,14 @@ module RuboCop
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
-        record_output_node(node) if output_node?(node)
+        record_node(node)
         super
       end
 
       # Visit ERB yield nodes (<%= yield %> or <%= yield(...) %>)
       # @rbs node: ::Herb::AST::ERBYieldNode
       def visit_erb_yield_node(node) #: void
-        record_output_node(node)
+        record_node(node)
         super
       end
 
@@ -100,18 +111,16 @@ module RuboCop
       # @rbs returning_value: bool
       def pop_block(returning_value: false) #: void
         nodes = block_stack.pop
-        return unless returning_value && nodes&.last
+        return unless returning_value
 
-        tail_expressions.add(nodes.last.tag_opening.range.from)
-      end
+        last_node = nodes&.last
+        return unless last_node
 
-      # @rbs node: ::Herb::AST::ERBContentNode
-      def output_node?(node) #: bool
-        node.tag_opening.value == "<%="
+        tail_expressions.add(last_node.tag_opening.range.from)
       end
 
       # @rbs node: ::Herb::AST::Node
-      def record_output_node(node) #: void
+      def record_node(node) #: void
         block_stack.last&.push(node)
       end
     end

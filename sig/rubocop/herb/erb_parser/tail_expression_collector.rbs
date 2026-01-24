@@ -65,11 +65,8 @@ module RuboCop
       # @rbs returning_value: bool
       def pop_block: (?returning_value: bool) -> void
 
-      # @rbs node: ::Herb::AST::ERBContentNode
-      def output_node?: (::Herb::AST::ERBContentNode node) -> bool
-
       # @rbs node: ::Herb::AST::Node
-      def record_output_node: (::Herb::AST::Node node) -> void
+      def record_node: (::Herb::AST::Node node) -> void
     end
   end
 end
