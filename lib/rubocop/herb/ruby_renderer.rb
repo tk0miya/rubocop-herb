@@ -148,7 +148,17 @@ module RuboCop
         semicolon_pos = range.to - trailing_spaces
         buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
 
-        render_output_marker(node) if output_node?(node) && !tail_expression?(node)
+        render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
+      end
+
+      # Check if output node needs _ = marker
+      # When html_visualization is disabled, always add marker to avoid Lint/Void false positives
+      # When enabled, only add marker if not a tail expression
+      # @rbs node: ::Herb::AST::Node
+      def needs_output_marker?(node) #: bool
+        return true unless html_visualization
+
+        !tail_expression?(node)
       end
 
       # @rbs node: ::Herb::AST::Node

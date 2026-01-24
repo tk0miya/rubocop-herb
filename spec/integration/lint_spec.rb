@@ -114,6 +114,25 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing if block with output tag followed by another output tag" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <% if @error %>
+              <div><%= @error %></div>
+            <% end %>
+            <div><%= render 'index' %></div>
+          </div>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
     context "when analyzing ERB with multi-byte characters in comments" do
       let(:source) do
         <<~ERB
@@ -192,6 +211,25 @@ RSpec.describe "Lint with RuboCop", type: :feature do
               <li><%= item %></li>
             <% end %>
           </ul>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing if block with output tag followed by another output tag" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <% if @error %>
+              <div><%= @error %></div>
+            <% end %>
+            <div><%= render 'index' %></div>
+          </div>
         ERB
       end
 
