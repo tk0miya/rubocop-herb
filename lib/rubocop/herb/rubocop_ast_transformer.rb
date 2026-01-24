@@ -9,16 +9,16 @@ module RuboCop
     class RuboCopASTTransformer < Parser::AST::Processor
       # Transform AST to restore original HTML tag information
       # @rbs ast: Parser::AST::Node
-      # @rbs tags: Hash[Integer, Tag]
-      def self.transform(ast, tags) #: Parser::AST::Node
-        new(tags).process(ast)
+      # @rbs parse_result: ParseResult
+      def self.transform(ast, parse_result) #: Parser::AST::Node
+        new(parse_result).process(ast)
       end
 
-      attr_reader :tags #: Hash[Integer, Tag]
+      attr_reader :parse_result #: ParseResult
 
-      # @rbs tags: Hash[Integer, Tag]
-      def initialize(tags) #: void
-        @tags = tags
+      # @rbs parse_result: ParseResult
+      def initialize(parse_result) #: void
+        @parse_result = parse_result
         super()
       end
 
@@ -36,7 +36,10 @@ module RuboCop
       def restore_html_location(node) #: Parser::AST::Node
         return node unless node.location&.expression
 
-        tag = tags[node.location.expression.begin_pos]
+        # Convert character position (from Parser) to byte position (for tag lookup)
+        char_pos = node.location.expression.begin_pos
+        byte_pos = parse_result.char_to_byte_pos(char_pos)
+        tag = parse_result.tags[byte_pos]
         return node unless tag
 
         location = build_html_location(node, tag)

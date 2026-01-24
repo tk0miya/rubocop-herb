@@ -22,6 +22,8 @@ module RuboCop
 
       def location_to_range: (::Herb::Location location) -> ::Herb::Range
 
+      def char_to_byte_pos: (Integer char_pos) -> Integer
+
       attr_reader source: Source
 
       attr_reader ast: ::Herb::ParseResult

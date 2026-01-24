@@ -9,14 +9,14 @@ module RuboCop
 
         attr_reader hybrid_code(): String
 
-        attr_reader tags(): Hash[Integer, Tag]
+        attr_reader parse_result(): ParseResult
 
-        def self.new: (String ruby_code, String hybrid_code, Hash[Integer, Tag] tags) -> instance
-                    | (ruby_code: String, hybrid_code: String, tags: Hash[Integer, Tag]) -> instance
+        def self.new: (String ruby_code, String hybrid_code, ParseResult parse_result) -> instance
+                    | (ruby_code: String, hybrid_code: String, parse_result: ParseResult) -> instance
 
-        def self.members: () -> [ :ruby_code, :hybrid_code, :tags ]
+        def self.members: () -> [ :ruby_code, :hybrid_code, :parse_result ]
 
-        def members: () -> [ :ruby_code, :hybrid_code, :tags ]
+        def members: () -> [ :ruby_code, :hybrid_code, :parse_result ]
       end
 
       attr_reader html_visualization: bool
@@ -34,8 +34,7 @@ module RuboCop
       # Only restores tags with restore_source: true
       # @rbs ruby_code: String
       # @rbs parse_result: ParseResult
-      # @rbs tags: Hash[Integer, Tag]
-      def generate_hybrid_code: (String ruby_code, ParseResult parse_result, Hash[Integer, Tag] tags) -> String
+      def generate_hybrid_code: (String ruby_code, ParseResult parse_result) -> String
     end
   end
 end

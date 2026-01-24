@@ -7,7 +7,7 @@ module RuboCop
       Result = Data.define(
         :ruby_code, #: String
         :hybrid_code, #: String
-        :tags #: Hash[Integer, Tag]
+        :parse_result #: ParseResult
       )
 
       attr_reader :html_visualization #: bool
@@ -22,8 +22,8 @@ module RuboCop
       def convert(path, code) #: Result
         parse_result = ErbParser.parse(path, code, html_visualization:)
         ruby_code = RubyRenderer.render(parse_result, html_visualization:)
-        hybrid_code = generate_hybrid_code(ruby_code, parse_result, parse_result.tags)
-        Result.new(ruby_code:, hybrid_code:, tags: parse_result.tags)
+        hybrid_code = generate_hybrid_code(ruby_code, parse_result)
+        Result.new(ruby_code:, hybrid_code:, parse_result:)
       end
 
       private
@@ -32,9 +32,8 @@ module RuboCop
       # Only restores tags with restore_source: true
       # @rbs ruby_code: String
       # @rbs parse_result: ParseResult
-      # @rbs tags: Hash[Integer, Tag]
-      def generate_hybrid_code(ruby_code, parse_result, tags) #: String
-        restorable_tags = tags.select { |_, tag| tag.restore_source }
+      def generate_hybrid_code(ruby_code, parse_result) #: String
+        restorable_tags = parse_result.tags.select { |_, tag| tag.restore_source }
         return ruby_code if restorable_tags.empty?
 
         result = ruby_code.bytes.dup
