@@ -13,20 +13,24 @@ module RuboCop
       # Collect tail expression positions from a parse result
       # @rbs ast: ::Herb::ParseResult
       # @rbs html_block_positions: Set[Integer]
-      def self.collect(ast, html_block_positions) #: Set[Integer]
-        collector = new(html_block_positions)
+      # @rbs html_visualization: bool
+      def self.collect(ast, html_block_positions, html_visualization:) #: Set[Integer]
+        collector = new(html_block_positions, html_visualization:)
         ast.visit(collector)
         collector.tail_expressions
       end
 
       attr_reader :tail_expressions #: Set[Integer]
       attr_reader :html_block_positions #: Set[Integer]
+      attr_reader :html_visualization #: bool
       attr_reader :block_stack #: Array[Array[::Herb::AST::Node]]
 
       # @rbs html_block_positions: Set[Integer]
-      def initialize(html_block_positions) #: void
+      # @rbs html_visualization: bool
+      def initialize(html_block_positions, html_visualization:) #: void
         @tail_expressions = Set.new
         @html_block_positions = html_block_positions
+        @html_visualization = html_visualization
         @block_stack = []
 
         super()
@@ -89,16 +93,24 @@ module RuboCop
       end
 
       # Visit HTML element nodes
+      # When html_visualization is enabled, HTML elements generate Ruby code and are recorded.
       # When using brace notation, push a block context so that ERB nodes inside
       # are not treated as tail expressions of outer blocks (HTML blocks don't return values)
+      # For non-brace elements with closing tags, the closing tag is also recorded as it
+      # generates Ruby code (e.g., div0;) that comes after any ERB inside the element.
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
+        return super unless html_visualization
+
+        record_node(node.open_tag)
         if html_block_positions.include?(node.open_tag.tag_opening.range.from)
           push_block
           super
           pop_block
         else
           super
+          # Record close tag for non-brace elements (rendered as tagN;)
+          record_node(node.close_tag) if node.close_tag
         end
       end
 

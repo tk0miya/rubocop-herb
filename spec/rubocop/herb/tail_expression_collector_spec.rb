@@ -4,14 +4,15 @@ require "spec_helper"
 
 RSpec.describe RuboCop::Herb::TailExpressionCollector do
   describe ".collect" do
-    subject { described_class.collect(ast, html_block_positions) }
+    subject { described_class.collect(ast, html_block_positions, html_visualization:) }
 
     let(:ast) { Herb.parse(code) }
     let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
     let(:html_block_positions) { node_locations.html_block_positions }
 
     context "when html_visualization is disabled" do
-      let(:node_locations) { RuboCop::Herb::NodeLocationCollector.collect(source, ast, html_visualization: false) }
+      let(:html_visualization) { false }
+      let(:node_locations) { RuboCop::Herb::NodeLocationCollector.collect(source, ast, html_visualization:) }
 
       context "with output node in if block" do
         let(:code) { "<% if cond %><%= expr %><% end %>" }
@@ -194,7 +195,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
     end
 
     context "when html_visualization is enabled" do
-      let(:node_locations) { RuboCop::Herb::NodeLocationCollector.collect(source, ast, html_visualization: true) }
+      let(:html_visualization) { true }
+      let(:node_locations) { RuboCop::Herb::NodeLocationCollector.collect(source, ast, html_visualization:) }
 
       context "with output node in if block" do
         let(:code) { "<% if cond %><%= expr %><% end %>" }
@@ -224,8 +226,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         # HTML block with enough space for brace notation creates a block context
         let(:code) { "<% if cond %><div class=\"x\"><%= name %></div><% end %>" }
 
-        it "does not collect as tail expression (HTML blocks don't return)" do
-          expect(subject).to be_empty
+        it "collects HTML element as tail expression" do
+          expect(subject).to eq Set[13] # <div class="x">
         end
       end
 
@@ -238,11 +240,12 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
       end
 
       context "with output node wrapped in HTML element without attributes" do
-        # HTML element without enough space for brace notation - no block context
+        # HTML element without brace notation but with closing tag
+        # The closing tag (li0;) comes after the ERB, so ERB is not a tail expression
         let(:code) { "<% if cond %><li><%= x %></li><% end %>" }
 
-        it "collects as tail expression" do
-          expect(subject).to eq Set[17] # <%= x %>
+        it "collects closing tag as tail expression" do
+          expect(subject).to eq Set[25] # </li>
         end
       end
 
@@ -250,8 +253,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         # HTML element with enough space for brace notation creates a block context
         let(:code) { "<% if cond %><li class=\"x\"><%= name %></li><% end %>" }
 
-        it "does not collect as tail expression (HTML block with brace notation)" do
-          expect(subject).to be_empty
+        it "collects HTML element as tail expression" do
+          expect(subject).to eq Set[13] # <li class="x">
         end
       end
 
@@ -264,8 +267,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
            "<% end %>"].join("\n")
         end
 
-        it "does not collect ERB inside HTML blocks as tail expressions" do
-          expect(subject).to be_empty
+        it "collects HTML elements as tail expressions" do
+          expect(subject).to eq Set[16, 57] # <li class="a">, <li class="b">
         end
       end
 
@@ -278,8 +281,9 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
            "<% end %>"].join("\n")
         end
 
-        it "collects ERB as tail expressions (no brace notation)" do
-          expect(subject).to eq Set[20, 51] # Both are tail expressions
+        it "collects closing tags as tail expressions" do
+          # The closing tags (</li>) are the last nodes in each branch
+          expect(subject).to eq Set[28, 59] # </li>, </li>
         end
       end
     end

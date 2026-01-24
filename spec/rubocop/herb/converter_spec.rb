@@ -808,19 +808,19 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <li><%= link_to page, url %></li>",
            "<% end %>"].join("\n")
         end
-        # Control flow returns value, so last statements (inside HTML) don't need _ =
+        # Output tags inside HTML elements need _ = because closing tags follow
         let(:expected) do
           ["   if page.current?;  ",
-           "  li;     content_tag :a, page;  li1; ",
+           "  li; _ = content_tag :a, page;  li1; ",
            "   else;  ",
-           "  li;     link_to page, url;  li2; ",
+           "  li; _ = link_to page, url;  li2; ",
            "   end;  "].join("\n")
         end
         let(:expected_hybrid) do
           ["   if page.current?;  ",
-           "  <li>    content_tag :a, page;  </li>",
+           "  <li>_ = content_tag :a, page;  </li>",
            "   else;  ",
-           "  <li>    link_to page, url;  </li>",
+           "  <li>_ = link_to page, url;  </li>",
            "   end;  "].join("\n")
         end
 
