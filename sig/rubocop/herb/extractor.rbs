@@ -15,10 +15,8 @@ module RuboCop
 
       private
 
-      # @rbs ruby_code: String
-      # @rbs hybrid_code: String
-      # @rbs tags: Hash[Integer, Tag]
-      def build_processed_source: (String ruby_code, String hybrid_code, Hash[Integer, Tag] tags) -> ProcessedSource
+      # @rbs result: Converter::Result
+      def build_processed_source: (Converter::Result result) -> ProcessedSource
     end
   end
 end

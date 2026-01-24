@@ -9,18 +9,19 @@ module RuboCop
     # of HTML tag nodes with their original HTML source
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
       attr_reader :hybrid_code #: String
-      attr_reader :tags #: Hash[Integer, Tag]
+      attr_reader :parse_result #: ParseResult
       attr_reader :ast #: ::AST::Node?
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
       # @rbs hybrid_code: String
-      # @rbs tags: Hash[Integer, Tag]
+      # @rbs parse_result: ParseResult
       # @rbs parser_engine: Symbol
-      def initialize(ruby_code, ruby_version, path = nil, hybrid_code:, tags: {}, parser_engine: :default) #: void
+      def initialize(ruby_code, ruby_version, path = nil, #: void
+                     hybrid_code:, parse_result:, parser_engine: :default)
         @hybrid_code = hybrid_code
-        @tags = tags
+        @parse_result = parse_result
         super(ruby_code, ruby_version, path, parser_engine:)
       end
 
@@ -33,12 +34,12 @@ module RuboCop
       # @rbs prism_result: untyped
       def parse(ruby_code, ruby_version, parser_engine, prism_result)
         super
-        transform_ast if ast && tags.any?
+        transform_ast if ast && parse_result.tags.any?
       end
 
       def transform_ast #: void
         buffer.instance_variable_set(:@source, hybrid_code)
-        @ast = RuboCopASTTransformer.transform(ast, tags)
+        @ast = RuboCopASTTransformer.transform(ast, parse_result)
       end
     end
   end

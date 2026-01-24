@@ -96,6 +96,26 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing ERB with multi-byte characters in comments" do
+      let(:source) do
+        <<~ERB
+          <div class="form">
+            <%# 日本語コメント %>
+            <div class="inner">
+              <input value="<%= foo.bar %>" />
+              <label><%= baz(qux: @value) %></label>
+            </div>
+          </div>
+        ERB
+      end
+
+      it "does not trigger Layout/SpaceBeforeFirstArg" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 
   context "when html_visualization is enabled" do

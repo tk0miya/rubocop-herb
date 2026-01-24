@@ -8,7 +8,7 @@ module RuboCop
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
       attr_reader hybrid_code: String
 
-      attr_reader tags: Hash[Integer, Tag]
+      attr_reader parse_result: ParseResult
 
       attr_reader ast: ::AST::Node?
 
@@ -16,9 +16,9 @@ module RuboCop
       # @rbs ruby_version: Float
       # @rbs path: String?
       # @rbs hybrid_code: String
-      # @rbs tags: Hash[Integer, Tag]
+      # @rbs parse_result: ParseResult
       # @rbs parser_engine: Symbol
-      def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, ?tags: Hash[Integer, Tag], ?parser_engine: Symbol) -> void
+      def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, parse_result: ParseResult, ?parser_engine: Symbol) -> untyped
 
       private
 
