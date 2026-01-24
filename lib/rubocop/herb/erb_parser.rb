@@ -25,7 +25,8 @@ module RuboCop
         source = Source.new(path:, code:)
         ast = ::Herb.parse(code)
         result = NodeLocationCollector.collect(source, ast, html_visualization:)
-        tail_expressions = TailExpressionCollector.collect(ast, result.html_block_positions)
+        tail_expressions = TailExpressionCollector.collect(ast, result.html_block_positions,
+                                                           html_visualization:)
 
         ParseResult.new(
           source:,
