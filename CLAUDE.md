@@ -71,31 +71,27 @@ echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop.yml --only Style/S
 ### Processing Pipeline
 
 ```
-ERB source
-    ↓
-ErbParser (parsing + ERB location collection)
-    ↓
-ParseResult (data class holding parsed AST and metadata)
-    ↓
-RubyRenderer (AST visitor-based rendering)
-    ↓
-Converter (generates ruby_code, hybrid_code, tags)
-    ↓
-Extractor (RuboCop integration)
-    ↓
-ProcessedSource (with RuboCopASTTransformer)
-    ↓
-RuboCop analysis
-    ↓
-Diagnostics (with HTML tag restoration)
+RuboCop ─── calls ───→ Extractor
+                           ↓
+                       Converter
+                           ↓
+                       ErbParser
+                           ↓
+                       RubyRenderer
+                           ↓
+RuboCop ←── returns ─── Extractor
 ```
 
-1. **ErbParser** parses ERB using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects tail expressions via `TailExpressionCollector`, and creates a `Source` object
-2. **ParseResult** holds the parsed AST, ERB locations, and provides utility methods for byte slicing and range conversion
-3. **RubyRenderer** traverses the Herb AST using visitor pattern, extracts Ruby code by "bleaching" (replacing HTML with spaces to maintain line/column positions)
-4. **Converter** orchestrates the process and produces `ruby_code`, `hybrid_code` (for display), and `tags` mapping
-5. **ProcessedSource** wraps RuboCop's ProcessedSource and uses **RuboCopASTTransformer** to restore HTML tag information in the AST
-6. RuboCop analyzes the extracted Ruby code with proper position mapping
+1. **RuboCop** invokes the **Extractor** for `.html.erb` files
+2. **Extractor** calls **Converter** to convert ERB source to Ruby code
+3. **Converter** orchestrates the conversion:
+   - Calls **ErbParser** to parse ERB and produce a `ParseResult` (data class holding AST, ERB locations, and metadata)
+   - Calls **RubyRenderer** to traverse the AST and render Ruby code
+   - Generates `ruby_code`, `hybrid_code` (for display), and `tags` mapping
+4. **Extractor** returns the result to **RuboCop**
+5. **RuboCop** analyzes the Ruby code; **RuboCopASTTransformer** restores HTML tag information in diagnostics
+
+Data containers: `ParseResult` (holds parsed AST and metadata), `ProcessedSource` (RuboCop's source wrapper)
 
 ### Source Code Transformations
 
