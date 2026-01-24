@@ -7,7 +7,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
     subject { described_class.collect(ast, html_block_positions) }
 
     let(:ast) { Herb.parse(code) }
-    let(:node_locations) { RuboCop::Herb::NodeLocationCollector.collect(ast) }
+    let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
+    let(:node_locations) { RuboCop::Herb::NodeLocationCollector.collect(source, ast, html_visualization: false) }
     let(:html_block_positions) { node_locations.html_block_positions }
 
     context "with output node in if block" do

@@ -6,7 +6,8 @@ module RuboCop
   module Herb
     # Visitor that collects both ERB locations and HTML block positions in a single AST traversal.
     # Combines the functionality of ErbLocationCollector and HtmlBlockCollector.
-    class NodeLocationCollector < ::Herb::Visitor
+    # Also collects HTML tags when html_visualization is enabled.
+    class NodeLocationCollector < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       NODE_TYPE_MAP = { #: Hash[Class, ErbLocation::erb_node_type]
         ::Herb::AST::ERBBlockNode => :block,
         ::Herb::AST::ERBIfNode => :if,
@@ -28,31 +29,48 @@ module RuboCop
       Result = Data.define(
         :erb_locations,        #: Hash[Integer, ErbLocation]
         :erb_max_columns,      #: Hash[Integer, Integer]
-        :html_block_positions  #: Set[Integer]
+        :html_block_positions, #: Set[Integer]
+        :tags                  #: Hash[Integer, Tag]
       )
 
-      # Collect ERB locations and HTML block positions from a parse result
-      # @rbs parse_result: ::Herb::ParseResult
-      def self.collect(parse_result) #: Result
-        collector = new
-        parse_result.visit(collector)
+      # Collect ERB locations, HTML block positions, and tags from a parse result
+      # @rbs source: Source
+      # @rbs ast: ::Herb::ParseResult
+      # @rbs html_visualization: bool
+      def self.collect(source, ast, html_visualization: false) #: Result
+        collector = new(source:, html_visualization:)
+        ast.visit(collector)
+
+        erb_tags = collector.erb_locations.transform_values do |loc|
+          Tag.new(range: loc.range, restore_source: false)
+        end
+
         Result.new(
           erb_locations: collector.erb_locations,
           erb_max_columns: collector.erb_max_columns,
-          html_block_positions: collector.html_block_positions
+          html_block_positions: collector.html_block_positions,
+          tags: erb_tags.merge(collector.tags)
         )
       end
 
+      attr_reader :source #: Source
+      attr_reader :html_visualization #: bool
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
       attr_reader :html_block_positions #: Set[Integer]
+      attr_reader :tags #: Hash[Integer, Tag]
 
-      def initialize #: void
+      # @rbs source: Source
+      # @rbs html_visualization: bool
+      def initialize(source:, html_visualization:) #: void
         @erb_locations = {}
         @erb_max_columns = {}
         @html_block_positions = Set.new
+        @tags = {}
+        @source = source
+        @html_visualization = html_visualization
 
-        super
+        super()
       end
 
       # @rbs node: ::Herb::AST::Node
@@ -61,13 +79,34 @@ module RuboCop
         super
       end
 
-      # Visit HTML element nodes and determine if they can be rendered as blocks
+      # Visit HTML element nodes and determine if they can be rendered as blocks.
+      # Also collects tag info when html_visualization is enabled.
       # super is called first to traverse children and collect ERB locations,
       # then we check if this element qualifies as a block element.
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         super
         html_block_positions.add(node.open_tag.tag_opening.range.from) if block_html_element?(node)
+        record_html_element_tag(node) if html_visualization
+      end
+
+      # Visit HTML text nodes and collect tag info when html_visualization is enabled
+      # @rbs node: ::Herb::AST::HTMLTextNode
+      def visit_html_text_node(node) #: void
+        super
+        record_text_node_tag(node) if html_visualization
+      end
+
+      # Visit HTML comment nodes and collect tag info when html_visualization is enabled
+      # super is called first to traverse children and collect ERB locations,
+      # then we check if this comment contains ERB to decide whether to record tag info.
+      # Comments containing ERB are not recorded (they are visited normally to traverse children)
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def visit_html_comment_node(node) #: void
+        super
+        return if contains_erb?(node)
+
+        record_html_comment_tag(node) if html_visualization
       end
 
       private
@@ -138,6 +177,70 @@ module RuboCop
         tag_length = node.tag_closing.range.to - node.tag_opening.range.from
         required_tag_length = tag_name.bytesize + 3 # "tag { " needs tag + " { "
         tag_length >= required_tag_length
+      end
+
+      # Record tag info for HTML elements
+      # For elements with ERB: record open_tag (if it doesn't contain ERB) and close_tag
+      # For elements without ERB: record the whole element
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def record_html_element_tag(node) #: void
+        if contains_erb?(node)
+          # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
+          # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
+          record_tag(node.open_tag) unless contains_erb?(node.open_tag)
+          record_tag(node.close_tag) if node.close_tag
+        else
+          record_tag(node)
+        end
+      end
+
+      # Record tag info for text nodes
+      # Text nodes with multi-byte characters are skipped
+      # @rbs node: ::Herb::AST::HTMLTextNode
+      def record_text_node_tag(node) #: void
+        range = source.location_to_range(node.location)
+        text = source.byteslice(range)
+
+        # Must have non-whitespace content and enough space for marker
+        match = text.match(/\S/)
+        return unless match
+
+        pos = range.from + match.begin(0)
+        return unless pos + 4 <= range.to
+
+        # Skip recording tag info for text with multi-byte characters
+        # Multi-byte chars are bleached to multiple spaces, changing character count
+        # If we restore the original text, character positions would mismatch
+        return if multibyte_chars?(text)
+
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Record tag info for HTML comments (without ERB)
+      # Comments with multi-byte characters are skipped
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def record_html_comment_tag(node) #: void
+        range = NodeRange.compute(node)
+        text = source.byteslice(range)
+
+        # Skip recording tag info for comments with multi-byte characters
+        # to preserve character count between ruby_code and hybrid_code
+        return if multibyte_chars?(text)
+
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Record tag info for AST restoration
+      # @rbs node: html_node
+      def record_tag(node) #: void
+        range = NodeRange.compute(node)
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Check if text contains multi-byte characters
+      # @rbs text: String
+      def multibyte_chars?(text) #: bool
+        text.bytesize != text.length
       end
     end
   end

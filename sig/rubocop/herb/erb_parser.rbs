@@ -9,16 +9,13 @@ module RuboCop
       # Parse ERB code and return a ParseResult
       # @rbs path: String
       # @rbs code: String
-      def self.parse: (String path, String code) -> ParseResult
+      # @rbs html_visualization: bool
+      def self.parse: (String path, String code, ?html_visualization: bool) -> ParseResult
 
       # @rbs path: String
       # @rbs code: String
-      def parse: (String path, String code) -> ParseResult
-
-      private
-
-      # @rbs code: String
-      def compute_line_offsets: (String code) -> Array[Integer]
+      # @rbs html_visualization: bool
+      def parse: (String path, String code, ?html_visualization: bool) -> ParseResult
     end
   end
 end

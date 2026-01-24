@@ -2,33 +2,26 @@
 
 module RuboCop
   module Herb
+    # Encapsulates source code and line offset information.
+    # Provides methods for byteslice and location-to-range conversion
+    # that are shared between ParseResult and NodeLocationCollector.
     class Source
-      include Characters
+      attr_reader path: String
 
       attr_reader code: String
 
-      attr_reader path: String
-
       attr_reader line_offsets: Array[Integer]
-
-      attr_reader parse_result: ::Herb::ParseResult
-
-      attr_reader erb_locations: Hash[Integer, ErbLocation]
-
-      attr_reader erb_max_columns: Hash[Integer, Integer]
 
       # @rbs path: String
       # @rbs code: String
-      def initialize: (String path, String code) -> void
+      def initialize: (path: String, code: String) -> void
 
-      # Check if a range contains any ERB nodes
-      # @rbs range: ::Herb::Range
-      def contains_erb?: (::Herb::Range range) -> bool
-
-      # @rbs range: ::Herb::Range
-      def byteslice: (::Herb::Range range) -> String
-
+      # Get the encoding of the source code
       def encoding: () -> Encoding
+
+      # Get a substring by byte range or location
+      # @rbs range_or_location: ::Herb::Range | ::Herb::Location
+      def byteslice: (::Herb::Range | ::Herb::Location range_or_location) -> String
 
       # Convert a Herb::Location to a Herb::Range
       # @rbs location: ::Herb::Location
@@ -36,15 +29,15 @@ module RuboCop
 
       private
 
-      def parse: () -> void
-
       # Convert line and column to byte offset
       # Handles multi-byte characters correctly by converting character column to byte offset
       # @rbs line: Integer -- 1-indexed line number
       # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
       def byte_offset: (Integer line, Integer column) -> Integer
 
-      def compute_line_offsets: () -> Array[Integer]
+      # Compute line offsets for the source code
+      # @rbs code: String
+      def compute_line_offsets: (String code) -> Array[Integer]
     end
   end
 end

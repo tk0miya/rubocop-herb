@@ -10,11 +10,19 @@ module RuboCop
 
       include Characters
 
+      def path: () -> String
+
+      def code: () -> String
+
+      def line_offsets: () -> Array[Integer]
+
       def encoding: () -> Encoding
 
-      attr_reader code: String
+      def byteslice: (::Herb::Range | ::Herb::Location) -> String
 
-      attr_reader path: String
+      def location_to_range: (::Herb::Location location) -> ::Herb::Range
+
+      attr_reader source: Source
 
       attr_reader ast: ::Herb::ParseResult
 
@@ -22,21 +30,20 @@ module RuboCop
 
       attr_reader erb_max_columns: Hash[Integer, Integer]
 
-      attr_reader line_offsets: Array[Integer]
-
       attr_reader html_block_positions: Set[Integer]
 
       attr_reader tail_expressions: Set[Integer]
 
-      # @rbs path: String
-      # @rbs code: String
+      attr_reader tags: Hash[Integer, Tag]
+
+      # @rbs source: Source
       # @rbs ast: ::Herb::ParseResult
       # @rbs erb_locations: Hash[Integer, ErbLocation]
       # @rbs erb_max_columns: Hash[Integer, Integer]
-      # @rbs line_offsets: Array[Integer]
       # @rbs html_block_positions: Set[Integer]
       # @rbs tail_expressions: Set[Integer]
-      def initialize: (path: String, code: String, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], line_offsets: Array[Integer], ?html_block_positions: Set[Integer], ?tail_expressions: Set[Integer]) -> untyped
+      # @rbs tags: Hash[Integer, Tag]
+      def initialize: (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[Integer], tail_expressions: Set[Integer], tags: Hash[Integer, Tag]) -> untyped
 
       # Check if a range contains any ERB nodes
       # @rbs range: ::Herb::Range
@@ -48,21 +55,6 @@ module RuboCop
       # Check if a node is a tail expression (output node at end of returning block)
       # @rbs node: ::Herb::AST::Node
       def tail_expression?: (::Herb::AST::Node node) -> bool
-
-      # @rbs range: ::Herb::Range
-      def byteslice: (::Herb::Range range) -> String
-
-      # Convert a Herb::Location to a Herb::Range
-      # @rbs location: ::Herb::Location
-      def location_to_range: (::Herb::Location location) -> ::Herb::Range
-
-      private
-
-      # Convert line and column to byte offset
-      # Handles multi-byte characters correctly by converting character column to byte offset
-      # @rbs line: Integer -- 1-indexed line number
-      # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
-      def byte_offset: (Integer line, Integer column) -> Integer
     end
   end
 end

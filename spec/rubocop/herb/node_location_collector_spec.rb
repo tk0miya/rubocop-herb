@@ -4,8 +4,9 @@ require "spec_helper"
 
 RSpec.describe RuboCop::Herb::NodeLocationCollector do
   describe ".collect" do
-    let(:result) { described_class.collect(parse_result) }
-    let(:parse_result) { Herb.parse(code) }
+    let(:result) { described_class.collect(source, ast, html_visualization: false) }
+    let(:ast) { Herb.parse(code) }
+    let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
 
     describe "erb_locations" do
       subject(:erb_locations) { result.erb_locations }
@@ -139,7 +140,7 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         let(:code) { "<div class=\"x\"><%= hello %></div>" }
 
         it "collects the open tag position" do
-          expect(html_block_positions).to include(0)
+          expect(html_block_positions).to eq Set[0]
         end
       end
 
@@ -164,7 +165,7 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         let(:code) { "<div class=\"<%= cls %>\">text</div>" }
 
         it "collects the position" do
-          expect(html_block_positions).to include(0)
+          expect(html_block_positions).to eq Set[0]
         end
       end
 
@@ -181,10 +182,8 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         let(:code) { "<div class=\"a\"><span class=\"b\"><%= hello %></span></div>" }
 
         it "collects positions for elements that contain ERB" do
-          # <div class="a"> at position 0
-          expect(html_block_positions).to include(0)
-          # <span class="b"> at position 15
-          expect(html_block_positions).to include(15)
+          # <div class="a"> at position 0, <span class="b"> at position 15
+          expect(html_block_positions).to eq Set[0, 15]
         end
       end
 
@@ -192,9 +191,120 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         let(:code) { "<div class=\"a\"><%= a %></div><span class=\"b\"><%= b %></span>" }
 
         it "collects positions for all qualifying elements" do
-          expect(html_block_positions.size).to eq(2)
-          expect(html_block_positions).to include(0)  # <div class="a">
-          expect(html_block_positions).to include(29) # <span class="b">
+          # <div class="a"> at 0, <span class="b"> at 29
+          expect(html_block_positions).to eq Set[0, 29]
+        end
+      end
+    end
+
+    describe "tags" do
+      subject(:tags) { result.tags }
+
+      context "when html_visualization is disabled" do
+        let(:result) { described_class.collect(source, ast, html_visualization: false) }
+
+        context "with ERB tag only" do
+          let(:code) { "<%= hello %>" }
+
+          it "collects ERB tag with restore_source: false" do
+            expect(tags.size).to eq(1)
+            expect(tags[0].restore_source).to be false
+          end
+        end
+
+        context "with HTML element containing ERB" do
+          let(:code) { "<div><%= hello %></div>" }
+
+          it "collects only ERB tag" do
+            expect(tags.size).to eq(1)
+            expect(tags.keys).to eq([5]) # ERB position
+          end
+        end
+      end
+
+      context "when html_visualization is enabled" do
+        let(:result) { described_class.collect(source, ast, html_visualization: true) }
+
+        context "with HTML element containing ERB" do
+          let(:code) { "<div class=\"x\"><%= hello %></div>" }
+
+          it "collects ERB tag and HTML tags" do
+            # open_tag at 0, ERB at 15, close_tag at 27
+            expect(tags.keys.sort).to eq [0, 15, 27]
+          end
+
+          it "sets restore_source correctly" do
+            expect(tags[15].restore_source).to be false # ERB
+            expect(tags[0].restore_source).to be true   # open_tag
+            expect(tags[27].restore_source).to be true  # close_tag
+          end
+        end
+
+        context "with HTML element without ERB" do
+          let(:code) { "<div class=\"x\">text</div>" }
+
+          it "collects the whole element and text node" do
+            # element at 0, text "text" at 15
+            expect(tags.keys.sort).to eq [0, 15]
+            expect(tags[0].restore_source).to be true
+            expect(tags[15].restore_source).to be true
+          end
+        end
+
+        context "with HTML element containing ERB in attributes" do
+          let(:code) { "<div class=\"<%= cls %>\">text</div>" }
+
+          it "does not collect open_tag (contains ERB)" do
+            # open_tag contains ERB, so it should not be recorded
+            # ERB at 12, text at 24, close_tag at 28
+            expect(tags.keys.sort).to eq [12, 24, 28]
+          end
+        end
+
+        context "with text node" do
+          let(:code) { "<div>hello</div>" }
+
+          it "collects text node tag" do
+            # element at 0, text "hello" at 5
+            expect(tags.keys.sort).to eq [0, 5]
+            expect(tags[5].restore_source).to be true
+          end
+        end
+
+        context "with text node containing multi-byte characters" do
+          let(:code) { "<div>こんにちは</div>" }
+
+          it "does not collect text node tag" do
+            # Only element at 0, multi-byte text is not recorded
+            expect(tags.keys).to eq [0]
+          end
+        end
+
+        context "with HTML comment" do
+          let(:code) { "<!-- comment -->" }
+
+          it "collects HTML comment tag" do
+            expect(tags.keys).to eq [0]
+            expect(tags[0].restore_source).to be true
+          end
+        end
+
+        context "with HTML comment containing ERB" do
+          let(:code) { "<!-- <%= hello %> -->" }
+
+          it "does not collect HTML comment tag" do
+            # Comment contains ERB, so comment itself is not recorded
+            # Only ERB at position 5 is recorded
+            expect(tags.keys).to eq [5]
+          end
+        end
+
+        context "with HTML comment containing multi-byte characters" do
+          let(:code) { "<!-- こんにちは -->" }
+
+          it "does not collect HTML comment tag" do
+            expect(tags).to be_empty
+          end
         end
       end
     end
