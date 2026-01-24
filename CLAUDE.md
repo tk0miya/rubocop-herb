@@ -90,7 +90,7 @@ RuboCop analysis
 Diagnostics (with HTML tag restoration)
 ```
 
-1. **ErbParser** parses ERB using `Herb.parse()`, collects ERB locations via `ErbLocationCollector`, and computes line offsets
+1. **ErbParser** parses ERB using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects tail expressions via `TailExpressionCollector`, and creates a `Source` object
 2. **ParseResult** holds the parsed AST, ERB locations, and provides utility methods for byte slicing and range conversion
 3. **RubyRenderer** traverses the Herb AST using visitor pattern, extracts Ruby code by "bleaching" (replacing HTML with spaces to maintain line/column positions)
 4. **Converter** orchestrates the process and produces `ruby_code`, `hybrid_code` (for display), and `tags` mapping
@@ -135,12 +135,15 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 
 #### Core Processing
 
-- **ErbParser** (`lib/rubocop/herb/erb_parser.rb`): Parses ERB using `Herb.parse()`, collects ERB locations via `ErbLocationCollector`, and computes line offsets. Returns a `ParseResult`
+- **ErbParser** (`lib/rubocop/herb/erb_parser.rb`): Parses ERB using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects tail expressions via `TailExpressionCollector`, and creates a `Source` object. Returns a `ParseResult`
 - **ParseResult** (`lib/rubocop/herb/parse_result.rb`): Data class holding parsed AST, ERB locations, line offsets, and utility methods for byte slicing and range conversion
 - **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML visualization
-- **RubyRenderer::BlockContext** (`lib/rubocop/herb/ruby_renderer/block_context.rb`): Tracks block context for determining tail expressions in control flow
+- **BlockContext** (`lib/rubocop/herb/erb_parser/block_context.rb`): Tracks block context for determining tail expressions in control flow
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
-- **ErbLocationCollector** (`lib/rubocop/herb/erb_location_collector.rb`): Visitor that collects ERB node locations for determining if HTML elements contain ERB
+- **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
+- **TailExpressionCollector** (`lib/rubocop/herb/erb_parser/tail_expression_collector.rb`): Collects tail expression positions for control flow handling
+- **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information for byte/position calculations
+- **NodeRange** (`lib/rubocop/herb/node_range.rb`): Data class storing node range information (start/end positions)
 
 #### RuboCop Integration
 
