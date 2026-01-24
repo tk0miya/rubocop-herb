@@ -135,64 +135,79 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
     describe "html_block_positions" do
       subject(:html_block_positions) { result.html_block_positions }
 
-      context "with HTML element containing ERB and close tag" do
-        # <div class="x"> is 15 bytes, "div { " is 6 bytes - fits
+      context "when html_visualization is disabled" do
+        # html_block_positions is always empty when html_visualization is disabled
+        # This allows TailExpressionCollector to correctly identify tail expressions
+        # in ERB control flow, regardless of surrounding HTML elements
         let(:code) { "<div class=\"x\"><%= hello %></div>" }
 
-        it "collects the open tag position" do
-          expect(html_block_positions).to eq Set[0]
-        end
-      end
-
-      context "with short tag that cannot fit block notation" do
-        # <div> is 5 bytes, needs 6 bytes for "div { " - doesn't fit
-        let(:code) { "<div><%= hello %></div>" }
-
-        it "does not collect the position" do
+        it "does not collect positions" do
           expect(html_block_positions).to be_empty
         end
       end
 
-      context "with void element (no close tag)" do
-        let(:code) { "<br><%= hello %>" }
+      context "when html_visualization is enabled" do
+        let(:result) { described_class.collect(source, ast, html_visualization: true) }
 
-        it "does not collect the position" do
-          expect(html_block_positions).to be_empty
+        context "with HTML element containing ERB and close tag" do
+          # <div class="x"> is 15 bytes, "div { " is 6 bytes - fits
+          let(:code) { "<div class=\"x\"><%= hello %></div>" }
+
+          it "collects the open tag position" do
+            expect(html_block_positions).to eq Set[0]
+          end
         end
-      end
 
-      context "with ERB in open tag attributes" do
-        let(:code) { "<div class=\"<%= cls %>\">text</div>" }
+        context "with short tag that cannot fit block notation" do
+          # <div> is 5 bytes, needs 6 bytes for "div { " - doesn't fit
+          let(:code) { "<div><%= hello %></div>" }
 
-        it "collects the position" do
-          expect(html_block_positions).to eq Set[0]
+          it "does not collect the position" do
+            expect(html_block_positions).to be_empty
+          end
         end
-      end
 
-      context "with HTML element without ERB" do
-        let(:code) { "<div class=\"foo\">text</div>" }
+        context "with void element (no close tag)" do
+          let(:code) { "<br><%= hello %>" }
 
-        it "does not collect the position" do
-          expect(html_block_positions).to be_empty
+          it "does not collect the position" do
+            expect(html_block_positions).to be_empty
+          end
         end
-      end
 
-      context "with nested HTML elements containing ERB" do
-        # Both <div class="a"> and <span class="b"> have enough space
-        let(:code) { "<div class=\"a\"><span class=\"b\"><%= hello %></span></div>" }
+        context "with ERB in open tag attributes" do
+          let(:code) { "<div class=\"<%= cls %>\">text</div>" }
 
-        it "collects positions for elements that contain ERB" do
-          # <div class="a"> at position 0, <span class="b"> at position 15
-          expect(html_block_positions).to eq Set[0, 15]
+          it "collects the position" do
+            expect(html_block_positions).to eq Set[0]
+          end
         end
-      end
 
-      context "with multiple HTML elements" do
-        let(:code) { "<div class=\"a\"><%= a %></div><span class=\"b\"><%= b %></span>" }
+        context "with HTML element without ERB" do
+          let(:code) { "<div class=\"foo\">text</div>" }
 
-        it "collects positions for all qualifying elements" do
-          # <div class="a"> at 0, <span class="b"> at 29
-          expect(html_block_positions).to eq Set[0, 29]
+          it "does not collect the position" do
+            expect(html_block_positions).to be_empty
+          end
+        end
+
+        context "with nested HTML elements containing ERB" do
+          # Both <div class="a"> and <span class="b"> have enough space
+          let(:code) { "<div class=\"a\"><span class=\"b\"><%= hello %></span></div>" }
+
+          it "collects positions for elements that contain ERB" do
+            # <div class="a"> at position 0, <span class="b"> at position 15
+            expect(html_block_positions).to eq Set[0, 15]
+          end
+        end
+
+        context "with multiple HTML elements" do
+          let(:code) { "<div class=\"a\"><%= a %></div><span class=\"b\"><%= b %></span>" }
+
+          it "collects positions for all qualifying elements" do
+            # <div class="a"> at 0, <span class="b"> at 29
+            expect(html_block_positions).to eq Set[0, 29]
+          end
         end
       end
     end
