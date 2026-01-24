@@ -48,8 +48,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
       context "with output node in begin-rescue-ensure block" do
         let(:code) { "<% begin %><%= a %><% rescue %><%= b %><% ensure %><% cleanup %><% end %>" }
 
-        it "collects tail expressions from begin and rescue" do
-          expect(subject).to eq Set[11, 31] # <%= a %>, <%= b %>
+        it "collects tail expressions from begin, rescue, and ensure" do
+          expect(subject).to eq Set[11, 31, 51] # <%= a %>, <%= b %>, <% cleanup %>
         end
       end
 
@@ -101,6 +101,17 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         end
       end
 
+      context "with output node followed by if block" do
+        let(:code) { "<% if outer %><%= hello %><% if inner %><%= world %><% end %><% end %>" }
+
+        it "does not collect output node before nested if as tail expression" do
+          # <%= hello %> is NOT a tail expression because <% if inner %>...<% end %> follows it
+          # <%= world %> IS a tail expression of the inner if
+          # The inner if block IS the tail expression of the outer if
+          expect(subject).to eq Set[26, 40] # <% if inner %>, <%= world %>
+        end
+      end
+
       context "with yield node in if block" do
         let(:code) { "<% if block_given? %><%= yield %><% end %>" }
 
@@ -112,8 +123,8 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
       context "with execution tag (not output)" do
         let(:code) { "<% if cond %><% action %><% end %>" }
 
-        it "does not collect execution tags" do
-          expect(subject).to be_empty
+        it "collects execution tags as tail expressions" do
+          expect(subject).to eq Set[13] # <% action %>
         end
       end
 

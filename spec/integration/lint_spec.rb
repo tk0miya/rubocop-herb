@@ -97,6 +97,23 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing if block with output tag followed by non-output tag" do
+      let(:source) do
+        <<~ERB
+          <% if foo? %>
+            <%= 'close' if bar? %>
+            <% :foo %>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
     context "when analyzing ERB with multi-byte characters in comments" do
       let(:source) do
         <<~ERB
