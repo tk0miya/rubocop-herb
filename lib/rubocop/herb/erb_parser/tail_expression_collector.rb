@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "herb"
-require_relative "block_context"
 
 module RuboCop
   module Herb
@@ -22,7 +21,7 @@ module RuboCop
 
       attr_reader :tail_expressions #: Set[Integer]
       attr_reader :html_block_positions #: Set[Integer]
-      attr_reader :block_stack #: Array[BlockContext]
+      attr_reader :block_stack #: Array[Array[::Herb::AST::Node]]
 
       # @rbs html_block_positions: Set[Integer]
       def initialize(html_block_positions) #: void
@@ -46,44 +45,35 @@ module RuboCop
       #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
       #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
 
-      # ERB block nodes use node.body for statements
-      %i[block].each do |type|
+      # ERB block nodes and loop nodes: return value is discarded
+      %i[block for while until].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
-          push_block(node.body)
+          push_block
           super(node)
           pop_block
         end
       end
 
-      # Loop nodes: return value is discarded
-      %i[for while until].each do |type|
-        define_method(:"visit_erb_#{type}_node") do |node|
-          push_block(node.statements)
-          super(node)
-          pop_block
-        end
-      end
-
-      # Control flow nodes: returns value
+      # Control flow nodes: returns value, so last output is tail expression
       %i[if unless else when begin rescue ensure].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
-          push_block(node.statements, returning_value: true)
+          push_block
           super(node)
-          pop_block
+          pop_block(returning_value: true)
         end
       end
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
-        record_tail_expression(node) if output_node?(node) && tail_expression?(node)
+        record_output_node(node) if output_node?(node)
         super
       end
 
       # Visit ERB yield nodes (<%= yield %> or <%= yield(...) %>)
       # @rbs node: ::Herb::AST::ERBYieldNode
       def visit_erb_yield_node(node) #: void
-        record_tail_expression(node) if tail_expression?(node)
+        record_output_node(node)
         super
       end
 
@@ -92,9 +82,8 @@ module RuboCop
       # are not treated as tail expressions of outer blocks (HTML blocks don't return values)
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
-        as_brace = html_block_positions.include?(node.open_tag.tag_opening.range.from)
-        if as_brace
-          push_block(node.body || [])
+        if html_block_positions.include?(node.open_tag.tag_opening.range.from)
+          push_block
           super
           pop_block
         else
@@ -104,18 +93,16 @@ module RuboCop
 
       private
 
-      # @rbs statements: Array[::Herb::AST::Node]
+      def push_block #: void
+        block_stack.push([])
+      end
+
       # @rbs returning_value: bool
-      def push_block(statements, returning_value: false) #: void
-        block_stack.push(BlockContext.new(statements, returning_value:))
-      end
+      def pop_block(returning_value: false) #: void
+        nodes = block_stack.pop
+        return unless returning_value && nodes&.last
 
-      def pop_block #: void
-        block_stack.pop
-      end
-
-      def current_block #: BlockContext?
-        block_stack.last
+        tail_expressions.add(nodes.last.tag_opening.range.from)
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode
@@ -123,20 +110,9 @@ module RuboCop
         node.tag_opening.value == "<%="
       end
 
-      # Check if this node is a tail expression
       # @rbs node: ::Herb::AST::Node
-      def tail_expression?(node) #: bool
-        return false unless current_block
-        return false unless current_block.returning_value
-        return false unless current_block.last_statement?(node)
-
-        true
-      end
-
-      # Record a tail expression position
-      # @rbs node: ::Herb::AST::Node
-      def record_tail_expression(node) #: void
-        tail_expressions.add(node.tag_opening.range.from)
+      def record_output_node(node) #: void
+        block_stack.last&.push(node)
       end
     end
   end

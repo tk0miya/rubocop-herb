@@ -390,6 +390,30 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with if-else containing output tags in HTML attributes" do
+        let(:source) do
+          ["<div>",
+           "  <% if campaign %>",
+           '    <input class="<%= locale_class %>" />',
+           "  <% else %>",
+           '    <input class="trial <%= locale_class %>" />',
+           "  <% end %>",
+           "</div>"].join("\n")
+        end
+        # ERB in HTML attributes should be detected as tail expressions
+        let(:expected) do
+          ["     ",
+           "     if campaign;  ",
+           "                      locale_class;      ",
+           "     else;  ",
+           "                            locale_class;      ",
+           "     end;  ",
+           "      "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       describe "with multiple content tags on same line" do
         let(:source) { "<p><%= first %> and <%= second %></p>" }
         let(:expected) { "   _ = first;       _ = second;      " }

@@ -17,7 +17,7 @@ module RuboCop
 
       attr_reader html_block_positions: Set[Integer]
 
-      attr_reader block_stack: Array[BlockContext]
+      attr_reader block_stack: Array[Array[::Herb::AST::Node]]
 
       # @rbs html_block_positions: Set[Integer]
       def initialize: (Set[Integer] html_block_positions) -> void
@@ -60,24 +60,16 @@ module RuboCop
 
       private
 
-      # @rbs statements: Array[::Herb::AST::Node]
+      def push_block: () -> void
+
       # @rbs returning_value: bool
-      def push_block: (Array[::Herb::AST::Node] statements, ?returning_value: bool) -> void
-
-      def pop_block: () -> void
-
-      def current_block: () -> BlockContext?
+      def pop_block: (?returning_value: bool) -> void
 
       # @rbs node: ::Herb::AST::ERBContentNode
       def output_node?: (::Herb::AST::ERBContentNode node) -> bool
 
-      # Check if this node is a tail expression
       # @rbs node: ::Herb::AST::Node
-      def tail_expression?: (::Herb::AST::Node node) -> bool
-
-      # Record a tail expression position
-      # @rbs node: ::Herb::AST::Node
-      def record_tail_expression: (::Herb::AST::Node node) -> void
+      def record_output_node: (::Herb::AST::Node node) -> void
     end
   end
 end
