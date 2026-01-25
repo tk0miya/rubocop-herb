@@ -4,7 +4,10 @@ require "spec_helper"
 
 RSpec.describe RuboCop::Herb::TailExpressionCollector do
   describe ".collect" do
-    subject { described_class.collect(ast, html_block_positions, html_visualization:) }
+    subject(:collected_nodes) { described_class.collect(ast, html_block_positions, html_visualization:) }
+
+    # Helper to extract byte positions from collected nodes for easier comparison
+    let(:collected_positions) { collected_nodes.to_set { |n| n.tag_opening.range.from } }
 
     let(:ast) { Herb.parse(code) }
     let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
@@ -18,7 +21,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><%= expr %><% end %>" }
 
         it "collects the output node as tail expression" do
-          expect(subject).to eq Set[13] # <%= expr %>
+          expect(collected_positions).to eq Set[13] # <%= expr %>
         end
       end
 
@@ -26,7 +29,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% unless cond %><%= expr %><% end %>" }
 
         it "collects the output node as tail expression" do
-          expect(subject).to eq Set[17] # <%= expr %>
+          expect(collected_positions).to eq Set[17] # <%= expr %>
         end
       end
 
@@ -34,7 +37,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><%= a %><% else %><%= b %><% end %>" }
 
         it "collects both branch tail expressions" do
-          expect(subject).to eq Set[13, 31] # <%= a %>, <%= b %>
+          expect(collected_positions).to eq Set[13, 31] # <%= a %>, <%= b %>
         end
       end
 
@@ -42,7 +45,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% case x %><% when 1 %><%= a %><% when 2 %><%= b %><% end %>" }
 
         it "collects tail expressions from each when branch" do
-          expect(subject).to eq Set[24, 44] # <%= a %>, <%= b %>
+          expect(collected_positions).to eq Set[24, 44] # <%= a %>, <%= b %>
         end
       end
 
@@ -50,7 +53,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% begin %><%= a %><% rescue %><%= b %><% ensure %><% cleanup %><% end %>" }
 
         it "collects tail expressions from begin, rescue, and ensure" do
-          expect(subject).to eq Set[11, 31, 51] # <%= a %>, <%= b %>, <% cleanup %>
+          expect(collected_positions).to eq Set[11, 31, 51] # <%= a %>, <%= b %>, <% cleanup %>
         end
       end
 
@@ -58,7 +61,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><%= first %><%= second %><% end %>" }
 
         it "only collects the last one as tail expression" do
-          expect(subject).to eq Set[25] # <%= second %> only
+          expect(collected_positions).to eq Set[25] # <%= second %> only
         end
       end
 
@@ -66,7 +69,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
 
         it "does not collect as tail expression (blocks don't return)" do
-          expect(subject).to be_empty
+          expect(collected_nodes).to be_empty
         end
       end
 
@@ -74,7 +77,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% for item in items %><%= item %><% end %>" }
 
         it "does not collect as tail expression" do
-          expect(subject).to be_empty
+          expect(collected_nodes).to be_empty
         end
       end
 
@@ -82,7 +85,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% while cond %><%= x %><% end %>" }
 
         it "does not collect as tail expression" do
-          expect(subject).to be_empty
+          expect(collected_nodes).to be_empty
         end
       end
 
@@ -90,7 +93,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% until done %><%= x %><% end %>" }
 
         it "does not collect as tail expression" do
-          expect(subject).to be_empty
+          expect(collected_nodes).to be_empty
         end
       end
 
@@ -98,7 +101,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% items.each do |item| %><% if item.valid? %><%= item %><% end %><% end %>" }
 
         it "collects tail expression from inner if" do
-          expect(subject).to eq Set[46] # <%= item %>
+          expect(collected_positions).to eq Set[46] # <%= item %>
         end
       end
 
@@ -109,7 +112,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
           # <%= hello %> is NOT a tail expression because <% if inner %>...<% end %> follows it
           # <%= world %> IS a tail expression of the inner if
           # The inner if block IS the tail expression of the outer if
-          expect(subject).to eq Set[26, 40] # <% if inner %>, <%= world %>
+          expect(collected_positions).to eq Set[26, 40] # <% if inner %>, <%= world %>
         end
       end
 
@@ -117,7 +120,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if block_given? %><%= yield %><% end %>" }
 
         it "collects yield as tail expression" do
-          expect(subject).to eq Set[21] # <%= yield %>
+          expect(collected_positions).to eq Set[21] # <%= yield %>
         end
       end
 
@@ -125,7 +128,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><% action %><% end %>" }
 
         it "collects execution tags as tail expressions" do
-          expect(subject).to eq Set[13] # <% action %>
+          expect(collected_positions).to eq Set[13] # <% action %>
         end
       end
 
@@ -135,7 +138,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><div class=\"x\"><%= name %></div><% end %>" }
 
         it "collects as tail expression" do
-          expect(subject).to eq Set[28] # <%= name %>
+          expect(collected_positions).to eq Set[28] # <%= name %>
         end
       end
 
@@ -143,7 +146,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><div class=\"x\"><%= a %></div><%= b %><% end %>" }
 
         it "collects only the last ERB as tail expression" do
-          expect(subject).to eq Set[42] # <%= b %> only
+          expect(collected_positions).to eq Set[42] # <%= b %> only
         end
       end
 
@@ -152,7 +155,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><li><%= x %></li><% end %>" }
 
         it "collects as tail expression" do
-          expect(subject).to eq Set[17] # <%= x %>
+          expect(collected_positions).to eq Set[17] # <%= x %>
         end
       end
 
@@ -161,7 +164,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><li class=\"x\"><%= name %></li><% end %>" }
 
         it "collects as tail expression" do
-          expect(subject).to eq Set[27] # <%= name %>
+          expect(collected_positions).to eq Set[27] # <%= name %>
         end
       end
 
@@ -175,7 +178,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         end
 
         it "collects ERB as tail expressions" do
-          expect(subject).to eq Set[30, 71] # Both <%= x %> and <%= y %>
+          expect(collected_positions).to eq Set[30, 71] # Both <%= x %> and <%= y %>
         end
       end
 
@@ -189,7 +192,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         end
 
         it "collects ERB as tail expressions" do
-          expect(subject).to eq Set[20, 51] # Both are tail expressions
+          expect(collected_positions).to eq Set[20, 51] # Both are tail expressions
         end
       end
     end
@@ -202,7 +205,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><%= expr %><% end %>" }
 
         it "collects the output node as tail expression" do
-          expect(subject).to eq Set[13] # <%= expr %>
+          expect(collected_positions).to eq Set[13] # <%= expr %>
         end
       end
 
@@ -210,7 +213,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><%= a %><% else %><%= b %><% end %>" }
 
         it "collects both branch tail expressions" do
-          expect(subject).to eq Set[13, 31] # <%= a %>, <%= b %>
+          expect(collected_positions).to eq Set[13, 31] # <%= a %>, <%= b %>
         end
       end
 
@@ -218,7 +221,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
 
         it "does not collect as tail expression (blocks don't return)" do
-          expect(subject).to be_empty
+          expect(collected_nodes).to be_empty
         end
       end
 
@@ -227,7 +230,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><div class=\"x\"><%= name %></div><% end %>" }
 
         it "collects HTML element as tail expression" do
-          expect(subject).to eq Set[13] # <div class="x">
+          expect(collected_positions).to eq Set[13] # <div class="x">
         end
       end
 
@@ -235,7 +238,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><div class=\"x\"><%= a %></div><%= b %><% end %>" }
 
         it "collects only the ERB after HTML block as tail expression" do
-          expect(subject).to eq Set[42] # <%= b %> only
+          expect(collected_positions).to eq Set[42] # <%= b %> only
         end
       end
 
@@ -245,7 +248,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><li><%= x %></li><% end %>" }
 
         it "collects closing tag as tail expression" do
-          expect(subject).to eq Set[25] # </li>
+          expect(collected_positions).to eq Set[25] # </li>
         end
       end
 
@@ -254,7 +257,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         let(:code) { "<% if cond %><li class=\"x\"><%= name %></li><% end %>" }
 
         it "collects HTML element as tail expression" do
-          expect(subject).to eq Set[13] # <li class="x">
+          expect(collected_positions).to eq Set[13] # <li class="x">
         end
       end
 
@@ -268,7 +271,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
         end
 
         it "collects HTML elements as tail expressions" do
-          expect(subject).to eq Set[16, 57] # <li class="a">, <li class="b">
+          expect(collected_positions).to eq Set[16, 57] # <li class="a">, <li class="b">
         end
       end
 
@@ -283,7 +286,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
 
         it "collects closing tags as tail expressions" do
           # The closing tags (</li>) are the last nodes in each branch
-          expect(subject).to eq Set[28, 59] # </li>, </li>
+          expect(collected_positions).to eq Set[28, 59] # </li>, </li>
         end
       end
     end
