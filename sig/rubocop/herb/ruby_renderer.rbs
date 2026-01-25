@@ -8,24 +8,22 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
 
-      include Characters
-
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
       def self.render: (ParseResult parse_result, ?html_visualization: bool) -> String
 
-      attr_reader buffer: Array[Integer]
+      attr_reader ruby_code: String
 
       attr_reader parse_result: ParseResult
-
-      attr_reader code: String
 
       attr_reader tag_counter: Integer
 
       attr_reader html_visualization: bool
 
       def source_encoding: () -> Encoding
+
+      def source: () -> Source
 
       def erb_locations: () -> Hash[Integer, ErbLocation]
 
@@ -43,7 +41,7 @@ module RuboCop
       # @rbs html_visualization: bool
       def initialize: (ParseResult parse_result, ?html_visualization: bool) -> void
 
-      # Override to render comments and build code after document traversal completes
+      # Override to render comments after document traversal completes
       # @rbs node: ::Herb::AST::DocumentNode
       def visit_document_node: (::Herb::AST::DocumentNode node) -> void
 
@@ -131,7 +129,7 @@ module RuboCop
       # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
-      # Requires at least 4 bytes from the first non-whitespace position to end
+      # Requires at least 4 characters from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
@@ -155,7 +153,7 @@ module RuboCop
 
       # Render tag marker "_x;" at the given position and increment counter
       # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
-      # @rbs pos: Integer
+      # @rbs pos: Integer -- character position in ruby_code
       def render_tag_marker: (Integer pos) -> void
 
       # Increment tag counter and return new value (cycles through 0-9)
@@ -166,10 +164,14 @@ module RuboCop
       def format_multiline_comment: (String code, Integer hash_column) -> String
 
       # @rbs code: String
-      def bleach_code: (String code) -> Array[Integer]
+      def bleach_code: (String code) -> String
+
+      # Convert byte position to character position
+      # @rbs byte_pos: Integer
+      def byte_to_char_pos: (Integer byte_pos) -> Integer
 
       # @rbs node: ::Herb::AST::Node
-      def ruby_code_for: (::Herb::AST::Node node) -> String
+      def extract_ruby_code: (::Herb::AST::Node node) -> String
 
       # Check if an HTML node contains ERB
       # @rbs node: html_node

@@ -10,7 +10,6 @@ module RuboCop
     # needed for rendering. Logic is minimal - mostly data access and simple queries.
     class ParseResult
       extend Forwardable
-      include Characters
 
       # @rbs!
       #   def path: () -> String
