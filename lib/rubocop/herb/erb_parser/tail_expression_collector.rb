@@ -10,17 +10,17 @@ module RuboCop
     # These nodes don't need the `_ =` marker because their value is returned
     # as part of the control flow.
     class TailExpressionCollector < ::Herb::Visitor
-      # Collect tail expression positions from a parse result
+      # Collect tail expression nodes from a parse result
       # @rbs ast: ::Herb::ParseResult
       # @rbs html_block_positions: Set[Integer]
       # @rbs html_visualization: bool
-      def self.collect(ast, html_block_positions, html_visualization:) #: Set[Integer]
+      def self.collect(ast, html_block_positions, html_visualization:) #: Set[::Herb::AST::Node]
         collector = new(html_block_positions, html_visualization:)
         ast.visit(collector)
         collector.tail_expressions
       end
 
-      attr_reader :tail_expressions #: Set[Integer]
+      attr_reader :tail_expressions #: Set[::Herb::AST::Node]
       attr_reader :html_block_positions #: Set[Integer]
       attr_reader :html_visualization #: bool
       attr_reader :block_stack #: Array[Array[::Herb::AST::Node]]
@@ -128,7 +128,7 @@ module RuboCop
         last_node = nodes&.last
         return unless last_node
 
-        tail_expressions.add(last_node.tag_opening.range.from)
+        tail_expressions.add(last_node)
       end
 
       # @rbs node: ::Herb::AST::Node
