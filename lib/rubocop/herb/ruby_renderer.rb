@@ -303,7 +303,7 @@ module RuboCop
       # Check if an HTML node contains ERB
       # @rbs node: html_node
       def contains_erb?(node) #: bool
-        parse_result.contains_erb?(NodeRange.compute(node, parse_result))
+        parse_result.contains_erb?(NodeRange.compute_char_range(node, parse_result.source))
       end
     end
   end

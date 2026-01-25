@@ -41,9 +41,8 @@ module RuboCop
         collector = new(source:, html_visualization:)
         ast.visit(collector)
 
-        erb_tags = collector.erb_locations.to_h do |_, loc|
-          range = NodeRange.byte_range_to_char_range(loc.range, source)
-          [range.from, Tag.new(range:, restore_source: false)]
+        erb_tags = collector.erb_locations.transform_values do |loc|
+          Tag.new(range: loc.range, restore_source: false)
         end
 
         Result.new(
@@ -126,7 +125,7 @@ module RuboCop
       # @rbs node: erb_node
       def record_erb_location(node) #: void
         type = determine_type(node)
-        range = ::Herb::Range.new(node.tag_opening.range.from, node.tag_closing.range.to)
+        range = NodeRange.compute_char_range(node, source)
         line = node.location.start.line
         column = node.location.start.column
 
@@ -171,7 +170,7 @@ module RuboCop
       # Check if an HTML element contains ERB nodes
       # @rbs node: ::Herb::AST::HTMLElementNode
       def contains_erb?(node) #: bool
-        range = NodeRange.compute(node)
+        range = NodeRange.compute_char_range(node, source)
         erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
       end
 

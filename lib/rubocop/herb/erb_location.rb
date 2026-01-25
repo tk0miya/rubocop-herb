@@ -14,13 +14,13 @@ module RuboCop
 
       attr_reader :type   #: erb_node_type
       attr_reader :node   #: ::Herb::AST::Node
-      attr_reader :range  #: ::Herb::Range
+      attr_reader :range  #: CharRange
       attr_reader :line   #: Integer -- 1-indexed line number
       attr_reader :column #: Integer -- 0-indexed column number
 
       # @rbs type: erb_node_type
       # @rbs node: ::Herb::AST::Node
-      # @rbs range: ::Herb::Range
+      # @rbs range: CharRange
       # @rbs line: Integer
       # @rbs column: Integer
       def initialize(type:, node:, range:, line:, column:) #: void

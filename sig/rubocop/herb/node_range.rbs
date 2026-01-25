@@ -4,16 +4,16 @@ module RuboCop
   module Herb
     # Utility module for computing byte ranges of Herb AST nodes
     module NodeRange
-      # Compute the byte range of an HTML node
-      # : (::Herb::AST::HTMLTextNode, ParseResult) -> ::Herb::Range
-      # : (html_node) -> ::Herb::Range
-      def self.compute: (::Herb::AST::HTMLTextNode, ParseResult) -> ::Herb::Range
-                      | (html_node) -> ::Herb::Range
+      # Compute the byte range of an AST node
+      # : (::Herb::AST::HTMLTextNode, Source) -> ::Herb::Range
+      # : (::Herb::AST::Node) -> ::Herb::Range
+      def self.compute: (::Herb::AST::HTMLTextNode, Source) -> ::Herb::Range
+                      | (::Herb::AST::Node) -> ::Herb::Range
 
-      # Compute the character range of an HTML node
-      # @rbs node: html_node
+      # Compute the character range of an AST node
+      # @rbs node: ::Herb::AST::Node
       # @rbs source: Source
-      def self.compute_char_range: (html_node node, Source source) -> CharRange
+      def self.compute_char_range: (::Herb::AST::Node node, Source source) -> CharRange
 
       # Convert a Herb::Range (byte-based) to a CharRange (character-based)
       # @rbs range: ::Herb::Range

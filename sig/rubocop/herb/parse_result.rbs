@@ -50,8 +50,8 @@ module RuboCop
       def initialize: (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[Integer], tail_expressions: Set[Integer], tags: Hash[Integer, Tag]) -> untyped
 
       # Check if a range contains any ERB nodes
-      # @rbs range: ::Herb::Range
-      def contains_erb?: (::Herb::Range range) -> bool
+      # @rbs range: CharRange
+      def contains_erb?: (CharRange range) -> bool
 
       # Get all ERB comment nodes
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
