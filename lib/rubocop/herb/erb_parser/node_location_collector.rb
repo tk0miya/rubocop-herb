@@ -29,7 +29,7 @@ module RuboCop
       Result = Data.define(
         :erb_locations,        #: Hash[Integer, ErbLocation]
         :erb_max_columns,      #: Hash[Integer, Integer]
-        :html_block_positions, #: Set[Integer]
+        :html_block_positions, #: Set[::Herb::AST::HTMLElementNode]
         :tags                  #: Hash[Integer, Tag]
       )
 
@@ -57,7 +57,7 @@ module RuboCop
       attr_reader :html_visualization #: bool
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
-      attr_reader :html_block_positions #: Set[Integer]
+      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
       attr_reader :tags #: Hash[Integer, Tag]
 
       # @rbs source: Source
@@ -91,7 +91,7 @@ module RuboCop
         super
         return unless html_visualization
 
-        html_block_positions.add(node.open_tag.tag_opening.range.from) if block_html_element?(node)
+        html_block_positions.add(node) if block_html_element?(node)
         record_html_element_tag(node)
       end
 

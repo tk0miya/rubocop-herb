@@ -28,7 +28,7 @@ module RuboCop
       attr_reader :ast #: ::Herb::ParseResult
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
-      attr_reader :html_block_positions #: Set[Integer]
+      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
       attr_reader :tail_expressions #: Set[::Herb::AST::Node]
       attr_reader :tags #: Hash[Integer, Tag]
 
@@ -36,7 +36,7 @@ module RuboCop
       # @rbs ast: ::Herb::ParseResult
       # @rbs erb_locations: Hash[Integer, ErbLocation]
       # @rbs erb_max_columns: Hash[Integer, Integer]
-      # @rbs html_block_positions: Set[Integer]
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
       # @rbs tail_expressions: Set[::Herb::AST::Node]
       # @rbs tags: Hash[Integer, Tag]
       def initialize(source:, ast:, erb_locations:, erb_max_columns:, #: void

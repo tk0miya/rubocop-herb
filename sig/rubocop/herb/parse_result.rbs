@@ -34,7 +34,7 @@ module RuboCop
 
       attr_reader erb_max_columns: Hash[Integer, Integer]
 
-      attr_reader html_block_positions: Set[Integer]
+      attr_reader html_block_positions: Set[::Herb::AST::HTMLElementNode]
 
       attr_reader tail_expressions: Set[::Herb::AST::Node]
 
@@ -44,10 +44,10 @@ module RuboCop
       # @rbs ast: ::Herb::ParseResult
       # @rbs erb_locations: Hash[Integer, ErbLocation]
       # @rbs erb_max_columns: Hash[Integer, Integer]
-      # @rbs html_block_positions: Set[Integer]
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
       # @rbs tail_expressions: Set[::Herb::AST::Node]
       # @rbs tags: Hash[Integer, Tag]
-      def initialize: (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[Integer], tail_expressions: Set[::Herb::AST::Node], tags: Hash[Integer, Tag]) -> untyped
+      def initialize: (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[::Herb::AST::HTMLElementNode], tail_expressions: Set[::Herb::AST::Node], tags: Hash[Integer, Tag]) -> untyped
 
       # Check if a range contains any ERB nodes
       # @rbs range: CharRange

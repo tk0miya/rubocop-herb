@@ -14,12 +14,12 @@ module RuboCop
 
         attr_reader erb_max_columns(): Hash[Integer, Integer]
 
-        attr_reader html_block_positions(): Set[Integer]
+        attr_reader html_block_positions(): Set[::Herb::AST::HTMLElementNode]
 
         attr_reader tags(): Hash[Integer, Tag]
 
-        def self.new: (Hash[Integer, ErbLocation] erb_locations, Hash[Integer, Integer] erb_max_columns, Set[Integer] html_block_positions, Hash[Integer, Tag] tags) -> instance
-                    | (erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[Integer], tags: Hash[Integer, Tag]) -> instance
+        def self.new: (Hash[Integer, ErbLocation] erb_locations, Hash[Integer, Integer] erb_max_columns, Set[::Herb::AST::HTMLElementNode] html_block_positions, Hash[Integer, Tag] tags) -> instance
+                    | (erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[::Herb::AST::HTMLElementNode], tags: Hash[Integer, Tag]) -> instance
 
         def self.members: () -> [ :erb_locations, :erb_max_columns, :html_block_positions, :tags ]
 
@@ -40,7 +40,7 @@ module RuboCop
 
       attr_reader erb_max_columns: Hash[Integer, Integer]
 
-      attr_reader html_block_positions: Set[Integer]
+      attr_reader html_block_positions: Set[::Herb::AST::HTMLElementNode]
 
       attr_reader tags: Hash[Integer, Tag]
 
