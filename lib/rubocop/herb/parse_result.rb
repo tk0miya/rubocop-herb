@@ -51,7 +51,7 @@ module RuboCop
       end
 
       # Check if a range contains any ERB nodes
-      # @rbs range: ::Herb::Range
+      # @rbs range: CharRange
       def contains_erb?(range) #: bool
         erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
       end
