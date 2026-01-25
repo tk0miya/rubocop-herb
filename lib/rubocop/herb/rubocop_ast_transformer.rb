@@ -36,10 +36,7 @@ module RuboCop
       def restore_html_location(node) #: Parser::AST::Node
         return node unless node.location&.expression
 
-        # Convert character position (from Parser) to byte position (for tag lookup)
-        char_pos = node.location.expression.begin_pos
-        byte_pos = parse_result.char_to_byte_pos(char_pos)
-        tag = parse_result.tags[byte_pos]
+        tag = parse_result.tags[node.location.expression.begin_pos]
         return node unless tag
 
         location = build_html_location(node, tag)

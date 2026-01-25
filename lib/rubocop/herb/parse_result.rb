@@ -18,9 +18,10 @@ module RuboCop
       #   def line_offsets: () -> Array[Integer]
       #   def encoding: () -> Encoding
       #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
+      #   def slice: (CharRange range) -> String
       #   def location_to_range: (::Herb::Location location) -> ::Herb::Range
       #   def char_to_byte_pos: (Integer char_pos) -> Integer
-      def_delegators :source, :path, :code, :line_offsets, :encoding, :byteslice, :location_to_range,
+      def_delegators :source, :path, :code, :line_offsets, :encoding, :byteslice, :slice, :location_to_range,
                      :char_to_byte_pos
 
       attr_reader :source #: Source
