@@ -99,7 +99,7 @@ module RuboCop
         return super unless html_visualization
 
         if contains_erb?(node)
-          as_brace = parse_result.html_block_positions.include?(node.open_tag.tag_opening.range.from)
+          as_brace = parse_result.html_block_positions.include?(node)
           render_open_tag_node(node.open_tag, as_brace:)
           super
           render_close_tag_node(node.close_tag, as_brace:) if node.close_tag

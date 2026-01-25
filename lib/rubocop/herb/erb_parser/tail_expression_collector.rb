@@ -12,7 +12,7 @@ module RuboCop
     class TailExpressionCollector < ::Herb::Visitor
       # Collect tail expression nodes from a parse result
       # @rbs ast: ::Herb::ParseResult
-      # @rbs html_block_positions: Set[Integer]
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
       # @rbs html_visualization: bool
       def self.collect(ast, html_block_positions, html_visualization:) #: Set[::Herb::AST::Node]
         collector = new(html_block_positions, html_visualization:)
@@ -21,11 +21,11 @@ module RuboCop
       end
 
       attr_reader :tail_expressions #: Set[::Herb::AST::Node]
-      attr_reader :html_block_positions #: Set[Integer]
+      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
       attr_reader :html_visualization #: bool
       attr_reader :block_stack #: Array[Array[::Herb::AST::Node]]
 
-      # @rbs html_block_positions: Set[Integer]
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
       # @rbs html_visualization: bool
       def initialize(html_block_positions, html_visualization:) #: void
         @tail_expressions = Set.new
@@ -103,7 +103,7 @@ module RuboCop
         return super unless html_visualization
 
         record_node(node.open_tag)
-        if html_block_positions.include?(node.open_tag.tag_opening.range.from)
+        if html_block_positions.include?(node)
           push_block
           super
           pop_block
