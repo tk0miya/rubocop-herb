@@ -37,10 +37,9 @@ module RuboCop
         return ruby_code if restorable_tags.empty?
 
         result = ruby_code.chars
-        restorable_tags.each do |byte_position, tag|
-          original_html = parse_result.byteslice(tag.range)
-          char_position = parse_result.byte_to_char_pos(byte_position)
-          result[char_position, original_html.length] = original_html.chars
+        restorable_tags.each_value do |tag|
+          original_html = parse_result.slice(tag.char_from, tag.char_to)
+          result[tag.char_from, original_html.length] = original_html.chars
         end
         result.join
       end
