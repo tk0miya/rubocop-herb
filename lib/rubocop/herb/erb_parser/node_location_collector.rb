@@ -28,7 +28,7 @@ module RuboCop
       # Result of collecting node locations
       Result = Data.define(
         :erb_locations,        #: Hash[Integer, ErbLocation]
-        :erb_max_columns,      #: Hash[Integer, Integer]
+        :erb_max_columns,      #: Hash[Integer, Integer] -- line => max column (character-based, from Herb)
         :html_block_positions, #: Set[::Herb::AST::HTMLElementNode]
         :tags                  #: Hash[Integer, Tag]
       )
