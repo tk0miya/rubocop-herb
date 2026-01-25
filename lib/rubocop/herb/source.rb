@@ -39,6 +39,13 @@ module RuboCop
         code[0...char_pos].bytesize
       end
 
+      # Convert byte position to character position
+      # This is needed to convert Herb's byte positions to character positions for RuboCop
+      # @rbs byte_pos: Integer
+      def byte_to_char_pos(byte_pos) #: Integer
+        code.byteslice(0, byte_pos).length
+      end
+
       # Convert a Herb::Location to a Herb::Range
       # @rbs location: ::Herb::Location
       def location_to_range(location) #: ::Herb::Range

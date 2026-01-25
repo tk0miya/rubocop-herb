@@ -21,7 +21,7 @@ module RuboCop
       #   def location_to_range: (::Herb::Location location) -> ::Herb::Range
       #   def char_to_byte_pos: (Integer char_pos) -> Integer
       def_delegators :source, :path, :code, :line_offsets, :encoding, :byteslice, :location_to_range,
-                     :char_to_byte_pos
+                     :char_to_byte_pos, :byte_to_char_pos
 
       attr_reader :source #: Source
       attr_reader :ast #: ::Herb::ParseResult

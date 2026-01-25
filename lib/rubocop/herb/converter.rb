@@ -36,12 +36,13 @@ module RuboCop
         restorable_tags = parse_result.tags.select { |_, tag| tag.restore_source }
         return ruby_code if restorable_tags.empty?
 
-        result = ruby_code.bytes.dup
-        restorable_tags.each do |position, tag|
-          original_html_bytes = parse_result.byteslice(tag.range).bytes
-          result[position, original_html_bytes.length] = original_html_bytes
+        result = ruby_code.chars
+        restorable_tags.each do |byte_position, tag|
+          original_html = parse_result.byteslice(tag.range)
+          char_position = parse_result.byte_to_char_pos(byte_position)
+          result[char_position, original_html.length] = original_html.chars
         end
-        result.pack("C*").force_encoding(ruby_code.encoding)
+        result.join
       end
     end
   end

@@ -2,7 +2,7 @@
 
 module RuboCop
   module Herb
-    # Byte constants for character manipulation
+    # Byte and string constants for character manipulation
     module Characters
       LF: Integer
 
@@ -25,6 +25,25 @@ module RuboCop
       LEFT_BRACE: Integer
 
       RIGHT_BRACE: Integer
+
+      # String constants for character-based buffer operations
+      CHAR_LF: String
+
+      CHAR_CR: String
+
+      CHAR_SPACE: String
+
+      CHAR_HASH: String
+
+      CHAR_SEMICOLON: String
+
+      CHAR_EQUALS: String
+
+      CHAR_UNDERSCORE: String
+
+      CHAR_LEFT_BRACE: String
+
+      CHAR_RIGHT_BRACE: String
     end
   end
 end
