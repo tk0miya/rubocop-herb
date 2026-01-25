@@ -20,6 +20,8 @@ module RuboCop
 
       def byteslice: (::Herb::Range | ::Herb::Location) -> String
 
+      def slice: (CharRange range) -> String
+
       def location_to_range: (::Herb::Location location) -> ::Herb::Range
 
       def char_to_byte_pos: (Integer char_pos) -> Integer

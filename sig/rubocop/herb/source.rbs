@@ -23,10 +23,19 @@ module RuboCop
       # @rbs range_or_location: ::Herb::Range | ::Herb::Location
       def byteslice: (::Herb::Range | ::Herb::Location range_or_location) -> String
 
+      # Get a substring by character range
+      # @rbs range: CharRange
+      def slice: (CharRange range) -> String
+
       # Convert character position to byte position
       # This is needed because Parser gem uses character positions while Herb uses byte positions
       # @rbs char_pos: Integer
       def char_to_byte_pos: (Integer char_pos) -> Integer
+
+      # Convert byte position to character position
+      # This is needed for converting Herb's byte-based positions to character-based positions
+      # @rbs byte_pos: Integer
+      def byte_to_char_pos: (Integer byte_pos) -> Integer
 
       # Convert a Herb::Location to a Herb::Range
       # @rbs location: ::Herb::Location

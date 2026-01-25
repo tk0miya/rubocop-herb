@@ -1,0 +1,20 @@
+# Generated from lib/rubocop/herb/char_range.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Data class for character-based range (not byte-based)
+    # Used for mapping positions in text where character indexing is needed
+    class CharRange < Data
+      attr_reader from(): Integer
+
+      attr_reader to(): Integer
+
+      def self.new: (Integer from, Integer to) -> instance
+                  | (from: Integer, to: Integer) -> instance
+
+      def self.members: () -> [ :from, :to ]
+
+      def members: () -> [ :from, :to ]
+    end
+  end
+end

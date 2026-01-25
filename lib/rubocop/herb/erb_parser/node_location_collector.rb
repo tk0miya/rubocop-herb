@@ -41,8 +41,9 @@ module RuboCop
         collector = new(source:, html_visualization:)
         ast.visit(collector)
 
-        erb_tags = collector.erb_locations.transform_values do |loc|
-          Tag.new(range: loc.range, restore_source: false)
+        erb_tags = collector.erb_locations.to_h do |_, loc|
+          range = NodeRange.byte_range_to_char_range(loc.range, source)
+          [range.from, Tag.new(range:, restore_source: false)]
         end
 
         Result.new(
@@ -203,8 +204,8 @@ module RuboCop
       # Text nodes with multi-byte characters are skipped
       # @rbs node: ::Herb::AST::HTMLTextNode
       def record_text_node_tag(node) #: void
-        range = source.location_to_range(node.location)
-        text = source.byteslice(range)
+        range = NodeRange.location_to_char_range(node.location, source)
+        text = source.slice(range)
 
         # Must have non-whitespace content and enough space for marker
         match = text.match(/\S/)
@@ -225,8 +226,8 @@ module RuboCop
       # Comments with multi-byte characters are skipped
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def record_html_comment_tag(node) #: void
-        range = NodeRange.compute(node)
-        text = source.byteslice(range)
+        range = NodeRange.compute_char_range(node, source)
+        text = source.slice(range)
 
         # Skip recording tag info for comments with multi-byte characters
         # to preserve character count between ruby_code and hybrid_code
@@ -238,7 +239,7 @@ module RuboCop
       # Record tag info for AST restoration
       # @rbs node: html_node
       def record_tag(node) #: void
-        range = NodeRange.compute(node)
+        range = NodeRange.compute_char_range(node, source)
         tags[range.from] = Tag.new(range:, restore_source: true)
       end
 

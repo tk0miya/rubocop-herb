@@ -23,6 +23,29 @@ module RuboCop
           ::Herb::Range.new(node.comment_start.range.from, node.comment_end.range.to)
         end
       end
+
+      # Compute the character range of an HTML node
+      # @rbs node: html_node
+      # @rbs source: Source
+      def self.compute_char_range(node, source) #: CharRange
+        byte_range = compute(node, source)
+        byte_range_to_char_range(byte_range, source)
+      end
+
+      # Convert a Herb::Range (byte-based) to a CharRange (character-based)
+      # @rbs range: ::Herb::Range
+      # @rbs source: Source
+      def self.byte_range_to_char_range(range, source) #: CharRange
+        CharRange.new(source.byte_to_char_pos(range.from), source.byte_to_char_pos(range.to))
+      end
+
+      # Convert a Herb::Location to a CharRange (character-based)
+      # @rbs location: ::Herb::Location
+      # @rbs source: Source
+      def self.location_to_char_range(location, source) #: CharRange
+        byte_range = source.location_to_range(location)
+        byte_range_to_char_range(byte_range, source)
+      end
     end
   end
 end
