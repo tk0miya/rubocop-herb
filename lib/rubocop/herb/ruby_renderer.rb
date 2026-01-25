@@ -22,7 +22,7 @@ module RuboCop
         renderer.code
       end
 
-      attr_reader :buffer #: Array[Integer]
+      attr_reader :buffer #: Array[String]
       attr_reader :parse_result #: ParseResult
       attr_reader :code #: String
       attr_reader :tag_counter #: Integer
@@ -36,9 +36,10 @@ module RuboCop
       #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
       #   def location_to_range: (::Herb::Location) -> ::Herb::Range
       #   def tail_expression?: (::Herb::AST::Node) -> bool
+      #   def byte_to_char_pos: (Integer byte_pos) -> Integer
       def_delegator :parse_result, :encoding, :source_encoding
       def_delegators :parse_result, :erb_locations, :erb_max_columns, :erb_comment_nodes,
-                     :byteslice, :location_to_range, :tail_expression?
+                     :byteslice, :location_to_range, :tail_expression?, :byte_to_char_pos
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
@@ -56,7 +57,7 @@ module RuboCop
       def visit_document_node(node) #: void
         super
         render_comments
-        @code = buffer.pack("C*").force_encoding(source_encoding)
+        @code = buffer.join
       end
 
       # @rbs!
@@ -142,11 +143,12 @@ module RuboCop
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
-        buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
+        char_from = byte_to_char_pos(range.from)
+        buffer[char_from, ruby_code.length] = ruby_code.chars
 
-        trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
-        semicolon_pos = range.to - trailing_spaces
-        buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+        trailing_spaces = ruby_code.length - ruby_code.rstrip.length
+        semicolon_char_pos = byte_to_char_pos(range.to) - trailing_spaces
+        buffer[semicolon_char_pos] = CHAR_SEMICOLON if semicolon_char_pos < buffer.size
 
         render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
       end
@@ -163,10 +165,10 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def render_output_marker(node) #: void
-        pos = node.tag_opening.range.from
-        buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = SPACE
-        buffer[pos + 2] = EQUALS
+        char_pos = byte_to_char_pos(node.tag_opening.range.from)
+        buffer[char_pos] = CHAR_UNDERSCORE
+        buffer[char_pos + 1] = CHAR_SPACE
+        buffer[char_pos + 2] = CHAR_EQUALS
       end
 
       # Render HTML open tag as Ruby code
@@ -178,8 +180,8 @@ module RuboCop
         tag_name = node.tag_name.value
         ruby_code = as_brace ? "#{tag_name} { " : "#{tag_name}; "
 
-        start_pos = node.tag_opening.range.from
-        buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+        char_pos = byte_to_char_pos(node.tag_opening.range.from)
+        buffer[char_pos, ruby_code.length] = ruby_code.chars
       end
 
       # Render HTML close tag as Ruby code
@@ -188,22 +190,22 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       # @rbs as_brace: bool
       def render_close_tag_node(node, as_brace:) #: void
-        start_pos = node.tag_opening.range.from
+        char_pos = byte_to_char_pos(node.tag_opening.range.from)
 
         if as_brace
-          buffer[start_pos] = RIGHT_BRACE
-          buffer[start_pos + 1] = SEMICOLON
+          buffer[char_pos] = CHAR_RIGHT_BRACE
+          buffer[char_pos + 1] = CHAR_SEMICOLON
         else
           tag_name = node.tag_name.value
           ruby_code = "#{tag_name}#{next_tag_counter}; "
-          buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+          buffer[char_pos, ruby_code.length] = ruby_code.chars
         end
       end
 
       # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
-      # Requires at least 4 bytes from the first non-whitespace position to end
+      # Requires at least 4 characters from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = NodeRange.compute(node, parse_result)
@@ -211,10 +213,12 @@ module RuboCop
         match = text.match(/\S/)
         return unless match
 
-        pos = range.from + match.begin(0)
-        return unless pos + 4 <= range.to
+        char_from = byte_to_char_pos(range.from)
+        char_to = byte_to_char_pos(range.to)
+        char_pos = char_from + match.begin(0)
+        return unless char_pos + 4 <= char_to
 
-        render_tag_marker(pos)
+        render_tag_marker(char_pos)
       end
 
       # Render collected comments that can be safely converted to Ruby comments
@@ -237,14 +241,15 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBContentNode
       def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
-        hash_pos = node.tag_opening.range.to - 1
-        buffer[hash_pos] = HASH
+        hash_char_pos = byte_to_char_pos(node.tag_opening.range.to - 1)
+        buffer[hash_char_pos] = CHAR_HASH
 
         ruby_code = ruby_code_for(node)
         range = node.content.range
         hash_column = node.tag_opening.location.start.column + 2
         formatted_code = format_multiline_comment(ruby_code, hash_column)
-        buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+        char_from = byte_to_char_pos(range.from)
+        buffer[char_from, formatted_code.length] = formatted_code.chars
       end
 
       # Render HTML comment as "_N;" to indicate content presence (like text nodes)
@@ -252,16 +257,17 @@ module RuboCop
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
-        render_tag_marker(node.comment_start.range.from)
+        char_pos = byte_to_char_pos(node.comment_start.range.from)
+        render_tag_marker(char_pos)
       end
 
-      # Render tag marker "_x;" at the given position and increment counter
+      # Render tag marker "_x;" at the given character position and increment counter
       # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
-      # @rbs pos: Integer
-      def render_tag_marker(pos) #: void
-        buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = LOWERCASE_A + next_tag_counter
-        buffer[pos + 2] = SEMICOLON
+      # @rbs char_pos: Integer -- character position in buffer
+      def render_tag_marker(char_pos) #: void
+        buffer[char_pos] = CHAR_UNDERSCORE
+        buffer[char_pos + 1] = (LOWERCASE_A + next_tag_counter).chr
+        buffer[char_pos + 2] = CHAR_SEMICOLON
       end
 
       # Increment tag counter and return new value (cycles through 0-9)
@@ -280,17 +286,18 @@ module RuboCop
           end
         end
 
-        result.gsub(/(?<=\n)([^ \n#])/) { "##{" " * (Regexp.last_match(1).bytesize - 1)}" }
+        result.gsub(/(?<=\n)([^ \n#])/) { "##{" " * (Regexp.last_match(1).length - 1)}" }
       end
 
+      # Convert source code to array of characters, replacing non-newline characters with spaces
       # @rbs code: String
-      def bleach_code(code) #: Array[Integer]
-        code.bytes.map do |byte|
-          case byte
-          when LF, CR
-            byte
+      def bleach_code(code) #: Array[String]
+        code.chars.map do |char|
+          case char
+          when CHAR_LF, CHAR_CR
+            char
           else
-            SPACE
+            CHAR_SPACE
           end
         end
       end

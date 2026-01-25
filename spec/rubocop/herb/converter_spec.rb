@@ -15,12 +15,12 @@ RSpec.describe RuboCop::Herb::Converter do
       expect(subject.hybrid_code).to eq(expected_hybrid_code)
     end
 
-    it "preserves byte length in ruby_code" do
-      expect(subject.ruby_code.bytesize).to eq(source.bytesize)
+    it "preserves character length in ruby_code" do
+      expect(subject.ruby_code.length).to eq(source.length)
     end
 
-    it "preserves byte length in hybrid_code" do
-      expect(subject.hybrid_code.bytesize).to eq(source.bytesize)
+    it "preserves character length in hybrid_code" do
+      expect(subject.hybrid_code.length).to eq(source.length)
     end
 
     it "preserves character length between ruby_code and hybrid_code" do
@@ -630,7 +630,7 @@ RSpec.describe RuboCop::Herb::Converter do
         end
         let(:expected) do
           ["  #",
-           "#  本語",
+           "#本語",
            "  "].join("\n")
         end
 
@@ -644,24 +644,24 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      # Multibyte characters BEFORE ERB tag (regression test for byte offset bug)
+      # Multibyte characters BEFORE ERB tag (regression test for character offset handling)
       describe "with multibyte characters before output tag" do
         let(:source) { "日本語<%= x %>" }
-        let(:expected) { "         _ = x;  " }
+        let(:expected) { "   _ = x;  " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with emoji characters before output tag" do
         let(:source) { "🎉🎉🎉<%= x %>" }
-        let(:expected) { "            _ = x;  " }
+        let(:expected) { "   _ = x;  " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with multibyte characters before execution tag" do
         let(:source) { "あいうえお<% code %>" }
-        let(:expected) { "                  code;  " }
+        let(:expected) { "        code;  " }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -743,22 +743,22 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with an HTML comment containing multi-byte characters" do
         let(:source) { "<body><!-- あいう --><%= render 'foo' %></body>" }
-        # The comment "<!-- あいう -->" is 20 bytes, rendered as "_b;" at start
+        # The comment "<!-- あいう -->" is 14 characters, rendered as "_b;" at start
         # Comments with multi-byte chars are not restored to preserve character count
         # Close tag uses counter 2 because comment already used counter 1
-        let(:expected) { "body; _b;               _ = render 'foo';  body2; " }
-        let(:expected_hybrid) { "<body>_b;               _ = render 'foo';  </body>" }
+        let(:expected) { "body; _b;         _ = render 'foo';  body2; " }
+        let(:expected_hybrid) { "<body>_b;         _ = render 'foo';  </body>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       describe "with text node containing multi-byte characters" do
         let(:source) { "<div>表示件数<%= @count %></div>" }
-        # "表示件数" is 4 characters, 12 bytes - bleached to 12 spaces with "_b;" marker
+        # "表示件数" is 4 characters - bleached to 4 spaces with "_b;" marker
         # Text nodes with multi-byte chars are not restored to preserve character count
         # Close tag uses counter 2 because text node already used counter 1
-        let(:expected) { "div; _b;         _ = @count;  div2; " }
-        let(:expected_hybrid) { "<div>_b;         _ = @count;  </div>" }
+        let(:expected) { "div; _b; _ = @count;  div2; " }
+        let(:expected_hybrid) { "<div>_b; _ = @count;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end

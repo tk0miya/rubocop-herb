@@ -41,8 +41,10 @@ module RuboCop
         collector = new(source:, html_visualization:)
         ast.visit(collector)
 
-        erb_tags = collector.erb_locations.transform_values do |loc|
-          Tag.new(range: loc.range, restore_source: false)
+        # Convert ERB locations to tags with character positions
+        erb_tags = collector.erb_locations.each_with_object({}) do |(_, loc), hash|
+          char_from, char_to = source.byte_range_to_char_range(loc.range)
+          hash[char_from] = Tag.new(char_from:, char_to:, restore_source: false)
         end
 
         Result.new(
@@ -203,43 +205,46 @@ module RuboCop
       # Text nodes with multi-byte characters are skipped
       # @rbs node: ::Herb::AST::HTMLTextNode
       def record_text_node_tag(node) #: void
-        range = source.location_to_range(node.location)
-        text = source.byteslice(range)
+        byte_range = source.location_to_range(node.location)
+        text = source.byteslice(byte_range)
 
         # Must have non-whitespace content and enough space for marker
         match = text.match(/\S/)
         return unless match
 
-        pos = range.from + match.begin(0)
-        return unless pos + 4 <= range.to
+        pos = byte_range.from + match.begin(0)
+        return unless pos + 4 <= byte_range.to
 
         # Skip recording tag info for text with multi-byte characters
         # Multi-byte chars are bleached to multiple spaces, changing character count
         # If we restore the original text, character positions would mismatch
         return if multibyte_chars?(text)
 
-        tags[range.from] = Tag.new(range:, restore_source: true)
+        char_from, char_to = source.byte_range_to_char_range(byte_range)
+        tags[char_from] = Tag.new(char_from:, char_to:, restore_source: true)
       end
 
       # Record tag info for HTML comments (without ERB)
       # Comments with multi-byte characters are skipped
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def record_html_comment_tag(node) #: void
-        range = NodeRange.compute(node)
-        text = source.byteslice(range)
+        byte_range = NodeRange.compute(node)
+        text = source.byteslice(byte_range)
 
         # Skip recording tag info for comments with multi-byte characters
         # to preserve character count between ruby_code and hybrid_code
         return if multibyte_chars?(text)
 
-        tags[range.from] = Tag.new(range:, restore_source: true)
+        char_from, char_to = source.byte_range_to_char_range(byte_range)
+        tags[char_from] = Tag.new(char_from:, char_to:, restore_source: true)
       end
 
       # Record tag info for AST restoration
       # @rbs node: html_node
       def record_tag(node) #: void
-        range = NodeRange.compute(node)
-        tags[range.from] = Tag.new(range:, restore_source: true)
+        byte_range = NodeRange.compute(node)
+        char_from, char_to = source.byte_range_to_char_range(byte_range)
+        tags[char_from] = Tag.new(char_from:, char_to:, restore_source: true)
       end
 
       # Check if text contains multi-byte characters

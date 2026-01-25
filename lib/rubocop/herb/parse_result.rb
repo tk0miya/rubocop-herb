@@ -17,11 +17,12 @@ module RuboCop
       #   def code: () -> String
       #   def line_offsets: () -> Array[Integer]
       #   def encoding: () -> Encoding
+      #   def slice: (Integer char_from, Integer char_to) -> String
       #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
       #   def location_to_range: (::Herb::Location location) -> ::Herb::Range
-      #   def char_to_byte_pos: (Integer char_pos) -> Integer
-      def_delegators :source, :path, :code, :line_offsets, :encoding, :byteslice, :location_to_range,
-                     :char_to_byte_pos
+      #   def byte_to_char_pos: (Integer byte_pos) -> Integer
+      def_delegators :source, :path, :code, :line_offsets, :encoding, :slice, :byteslice, :location_to_range,
+                     :byte_to_char_pos
 
       attr_reader :source #: Source
       attr_reader :ast #: ::Herb::ParseResult

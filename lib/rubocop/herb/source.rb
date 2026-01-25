@@ -25,6 +25,13 @@ module RuboCop
         code.encoding
       end
 
+      # Get a substring by character range
+      # @rbs char_from: Integer -- start character position
+      # @rbs char_to: Integer -- end character position
+      def slice(char_from, char_to) #: String
+        code[char_from...char_to]
+      end
+
       # Get a substring by byte range or location
       # @rbs range_or_location: ::Herb::Range | ::Herb::Location
       def byteslice(range_or_location) #: String
@@ -37,6 +44,19 @@ module RuboCop
       # @rbs char_pos: Integer
       def char_to_byte_pos(char_pos) #: Integer
         code[0...char_pos].bytesize
+      end
+
+      # Convert byte position to character position
+      # This is needed to convert Herb's byte positions to character positions for RuboCop
+      # @rbs byte_pos: Integer
+      def byte_to_char_pos(byte_pos) #: Integer
+        code.byteslice(0, byte_pos).length
+      end
+
+      # Convert a byte-based Herb::Range to character positions [from, to]
+      # @rbs byte_range: ::Herb::Range
+      def byte_range_to_char_range(byte_range) #: [Integer, Integer]
+        [byte_to_char_pos(byte_range.from), byte_to_char_pos(byte_range.to)]
       end
 
       # Convert a Herb::Location to a Herb::Range

@@ -2,19 +2,21 @@
 
 module RuboCop
   module Herb
-    # Data class for storing tag information
+    # Data class for storing tag information with character positions
     # Used for mapping simplified Ruby code back to original HTML/text/ERB
     class Tag < Data
-      attr_reader range(): ::Herb::Range
+      attr_reader char_from(): Integer
+
+      attr_reader char_to(): Integer
 
       attr_reader restore_source(): bool
 
-      def self.new: (::Herb::Range range, bool restore_source) -> instance
-                  | (range: ::Herb::Range, restore_source: bool) -> instance
+      def self.new: (Integer char_from, Integer char_to, bool restore_source) -> instance
+                  | (char_from: Integer, char_to: Integer, restore_source: bool) -> instance
 
-      def self.members: () -> [ :range, :restore_source ]
+      def self.members: () -> [ :char_from, :char_to, :restore_source ]
 
-      def members: () -> [ :range, :restore_source ]
+      def members: () -> [ :char_from, :char_to, :restore_source ]
     end
   end
 end
