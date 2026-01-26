@@ -10,7 +10,9 @@ module RuboCop
 
       attr_reader code: String
 
-      attr_reader line_offsets: Array[Integer]
+      attr_reader line_byte_offsets: Array[Integer]
+
+      attr_reader line_char_offsets: Array[Integer]
 
       # @rbs path: String
       # @rbs code: String
@@ -29,6 +31,7 @@ module RuboCop
 
       # Convert byte position to character position
       # This is needed for converting Herb's byte-based positions to character-based positions
+      # Uses binary search to find the line, then only processes bytes within that line
       # @rbs byte_pos: Integer
       def byte_to_char_pos: (Integer byte_pos) -> Integer
 
@@ -44,9 +47,9 @@ module RuboCop
       # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
       def byte_offset: (Integer line, Integer column) -> Integer
 
-      # Compute line offsets for the source code
+      # Compute line offsets (both byte and character) for the source code
       # @rbs code: String
-      def compute_line_offsets: (String code) -> Array[Integer]
+      def compute_line_offsets: (String code) -> [ Array[Integer], Array[Integer] ]
     end
   end
 end

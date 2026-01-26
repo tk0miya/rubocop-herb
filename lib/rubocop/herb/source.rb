@@ -10,14 +10,15 @@ module RuboCop
     class Source
       attr_reader :path #: String
       attr_reader :code #: String
-      attr_reader :line_offsets #: Array[Integer]
+      attr_reader :line_byte_offsets #: Array[Integer]
+      attr_reader :line_char_offsets #: Array[Integer]
 
       # @rbs path: String
       # @rbs code: String
       def initialize(path:, code:) #: void
         @path = path
         @code = code
-        @line_offsets = compute_line_offsets(code)
+        @line_byte_offsets, @line_char_offsets = compute_line_offsets(code)
       end
 
       # Get the encoding of the source code
@@ -39,9 +40,22 @@ module RuboCop
 
       # Convert byte position to character position
       # This is needed for converting Herb's byte-based positions to character-based positions
+      # Uses binary search to find the line, then only processes bytes within that line
       # @rbs byte_pos: Integer
       def byte_to_char_pos(byte_pos) #: Integer
-        code.byteslice(0, byte_pos).length
+        # Binary search to find the line containing byte_pos
+        line_idx = line_byte_offsets.bsearch_index { |offset| offset > byte_pos } || line_byte_offsets.size
+        line_idx -= 1 if line_idx.positive?
+
+        # Get the starting positions for this line
+        line_byte_start = line_byte_offsets[line_idx]
+        line_char_start = line_char_offsets[line_idx]
+
+        # Only process bytes within this line
+        bytes_in_line = byte_pos - line_byte_start
+        chars_in_line = code.byteslice(line_byte_start, bytes_in_line).length
+
+        line_char_start + chars_in_line
       end
 
       # Convert a Herb::Location to a Herb::Range
@@ -59,18 +73,24 @@ module RuboCop
       # @rbs line: Integer -- 1-indexed line number
       # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
       def byte_offset(line, column) #: Integer
-        line_start = line_offsets[line - 1]
-        next_line_start = line_offsets[line] || code.bytesize
+        line_start = line_byte_offsets[line - 1]
+        next_line_start = line_byte_offsets[line] || code.bytesize
         line_content = code.byteslice(line_start, next_line_start - line_start)
         line_start + line_content.chars[0, column].join.bytesize
       end
 
-      # Compute line offsets for the source code
+      # Compute line offsets (both byte and character) for the source code
       # @rbs code: String
-      def compute_line_offsets(code) #: Array[Integer]
-        code.split("\n", -1)[0...-1].inject([0]) do |offsets, line|
-          offsets << (offsets.last + line.bytesize + 1)
+      def compute_line_offsets(code) #: [Array[Integer], Array[Integer]]
+        byte_offsets = [0]
+        char_offsets = [0]
+
+        code.each_line do |line|
+          byte_offsets << (byte_offsets.last + line.bytesize)
+          char_offsets << (char_offsets.last + line.length)
         end
+
+        [byte_offsets, char_offsets]
       end
     end
   end
