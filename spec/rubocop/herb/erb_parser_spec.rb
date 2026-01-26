@@ -16,9 +16,11 @@ RSpec.describe RuboCop::Herb::ErbParser do
 
     it "returns a ParseResult with parsed data" do
       expect(subject).to be_a(RuboCop::Herb::ParseResult).and have_attributes(
-        path: "test.html.erb",
         code:,
-        ast: be_a(Herb::ParseResult),
+        ast: be_a(Herb::ParseResult)
+      )
+      expect(subject.source).to have_attributes(
+        path: "test.html.erb",
         line_offsets: [0, 6, 21, 28]
       )
       expect(subject.erb_locations).not_to be_empty

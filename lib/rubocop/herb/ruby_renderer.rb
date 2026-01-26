@@ -27,17 +27,14 @@ module RuboCop
       attr_reader :html_visualization #: bool
 
       # @rbs!
-      #   def source_encoding: () -> Encoding
       #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
       #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
-      #   def location_to_range: (::Herb::Location) -> ::Herb::Range
       #   def tail_expression?: (::Herb::AST::Node) -> bool
-      def_delegator :parse_result, :encoding, :source_encoding
       def_delegators :parse_result, :source, :erb_locations, :erb_max_columns, :erb_comment_nodes,
-                     :byteslice, :location_to_range, :tail_expression?
+                     :byteslice, :tail_expression?
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool

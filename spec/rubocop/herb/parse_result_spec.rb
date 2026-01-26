@@ -43,8 +43,8 @@ RSpec.describe RuboCop::Herb::ParseResult do
     end
   end
 
-  describe "#location_to_range" do
-    subject { parse_result.location_to_range(location) }
+  describe "Source#location_to_range" do
+    subject { parse_result.source.location_to_range(location) }
 
     let(:location) do
       instance_double(
