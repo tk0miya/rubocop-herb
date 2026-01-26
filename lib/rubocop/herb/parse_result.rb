@@ -16,7 +16,7 @@ module RuboCop
       #   def code: () -> String
       #   def line_offsets: () -> Array[Integer]
       #   def encoding: () -> Encoding
-      #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
+      #   def byteslice: (::Herb::Range) -> String
       #   def slice: (CharRange range) -> String
       #   def location_to_range: (::Herb::Location location) -> ::Herb::Range
       #   def char_to_byte_pos: (Integer char_pos) -> Integer

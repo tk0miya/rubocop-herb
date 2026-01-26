@@ -16,7 +16,7 @@ module RuboCop
 
       def encoding: () -> Encoding
 
-      def byteslice: (::Herb::Range | ::Herb::Location) -> String
+      def byteslice: (::Herb::Range) -> String
 
       def slice: (CharRange range) -> String
 

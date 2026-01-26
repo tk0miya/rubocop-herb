@@ -32,7 +32,7 @@ module RuboCop
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
-      #   def byteslice: (::Herb::Range | ::Herb::Location) -> String
+      #   def byteslice: (::Herb::Range) -> String
       #   def location_to_range: (::Herb::Location) -> ::Herb::Range
       #   def tail_expression?: (::Herb::AST::Node) -> bool
       def_delegator :parse_result, :encoding, :source_encoding
