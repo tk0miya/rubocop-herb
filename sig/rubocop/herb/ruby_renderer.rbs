@@ -21,8 +21,6 @@ module RuboCop
 
       attr_reader html_visualization: bool
 
-      def source_encoding: () -> Encoding
-
       def source: () -> Source
 
       def erb_locations: () -> Hash[Integer, ErbLocation]
@@ -32,8 +30,6 @@ module RuboCop
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
 
       def byteslice: (::Herb::Range) -> String
-
-      def location_to_range: (::Herb::Location) -> ::Herb::Range
 
       def tail_expression?: (::Herb::AST::Node) -> bool
 

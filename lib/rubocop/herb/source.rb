@@ -37,13 +37,6 @@ module RuboCop
         code[range.from...range.to]
       end
 
-      # Convert character position to byte position
-      # This is needed because Parser gem uses character positions while Herb uses byte positions
-      # @rbs char_pos: Integer
-      def char_to_byte_pos(char_pos) #: Integer
-        code[0...char_pos].bytesize
-      end
-
       # Convert byte position to character position
       # This is needed for converting Herb's byte-based positions to character-based positions
       # @rbs byte_pos: Integer
