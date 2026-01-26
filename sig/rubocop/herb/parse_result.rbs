@@ -8,8 +8,6 @@ module RuboCop
     class ParseResult
       extend Forwardable
 
-      include Characters
-
       def path: () -> String
 
       def code: () -> String

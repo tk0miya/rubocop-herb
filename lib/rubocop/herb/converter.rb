@@ -30,22 +30,18 @@ module RuboCop
 
       # Generate hybrid code by restoring original HTML at tag positions
       # Only restores tags with restore_source: true
-      # Note: ruby_code is byte-based (same byte length as source), so we convert
-      # character positions to byte positions for correct operation
       # @rbs ruby_code: String
       # @rbs parse_result: ParseResult
       def generate_hybrid_code(ruby_code, parse_result) #: String
         restorable_tags = parse_result.tags.select { |_, tag| tag.restore_source }
         return ruby_code if restorable_tags.empty?
 
-        result = ruby_code.bytes.dup
+        hybrid_code = ruby_code.dup
         restorable_tags.each do |char_pos, tag|
-          # Convert character position to byte position for ruby_code (which is byte-based)
-          byte_pos = parse_result.char_to_byte_pos(char_pos)
-          original_html_bytes = parse_result.slice(tag.range).bytes
-          result[byte_pos, original_html_bytes.length] = original_html_bytes
+          original_html = parse_result.slice(tag.range)
+          hybrid_code[char_pos, original_html.length] = original_html
         end
-        result.pack("C*").force_encoding(ruby_code.encoding)
+        hybrid_code
       end
     end
   end

@@ -11,7 +11,6 @@ module RuboCop
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
       extend Forwardable
-      include Characters
 
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
@@ -19,17 +18,17 @@ module RuboCop
       def self.render(parse_result, html_visualization: false) #: String
         renderer = new(parse_result, html_visualization:)
         parse_result.ast.visit(renderer)
-        renderer.code
+        renderer.ruby_code
       end
 
-      attr_reader :buffer #: Array[Integer]
+      attr_reader :ruby_code #: String
       attr_reader :parse_result #: ParseResult
-      attr_reader :code #: String
       attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
 
       # @rbs!
       #   def source_encoding: () -> Encoding
+      #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
@@ -37,26 +36,25 @@ module RuboCop
       #   def location_to_range: (::Herb::Location) -> ::Herb::Range
       #   def tail_expression?: (::Herb::AST::Node) -> bool
       def_delegator :parse_result, :encoding, :source_encoding
-      def_delegators :parse_result, :erb_locations, :erb_max_columns, :erb_comment_nodes,
+      def_delegators :parse_result, :source, :erb_locations, :erb_max_columns, :erb_comment_nodes,
                      :byteslice, :location_to_range, :tail_expression?
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
       def initialize(parse_result, html_visualization: false) #: void
         @parse_result = parse_result
-        @buffer = bleach_code(parse_result.code)
+        @ruby_code = bleach_code(parse_result.code)
         @tag_counter = 0
         @html_visualization = html_visualization
 
         super()
       end
 
-      # Override to render comments and build code after document traversal completes
+      # Override to render comments after document traversal completes
       # @rbs node: ::Herb::AST::DocumentNode
       def visit_document_node(node) #: void
         super
         render_comments
-        @code = buffer.pack("C*").force_encoding(source_encoding)
       end
 
       # @rbs!
@@ -140,13 +138,13 @@ module RuboCop
       def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
         return unless node.respond_to?(:content) && node.content
 
-        ruby_code = ruby_code_for(node)
-        range = node.content.range
-        buffer[range.from, ruby_code.bytesize] = ruby_code.bytes
+        code = extract_ruby_code(node)
+        range = NodeRange.byte_range_to_char_range(node.content.range, source)
+        ruby_code[range.from, code.length] = code
 
-        trailing_spaces = ruby_code.bytesize - ruby_code.rstrip.bytesize
+        trailing_spaces = code.length - code.rstrip.length
         semicolon_pos = range.to - trailing_spaces
-        buffer[semicolon_pos] = SEMICOLON if semicolon_pos < buffer.size
+        ruby_code[semicolon_pos] = ";" if semicolon_pos < ruby_code.size
 
         render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
       end
@@ -163,10 +161,10 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def render_output_marker(node) #: void
-        pos = node.tag_opening.range.from
-        buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = SPACE
-        buffer[pos + 2] = EQUALS
+        pos = byte_to_char_pos(node.tag_opening.range.from)
+        ruby_code[pos] = "_"
+        ruby_code[pos + 1] = " "
+        ruby_code[pos + 2] = "="
       end
 
       # Render HTML open tag as Ruby code
@@ -176,10 +174,10 @@ module RuboCop
       # @rbs as_brace: bool
       def render_open_tag_node(node, as_brace:) #: void
         tag_name = node.tag_name.value
-        ruby_code = as_brace ? "#{tag_name} { " : "#{tag_name}; "
+        code = as_brace ? "#{tag_name} { " : "#{tag_name}; "
 
-        start_pos = node.tag_opening.range.from
-        buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+        start_pos = byte_to_char_pos(node.tag_opening.range.from)
+        ruby_code[start_pos, code.length] = code
       end
 
       # Render HTML close tag as Ruby code
@@ -188,26 +186,26 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       # @rbs as_brace: bool
       def render_close_tag_node(node, as_brace:) #: void
-        start_pos = node.tag_opening.range.from
+        start_pos = byte_to_char_pos(node.tag_opening.range.from)
 
         if as_brace
-          buffer[start_pos] = RIGHT_BRACE
-          buffer[start_pos + 1] = SEMICOLON
+          ruby_code[start_pos] = "}"
+          ruby_code[start_pos + 1] = ";"
         else
           tag_name = node.tag_name.value
-          ruby_code = "#{tag_name}#{next_tag_counter}; "
-          buffer[start_pos, ruby_code.bytesize] = ruby_code.bytes
+          code = "#{tag_name}#{next_tag_counter}; "
+          ruby_code[start_pos, code.length] = code
         end
       end
 
       # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
-      # Requires at least 4 bytes from the first non-whitespace position to end
+      # Requires at least 4 characters from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
-        range = NodeRange.compute(node, parse_result)
-        text = byteslice(range)
+        range = NodeRange.compute_char_range(node, source)
+        text = source.slice(range)
         match = text.match(/\S/)
         return unless match
 
@@ -237,14 +235,15 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBContentNode
       def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
-        hash_pos = node.tag_opening.range.to - 1
-        buffer[hash_pos] = HASH
+        hash_pos = byte_to_char_pos(node.tag_opening.range.to - 1)
+        ruby_code[hash_pos] = "#"
 
-        ruby_code = ruby_code_for(node)
+        code = extract_ruby_code(node)
         range = node.content.range
         hash_column = node.tag_opening.location.start.column + 2
-        formatted_code = format_multiline_comment(ruby_code, hash_column)
-        buffer[range.from, formatted_code.bytesize] = formatted_code.bytes
+        formatted_code = format_multiline_comment(code, hash_column)
+        char_from = byte_to_char_pos(range.from)
+        ruby_code[char_from, formatted_code.length] = formatted_code
       end
 
       # Render HTML comment as "_N;" to indicate content presence (like text nodes)
@@ -252,16 +251,16 @@ module RuboCop
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
-        render_tag_marker(node.comment_start.range.from)
+        render_tag_marker(byte_to_char_pos(node.comment_start.range.from))
       end
 
       # Render tag marker "_x;" at the given position and increment counter
       # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
-      # @rbs pos: Integer
+      # @rbs pos: Integer -- character position in ruby_code
       def render_tag_marker(pos) #: void
-        buffer[pos] = UNDERSCORE
-        buffer[pos + 1] = LOWERCASE_A + next_tag_counter
-        buffer[pos + 2] = SEMICOLON
+        ruby_code[pos] = "_"
+        ruby_code[pos + 1] = ("a".ord + next_tag_counter).chr
+        ruby_code[pos + 2] = ";"
       end
 
       # Increment tag counter and return new value (cycles through 0-9)
@@ -280,23 +279,22 @@ module RuboCop
           end
         end
 
-        result.gsub(/(?<=\n)([^ \n#])/) { "##{" " * (Regexp.last_match(1).bytesize - 1)}" }
+        result.gsub(/(?<=\n)([^ \n#])/, "#")
       end
 
       # @rbs code: String
-      def bleach_code(code) #: Array[Integer]
-        code.bytes.map do |byte|
-          case byte
-          when LF, CR
-            byte
-          else
-            SPACE
-          end
-        end
+      def bleach_code(code) #: String
+        code.gsub(/[^\n\r]/, " ")
+      end
+
+      # Convert byte position to character position
+      # @rbs byte_pos: Integer
+      def byte_to_char_pos(byte_pos) #: Integer
+        source.byte_to_char_pos(byte_pos)
       end
 
       # @rbs node: ::Herb::AST::Node
-      def ruby_code_for(node) #: String
+      def extract_ruby_code(node) #: String
         byteslice(node.content.range)
       end
 
