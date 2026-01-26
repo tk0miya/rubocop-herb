@@ -25,10 +25,9 @@ module RuboCop
         code.encoding
       end
 
-      # Get a substring by byte range or location
-      # @rbs range_or_location: ::Herb::Range | ::Herb::Location
-      def byteslice(range_or_location) #: String
-        range = range_or_location.is_a?(::Herb::Range) ? range_or_location : location_to_range(range_or_location)
+      # Get a substring by byte range
+      # @rbs range: ::Herb::Range
+      def byteslice(range) #: String
         code.byteslice(range.from, range.to - range.from).force_encoding(code.encoding)
       end
 

@@ -19,9 +19,9 @@ module RuboCop
       # Get the encoding of the source code
       def encoding: () -> Encoding
 
-      # Get a substring by byte range or location
-      # @rbs range_or_location: ::Herb::Range | ::Herb::Location
-      def byteslice: (::Herb::Range | ::Herb::Location range_or_location) -> String
+      # Get a substring by byte range
+      # @rbs range: ::Herb::Range
+      def byteslice: (::Herb::Range range) -> String
 
       # Get a substring by character range
       # @rbs range: CharRange
