@@ -6,7 +6,7 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
   describe ".collect" do
     let(:result) { described_class.collect(source, ast, html_visualization: false) }
     let(:ast) { Herb.parse(code) }
-    let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
+    let(:source) { RuboCop::Herb::Source.new(code:) }
 
     describe "erb_locations" do
       subject(:erb_locations) { result.erb_locations }

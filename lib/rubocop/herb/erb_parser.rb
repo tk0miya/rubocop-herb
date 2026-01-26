@@ -18,11 +18,11 @@ module RuboCop
         new.parse(path, code, html_visualization:)
       end
 
-      # @rbs path: String
+      # @rbs _path: String
       # @rbs code: String
       # @rbs html_visualization: bool
-      def parse(path, code, html_visualization: false) #: ParseResult
-        source = Source.new(path:, code:)
+      def parse(_path, code, html_visualization: false) #: ParseResult
+        source = Source.new(code:)
         ast = ::Herb.parse(code)
         result = NodeLocationCollector.collect(source, ast, html_visualization:)
         tail_expressions = TailExpressionCollector.collect(ast, result.html_block_positions,

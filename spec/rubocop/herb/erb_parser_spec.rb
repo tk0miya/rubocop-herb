@@ -19,10 +19,7 @@ RSpec.describe RuboCop::Herb::ErbParser do
         code:,
         ast: be_a(Herb::ParseResult)
       )
-      expect(subject.source).to have_attributes(
-        path: "test.html.erb",
-        line_offsets: [0, 6, 21, 28]
-      )
+      expect(subject.source.line_offsets).to eq([0, 6, 21, 28])
       expect(subject.erb_locations).not_to be_empty
     end
   end

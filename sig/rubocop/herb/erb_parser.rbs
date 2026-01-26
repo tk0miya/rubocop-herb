@@ -12,10 +12,10 @@ module RuboCop
       # @rbs html_visualization: bool
       def self.parse: (String path, String code, ?html_visualization: bool) -> ParseResult
 
-      # @rbs path: String
+      # @rbs _path: String
       # @rbs code: String
       # @rbs html_visualization: bool
-      def parse: (String path, String code, ?html_visualization: bool) -> ParseResult
+      def parse: (untyped _path, String code, ?html_visualization: bool) -> ParseResult
     end
   end
 end

@@ -10,7 +10,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
     let(:collected_positions) { collected_nodes.to_set { |n| n.tag_opening.range.from } }
 
     let(:ast) { Herb.parse(code) }
-    let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
+    let(:source) { RuboCop::Herb::Source.new(code:) }
     let(:html_block_positions) { node_locations.html_block_positions }
 
     context "when html_visualization is disabled" do

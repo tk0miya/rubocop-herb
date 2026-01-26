@@ -6,18 +6,12 @@ module RuboCop
     # Provides methods for byteslice and location-to-range conversion
     # that are shared between ParseResult and NodeLocationCollector.
     class Source
-      attr_reader path: String
-
       attr_reader code: String
 
       attr_reader line_offsets: Array[Integer]
 
-      # @rbs path: String
       # @rbs code: String
-      def initialize: (path: String, code: String) -> void
-
-      # Get the encoding of the source code
-      def encoding: () -> Encoding
+      def initialize: (code: String) -> void
 
       # Get a substring by byte range or location
       # @rbs range_or_location: ::Herb::Range | ::Herb::Location
@@ -26,11 +20,6 @@ module RuboCop
       # Get a substring by character range
       # @rbs range: CharRange
       def slice: (CharRange range) -> String
-
-      # Convert character position to byte position
-      # This is needed because Parser gem uses character positions while Herb uses byte positions
-      # @rbs char_pos: Integer
-      def char_to_byte_pos: (Integer char_pos) -> Integer
 
       # Convert byte position to character position
       # This is needed for converting Herb's byte-based positions to character-based positions
