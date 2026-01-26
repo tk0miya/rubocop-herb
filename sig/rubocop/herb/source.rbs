@@ -27,11 +27,6 @@ module RuboCop
       # @rbs range: CharRange
       def slice: (CharRange range) -> String
 
-      # Convert character position to byte position
-      # This is needed because Parser gem uses character positions while Herb uses byte positions
-      # @rbs char_pos: Integer
-      def char_to_byte_pos: (Integer char_pos) -> Integer
-
       # Convert byte position to character position
       # This is needed for converting Herb's byte-based positions to character-based positions
       # @rbs byte_pos: Integer

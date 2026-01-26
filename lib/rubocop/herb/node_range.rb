@@ -9,14 +9,14 @@ module RuboCop
       # Compute the byte range of an AST node
       #: (::Herb::AST::HTMLTextNode, Source) -> ::Herb::Range
       #: (::Herb::AST::Node) -> ::Herb::Range
-      def self.compute(node, parse_result = nil) # rubocop:disable Metrics/AbcSize
+      def self.compute(node, source = nil) # rubocop:disable Metrics/AbcSize
         case node
         when ::Herb::AST::HTMLElementNode
           from = node.open_tag.tag_opening.range.from
           to = node.close_tag ? node.close_tag.tag_closing.range.to : node.open_tag.tag_closing.range.to
           ::Herb::Range.new(from, to)
         when ::Herb::AST::HTMLTextNode
-          parse_result.location_to_range(node.location)
+          source.location_to_range(node.location)
         when ::Herb::AST::HTMLCommentNode
           ::Herb::Range.new(node.comment_start.range.from, node.comment_end.range.to)
         else
