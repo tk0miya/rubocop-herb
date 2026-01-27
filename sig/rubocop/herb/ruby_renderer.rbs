@@ -91,6 +91,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def visit_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
 
+      # Visit HTML attribute value nodes (the value part of attr="value")
+      # When containing ERB, renders markers for LiteralNode children to distinguish branches
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def visit_html_attribute_value_node: (::Herb::AST::HTMLAttributeValueNode node) -> void
+
       private
 
       # @rbs node: ::Herb::AST::ERBContentNode
@@ -146,6 +151,29 @@ module RuboCop
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
+
+      # Render markers for LiteralNode children in an attribute value that contains ERB
+      # This distinguishes branches where attribute values differ by static text
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def render_attribute_value_literals: (::Herb::AST::HTMLAttributeValueNode node) -> void
+
+      # Render a marker for a LiteralNode at its start position
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def render_literal_marker: (::Herb::AST::LiteralNode node) -> void
+
+      # Render markers for HTMLAttributeNode children in ERB statements
+      # This distinguishes branches where attributes are conditionally rendered
+      # @rbs node: ::Herb::AST::Node
+      def render_statements_attribute_markers: (::Herb::AST::Node node) -> void
+
+      # Check if a node has any ERBContentNode children
+      # @rbs node: ::Herb::AST::Node
+      def erb_child?: (::Herb::AST::Node node) -> bool
+
+      # Render a marker for an HTMLAttributeNode at its start position
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def render_attribute_marker: (::Herb::AST::HTMLAttributeNode node) -> void
 
       # Render tag marker "_x;" at the given position and increment counter
       # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)

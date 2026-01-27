@@ -1201,6 +1201,44 @@ RSpec.describe RuboCop::Herb::Converter do
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
+
+      # Static text in attribute values should get markers when mixed with ERB
+      # to avoid Lint/DuplicateBranch false positives
+      describe "with if-else containing attribute values with different static text" do
+        let(:source) do
+          '<% if true %><div class="<%= "hello" %>"></div><% else %><div class="<%= "hello" %> world"></div><% end %>'
+        end
+        # The " world" gets a _b; marker to distinguish the branches
+        let(:expected) do
+          '   if true;  div {       _ = "hello";    };       else;  div {       _ = "hello";  _b;     };       end;  '
+        end
+        let(:expected_hybrid) do
+          '   if true;  div {       _ = "hello";    </div>   else;  div {       _ = "hello";  _b;     </div>   end;  '
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # Conditional attributes (HTMLAttributeNode in ERB statements) should get markers
+      # to avoid Lint/DuplicateBranch false positives
+      describe "with if-else containing conditional attributes" do
+        let(:source) { '<div <% if true %>class="foo"<% else %>class="bar"<% end %>></div>' }
+        # Each attribute gets a marker (_b, _c) to distinguish the branches
+        let(:expected) { "div {   if true;  _b;           else;  _c;           end;   };    " }
+        let(:expected_hybrid) { "div {   if true;  _b;           else;  _c;           end;   </div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # Attribute value with multiple static text segments around ERB
+      describe "with attribute value containing ERB surrounded by static text" do
+        let(:source) { '<div class="prefix <%= middle %> suffix"></div>' }
+        # Counter starts at 1, so first marker is _b, second is _c
+        let(:expected) { "div {       _b;    _ = middle;  _c;      };    " }
+        let(:expected_hybrid) { "div {       _b;    _ = middle;  _c;      </div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
     end
   end
 end
