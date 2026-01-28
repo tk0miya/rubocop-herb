@@ -71,9 +71,11 @@ module RuboCop
       #   def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
       # Define visit methods for ERB nodes that render code and continue traversal
+      # For nodes with statements, also render markers for HTMLAttributeNode children
       %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           render_code_node(node)
+          render_statements_attribute_markers(node) if html_visualization
           super(node)
         end
       end
@@ -122,6 +124,14 @@ module RuboCop
           render_html_comment_node(node)
         end
         # When html_visualization is disabled and no ERB, comment is bleached (all spaces)
+      end
+
+      # Visit HTML attribute value nodes (the value part of attr="value")
+      # When containing ERB, renders markers for LiteralNode children to distinguish branches
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def visit_html_attribute_value_node(node) #: void
+        render_attribute_value_literals(node) if html_visualization && erb_child?(node)
+        super
       end
 
       private
@@ -249,6 +259,49 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
         render_tag_marker(byte_to_char_pos(node.comment_start.range.from))
+      end
+
+      # Render markers for LiteralNode children in an attribute value that contains ERB
+      # This distinguishes branches where attribute values differ by static text
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def render_attribute_value_literals(node) #: void
+        node.children.each do |child|
+          render_literal_marker(child) if child.is_a?(::Herb::AST::LiteralNode)
+        end
+      end
+
+      # Render a marker for a LiteralNode at its start position
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def render_literal_marker(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        return unless range.from + 3 <= range.to
+
+        render_tag_marker(range.from)
+      end
+
+      # Render markers for HTMLAttributeNode children in ERB statements
+      # This distinguishes branches where attributes are conditionally rendered
+      # @rbs node: ::Herb::AST::Node
+      def render_statements_attribute_markers(node) #: void
+        return unless node.respond_to?(:statements)
+
+        node.statements.each do |stmt|
+          render_attribute_marker(stmt) if stmt.is_a?(::Herb::AST::HTMLAttributeNode)
+        end
+      end
+
+      # Check if a node has any ERBContentNode children
+      # @rbs node: ::Herb::AST::Node
+      def erb_child?(node) #: bool
+        node.children.any? { |child| child.is_a?(::Herb::AST::ERBContentNode) }
+      end
+
+      # Render a marker for an HTMLAttributeNode at its start position
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def render_attribute_marker(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        render_tag_marker(range.from)
       end
 
       # Render tag marker "_x;" at the given position and increment counter
