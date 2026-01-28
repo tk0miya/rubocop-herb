@@ -1212,8 +1212,9 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:expected) do
           '   if true;  div {       _ = "hello";    };       else;  div {       _ = "hello";  _b;     };       end;  '
         end
+        # hybrid_code restores " world" from the marker
         let(:expected_hybrid) do
-          '   if true;  div {       _ = "hello";    </div>   else;  div {       _ = "hello";  _b;     </div>   end;  '
+          '   if true;  div {       _ = "hello";    </div>   else;  div {       _ = "hello";   world  </div>   end;  '
         end
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -1225,7 +1226,8 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { '<div <% if true %>class="foo"<% else %>class="bar"<% end %>></div>' }
         # Each attribute gets a marker (_b, _c) to distinguish the branches
         let(:expected) { "div {   if true;  _b;           else;  _c;           end;   };    " }
-        let(:expected_hybrid) { "div {   if true;  _b;           else;  _c;           end;   </div>" }
+        # hybrid_code restores attributes from markers
+        let(:expected_hybrid) { 'div {   if true;  class="foo"   else;  class="bar"   end;   </div>' }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
@@ -1235,7 +1237,8 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { '<div class="prefix <%= middle %> suffix"></div>' }
         # Counter starts at 1, so first marker is _b, second is _c
         let(:expected) { "div {       _b;    _ = middle;  _c;      };    " }
-        let(:expected_hybrid) { "div {       _b;    _ = middle;  _c;      </div>" }
+        # hybrid_code restores "prefix " and " suffix" from markers
+        let(:expected_hybrid) { "div {       prefix _ = middle;   suffix  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end

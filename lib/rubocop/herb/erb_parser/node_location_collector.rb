@@ -114,6 +114,39 @@ module RuboCop
         record_html_comment_tag(node) if html_visualization
       end
 
+      # Visit HTML attribute value nodes and collect tag info for LiteralNode children
+      # when the attribute value contains ERB (to distinguish branches in conditionals)
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def visit_html_attribute_value_node(node) #: void
+        super
+        return unless html_visualization
+
+        record_attribute_value_literals(node) if erb_child?(node)
+      end
+
+      # @rbs!
+      #   def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
+      #   def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+      #   def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+      #   def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+      #   def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+      #   def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+      #   def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+      #   def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+      #   def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+      #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+      #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+      #   def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+
+      # Define visit methods for ERB control structure nodes that may contain
+      # HTMLAttributeNode in their statements (for distinguishing conditional attributes)
+      %i[block for while until if unless else when begin rescue ensure case].each do |type|
+        define_method(:"visit_erb_#{type}_node") do |node|
+          super(node)
+          record_statements_attribute_tags(node) if html_visualization
+        end
+      end
+
       private
 
       # @rbs node: ::Herb::AST::Node
@@ -246,6 +279,49 @@ module RuboCop
       # @rbs text: String
       def multibyte_chars?(text) #: bool
         text.bytesize != text.length
+      end
+
+      # Check if a node has any ERBContentNode children
+      # @rbs node: ::Herb::AST::Node
+      def erb_child?(node) #: bool
+        node.children.any? { |child| child.is_a?(::Herb::AST::ERBContentNode) }
+      end
+
+      # Record tag info for LiteralNode children in an attribute value
+      # Used to restore static text that appears alongside ERB in attribute values
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def record_attribute_value_literals(node) #: void
+        node.children.each do |child|
+          record_literal_tag(child) if child.is_a?(::Herb::AST::LiteralNode)
+        end
+      end
+
+      # Record tag info for a LiteralNode
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def record_literal_tag(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        return unless range.from + 3 <= range.to
+
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Record tag info for HTMLAttributeNode children in ERB statements
+      # Used to restore conditional attributes in ERB control structures
+      # @rbs node: ::Herb::AST::Node
+      def record_statements_attribute_tags(node) #: void
+        return unless node.respond_to?(:statements)
+
+        node.statements.each do |stmt|
+          record_attribute_tag(stmt) if stmt.is_a?(::Herb::AST::HTMLAttributeNode)
+        end
+      end
+
+      # Record tag info for an HTMLAttributeNode
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def record_attribute_tag(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        tags[range.from] = Tag.new(range:, restore_source: true)
       end
     end
   end

@@ -72,6 +72,35 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def visit_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
 
+      # Visit HTML attribute value nodes and collect tag info for LiteralNode children
+      # when the attribute value contains ERB (to distinguish branches in conditionals)
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def visit_html_attribute_value_node: (::Herb::AST::HTMLAttributeValueNode node) -> void
+
+      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
+
+      def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+
+      def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+
+      def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+
+      def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+
+      def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+
+      def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+
+      def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+
+      def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+
+      def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+
+      def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
+      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+
       private
 
       # @rbs node: ::Herb::AST::Node
@@ -126,6 +155,29 @@ module RuboCop
       # Check if text contains multi-byte characters
       # @rbs text: String
       def multibyte_chars?: (String text) -> bool
+
+      # Check if a node has any ERBContentNode children
+      # @rbs node: ::Herb::AST::Node
+      def erb_child?: (::Herb::AST::Node node) -> bool
+
+      # Record tag info for LiteralNode children in an attribute value
+      # Used to restore static text that appears alongside ERB in attribute values
+      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
+      def record_attribute_value_literals: (::Herb::AST::HTMLAttributeValueNode node) -> void
+
+      # Record tag info for a LiteralNode
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def record_literal_tag: (::Herb::AST::LiteralNode node) -> void
+
+      # Record tag info for HTMLAttributeNode children in ERB statements
+      # Used to restore conditional attributes in ERB control structures
+      # @rbs node: ::Herb::AST::Node
+      def record_statements_attribute_tags: (::Herb::AST::Node node) -> void
+
+      # Record tag info for an HTMLAttributeNode
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def record_attribute_tag: (::Herb::AST::HTMLAttributeNode node) -> void
     end
   end
 end
