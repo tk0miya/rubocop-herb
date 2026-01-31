@@ -61,6 +61,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
+      # Track when inside an HTML open tag for attribute/literal marker detection
+      # Resets @open_tag_has_erb so only ERB within this open tag's children is considered
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node: (::Herb::AST::HTMLOpenTagNode node) -> void
+
       # Visit HTML text nodes and collect tag info when html_visualization is enabled
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
@@ -71,6 +76,45 @@ module RuboCop
       # Comments containing ERB are not recorded (they are visited normally to traverse children)
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def visit_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
+
+      # Record static attributes inside open tags that contain ERB
+      # When a whole attribute (e.g., class="foo") appears inside an ERB conditional within an open tag,
+      # it needs to be recorded for hybrid_code restoration
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def visit_html_attribute_node: (::Herb::AST::HTMLAttributeNode node) -> void
+
+      # Record literal text inside open tags that contain ERB
+      # This captures static text in attribute values mixed with ERB (e.g., " world" in "<%= x %> world")
+      # @rbs node: ::Herb::AST::LiteralNode
+      def visit_literal_node: (::Herb::AST::LiteralNode node) -> void
+
+      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
+
+      def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+
+      def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+
+      def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+
+      def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+
+      def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+
+      def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+
+      def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+
+      def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+
+      def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+
+      def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
+      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+
+      def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
+
+      def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
       private
 
@@ -98,6 +142,10 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def contains_erb?: (::Herb::AST::HTMLElementNode node) -> bool
 
+      # Check if an HTML attribute contains ERB nodes
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def attribute_contains_erb?: (::Herb::AST::HTMLAttributeNode node) -> bool
+
       # Check if block notation fits within the open tag space
       # Block notation requires at least 3 bytes beyond tag name for " { "
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
@@ -122,6 +170,15 @@ module RuboCop
       # Record tag info for AST restoration
       # @rbs node: html_node
       def record_tag: (html_node node) -> void
+
+      # Record tag info using location (for nodes without tag_opening/tag_closing)
+      # @rbs node: ::Herb::AST::Node
+      def record_location_tag: (::Herb::AST::Node node) -> void
+
+      # Record tag info for a LiteralNode
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def record_literal_tag: (::Herb::AST::LiteralNode node) -> void
 
       # Check if text contains multi-byte characters
       # @rbs text: String
