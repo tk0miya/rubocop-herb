@@ -1224,8 +1224,8 @@ RSpec.describe RuboCop::Herb::Converter do
       # to avoid Lint/DuplicateBranch false positives
       describe "with if-else containing conditional attributes" do
         let(:source) { '<div <% if true %>class="foo"<% else %>class="bar"<% end %>></div>' }
-        # Each attribute gets a marker (_b, _c) to distinguish the branches
-        let(:expected) { "div {   if true;  _b;           else;  _c;           end;   };    " }
+        # Each attribute gets markers: _d/_g for attribute, _c/_f for value literal
+        let(:expected) { "div {   if true;  _d;    _c;    else;  _g;    _f;    end;   };    " }
         # hybrid_code restores attributes from markers
         let(:expected_hybrid) { 'div {   if true;  class="foo"   else;  class="bar"   end;   </div>' }
 
@@ -1233,12 +1233,14 @@ RSpec.describe RuboCop::Herb::Converter do
       end
 
       # Attribute value with multiple static text segments around ERB
+      # Only text AFTER the ERB gets a marker (flag-based detection sets @open_tag_has_erb
+      # when ERB is visited, so preceding text doesn't get markers)
       describe "with attribute value containing ERB surrounded by static text" do
         let(:source) { '<div class="prefix <%= middle %> suffix"></div>' }
-        # Counter starts at 1, so first marker is _b, second is _c
-        let(:expected) { "div {       _b;    _ = middle;  _c;      };    " }
-        # hybrid_code restores "prefix " and " suffix" from markers
-        let(:expected_hybrid) { "div {       prefix _ = middle;   suffix  </div>" }
+        # Only " suffix" (after ERB) gets a _b; marker
+        let(:expected) { "div {              _ = middle;  _b;      };    " }
+        # hybrid_code restores " suffix" but not "prefix " (visited before ERB set the flag)
+        let(:expected_hybrid) { "div {              _ = middle;   suffix  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end

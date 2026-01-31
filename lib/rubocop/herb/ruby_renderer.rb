@@ -43,6 +43,8 @@ module RuboCop
         @ruby_code = bleach_code(parse_result.code)
         @tag_counter = 0
         @html_visualization = html_visualization
+        @rendering_html_open_tag = false
+        @open_tag_has_erb = false
 
         super()
       end
@@ -70,20 +72,22 @@ module RuboCop
       #   def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
       #   def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
-      # Define visit methods for ERB nodes that render code and continue traversal
-      # For nodes with statements, also render markers for HTMLAttributeNode children
+      # Define visit methods for ERB nodes that render code and track open tag ERB presence
+      # @open_tag_has_erb is set when ERB control structures are found inside the current open tag
       %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           render_code_node(node)
-          render_statements_attribute_markers(node) if html_visualization
+          @open_tag_has_erb = true if @rendering_html_open_tag
           super(node)
         end
       end
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
       # Comments are skipped here and rendered later via render_comments
+      # Also sets @open_tag_has_erb when ERB content is found inside an open tag
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
+        @open_tag_has_erb = true if @rendering_html_open_tag
         render_code_node(node) unless node.tag_opening.value == "<%#"
         super
       end
@@ -103,6 +107,18 @@ module RuboCop
         else
           render_open_tag_node(node.open_tag, as_brace: false)
         end
+      end
+
+      # Track when inside an HTML open tag for attribute/literal marker detection
+      # Resets @open_tag_has_erb so only ERB within this open tag's children is considered
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        @rendering_html_open_tag = true
+        saved_open_tag_has_erb = @open_tag_has_erb
+        @open_tag_has_erb = false
+        super
+        @open_tag_has_erb = saved_open_tag_has_erb
+        @rendering_html_open_tag = false
       end
 
       # Visit HTML text nodes (plain text content between tags)
@@ -126,12 +142,25 @@ module RuboCop
         # When html_visualization is disabled and no ERB, comment is bleached (all spaces)
       end
 
-      # Visit HTML attribute value nodes (the value part of attr="value")
-      # When containing ERB, renders markers for LiteralNode children to distinguish branches
-      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
-      def visit_html_attribute_value_node(node) #: void
-        render_attribute_value_literals(node) if html_visualization && erb_child?(node)
+      # Render markers for static attributes inside open tags that contain ERB
+      # When a whole attribute (e.g., class="foo") appears inside an ERB conditional within an open tag,
+      # it gets a marker to distinguish branches
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def visit_html_attribute_node(node) #: void
         super
+        return unless html_visualization && @rendering_html_open_tag && @open_tag_has_erb
+
+        render_location_marker(node) unless contains_erb_location?(node)
+      end
+
+      # Render markers for literal text inside open tags that contain ERB
+      # This captures static text in attribute values mixed with ERB (e.g., " world" in "<%= x %> world")
+      # @rbs node: ::Herb::AST::LiteralNode
+      def visit_literal_node(node) #: void
+        super
+        return unless html_visualization && @rendering_html_open_tag && @open_tag_has_erb
+
+        render_literal_marker(node)
       end
 
       private
@@ -261,13 +290,11 @@ module RuboCop
         render_tag_marker(byte_to_char_pos(node.comment_start.range.from))
       end
 
-      # Render markers for LiteralNode children in an attribute value that contains ERB
-      # This distinguishes branches where attribute values differ by static text
-      # @rbs node: ::Herb::AST::HTMLAttributeValueNode
-      def render_attribute_value_literals(node) #: void
-        node.children.each do |child|
-          render_literal_marker(child) if child.is_a?(::Herb::AST::LiteralNode)
-        end
+      # Render a marker for an HTML node at its start position using location
+      # @rbs node: ::Herb::AST::Node
+      def render_location_marker(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        render_tag_marker(range.from)
       end
 
       # Render a marker for a LiteralNode at its start position
@@ -277,30 +304,6 @@ module RuboCop
         range = NodeRange.location_to_char_range(node.location, source)
         return unless range.from + 3 <= range.to
 
-        render_tag_marker(range.from)
-      end
-
-      # Render markers for HTMLAttributeNode children in ERB statements
-      # This distinguishes branches where attributes are conditionally rendered
-      # @rbs node: ::Herb::AST::Node
-      def render_statements_attribute_markers(node) #: void
-        return unless node.respond_to?(:statements)
-
-        node.statements.each do |stmt|
-          render_attribute_marker(stmt) if stmt.is_a?(::Herb::AST::HTMLAttributeNode)
-        end
-      end
-
-      # Check if a node has any ERBContentNode children
-      # @rbs node: ::Herb::AST::Node
-      def erb_child?(node) #: bool
-        node.children.any? { |child| child.is_a?(::Herb::AST::ERBContentNode) }
-      end
-
-      # Render a marker for an HTMLAttributeNode at its start position
-      # @rbs node: ::Herb::AST::HTMLAttributeNode
-      def render_attribute_marker(node) #: void
-        range = NodeRange.location_to_char_range(node.location, source)
         render_tag_marker(range.from)
       end
 
@@ -352,6 +355,13 @@ module RuboCop
       # @rbs node: html_node
       def contains_erb?(node) #: bool
         parse_result.contains_erb?(NodeRange.compute_char_range(node, parse_result.source))
+      end
+
+      # Check if an HTML node contains ERB using location-based range
+      # @rbs node: ::Herb::AST::Node
+      def contains_erb_location?(node) #: bool
+        range = NodeRange.location_to_char_range(node.location, parse_result.source)
+        parse_result.contains_erb?(range)
       end
     end
   end
