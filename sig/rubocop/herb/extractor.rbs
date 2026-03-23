@@ -11,7 +11,7 @@ module RuboCop
       # @rbs processed_source: ::RuboCop::ProcessedSource
       def initialize: (::RuboCop::ProcessedSource processed_source) -> void
 
-      def call: () -> extractorResult
+      def call: () -> RuboCop::Runner::extractorResult
 
       private
 

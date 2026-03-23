@@ -17,7 +17,7 @@ module RuboCop
         @processed_source = processed_source
       end
 
-      def call #: extractorResult
+      def call #: RuboCop::Runner::extractorResult
         path = processed_source.path
         return unless path && Configuration.supported_file?(path)
 
