@@ -69,13 +69,18 @@ module RuboCop
         @tags = {}
         @source = source
         @html_visualization = html_visualization
+        @rendering_html_open_tag = false
+        @open_tag_has_erb = false
 
         super()
       end
 
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes(node) #: void
-        record_erb_location(node) if erb_node?(node)
+        if erb_node?(node)
+          record_erb_location(node)
+          @open_tag_has_erb = true if @rendering_html_open_tag
+        end
         super
       end
 
@@ -95,6 +100,18 @@ module RuboCop
         record_html_element_tag(node)
       end
 
+      # Track when inside an HTML open tag for attribute/literal marker detection
+      # Resets @open_tag_has_erb so only ERB within this open tag's children is considered
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        @rendering_html_open_tag = true
+        saved_open_tag_has_erb = @open_tag_has_erb
+        @open_tag_has_erb = false
+        super
+        @open_tag_has_erb = saved_open_tag_has_erb
+        @rendering_html_open_tag = false
+      end
+
       # Visit HTML text nodes and collect tag info when html_visualization is enabled
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
@@ -112,6 +129,52 @@ module RuboCop
         return if contains_erb?(node)
 
         record_html_comment_tag(node) if html_visualization
+      end
+
+      # Record static attributes inside open tags that contain ERB
+      # When a whole attribute (e.g., class="foo") appears inside an ERB conditional within an open tag,
+      # it needs to be recorded for hybrid_code restoration
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def visit_html_attribute_node(node) #: void
+        super
+        return unless html_visualization && @rendering_html_open_tag && @open_tag_has_erb
+
+        record_location_tag(node) unless attribute_contains_erb?(node)
+      end
+
+      # Record literal text inside open tags that contain ERB
+      # This captures static text in attribute values mixed with ERB (e.g., " world" in "<%= x %> world")
+      # @rbs node: ::Herb::AST::LiteralNode
+      def visit_literal_node(node) #: void
+        super
+        return unless html_visualization && @rendering_html_open_tag && @open_tag_has_erb
+
+        record_literal_tag(node)
+      end
+
+      # @rbs!
+      #   def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
+      #   def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+      #   def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+      #   def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+      #   def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+      #   def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+      #   def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+      #   def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+      #   def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+      #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+      #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+      #   def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+      #   def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
+      #   def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
+
+      # Track ERB control structures inside open tags
+      # Sets @open_tag_has_erb when ERB control structures are found within the current open tag
+      %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
+        define_method(:"visit_erb_#{type}_node") do |node|
+          @open_tag_has_erb = true if @rendering_html_open_tag
+          super(node)
+        end
       end
 
       private
@@ -171,6 +234,13 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def contains_erb?(node) #: bool
         range = NodeRange.compute_char_range(node, source)
+        erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
+      end
+
+      # Check if an HTML attribute contains ERB nodes
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def attribute_contains_erb?(node) #: bool
+        range = NodeRange.location_to_char_range(node.location, source)
         erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
       end
 
@@ -239,6 +309,23 @@ module RuboCop
       # @rbs node: html_node
       def record_tag(node) #: void
         range = NodeRange.compute_char_range(node, source)
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Record tag info using location (for nodes without tag_opening/tag_closing)
+      # @rbs node: ::Herb::AST::Node
+      def record_location_tag(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Record tag info for a LiteralNode
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def record_literal_tag(node) #: void
+        range = NodeRange.location_to_char_range(node.location, source)
+        return unless range.from + 3 <= range.to
+
         tags[range.from] = Tag.new(range:, restore_source: true)
       end
 

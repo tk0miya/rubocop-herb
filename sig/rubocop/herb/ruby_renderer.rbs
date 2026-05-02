@@ -71,6 +71,7 @@ module RuboCop
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
       # Comments are skipped here and rendered later via render_comments
+      # Also sets @open_tag_has_erb when ERB content is found inside an open tag
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> void
 
@@ -79,6 +80,11 @@ module RuboCop
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
+
+      # Track when inside an HTML open tag for attribute/literal marker detection
+      # Resets @open_tag_has_erb so only ERB within this open tag's children is considered
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node: (::Herb::AST::HTMLOpenTagNode node) -> void
 
       # Visit HTML text nodes (plain text content between tags)
       # Renders underscore at first non-whitespace position to indicate content presence
@@ -90,6 +96,17 @@ module RuboCop
       # Pure HTML comments are rendered as "__;" to indicate content presence (like text nodes)
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def visit_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
+
+      # Render markers for static attributes inside open tags that contain ERB
+      # When a whole attribute (e.g., class="foo") appears inside an ERB conditional within an open tag,
+      # it gets a marker to distinguish branches
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def visit_html_attribute_node: (::Herb::AST::HTMLAttributeNode node) -> void
+
+      # Render markers for literal text inside open tags that contain ERB
+      # This captures static text in attribute values mixed with ERB (e.g., " world" in "<%= x %> world")
+      # @rbs node: ::Herb::AST::LiteralNode
+      def visit_literal_node: (::Herb::AST::LiteralNode node) -> void
 
       private
 
@@ -147,6 +164,15 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
 
+      # Render a marker for an HTML node at its start position using location
+      # @rbs node: ::Herb::AST::Node
+      def render_location_marker: (::Herb::AST::Node node) -> void
+
+      # Render a marker for a LiteralNode at its start position
+      # Requires at least 3 characters to fit the "_x;" marker
+      # @rbs node: ::Herb::AST::LiteralNode
+      def render_literal_marker: (::Herb::AST::LiteralNode node) -> void
+
       # Render tag marker "_x;" at the given position and increment counter
       # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
       # @rbs pos: Integer -- character position in ruby_code
@@ -172,6 +198,10 @@ module RuboCop
       # Check if an HTML node contains ERB
       # @rbs node: html_node
       def contains_erb?: (html_node node) -> bool
+
+      # Check if an HTML node contains ERB using location-based range
+      # @rbs node: ::Herb::AST::Node
+      def contains_erb_location?: (::Herb::AST::Node node) -> bool
     end
   end
 end

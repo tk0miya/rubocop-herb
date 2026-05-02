@@ -1201,6 +1201,49 @@ RSpec.describe RuboCop::Herb::Converter do
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
+
+      # Static text in attribute values should get markers when mixed with ERB
+      # to avoid Lint/DuplicateBranch false positives
+      describe "with if-else containing attribute values with different static text" do
+        let(:source) do
+          '<% if true %><div class="<%= "hello" %>"></div><% else %><div class="<%= "hello" %> world"></div><% end %>'
+        end
+        # The " world" gets a _b; marker to distinguish the branches
+        let(:expected) do
+          '   if true;  div {       _ = "hello";    };       else;  div {       _ = "hello";  _b;     };       end;  '
+        end
+        # hybrid_code restores " world" from the marker
+        let(:expected_hybrid) do
+          '   if true;  div {       _ = "hello";    </div>   else;  div {       _ = "hello";   world  </div>   end;  '
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # Conditional attributes (HTMLAttributeNode in ERB statements) should get markers
+      # to avoid Lint/DuplicateBranch false positives
+      describe "with if-else containing conditional attributes" do
+        let(:source) { '<div <% if true %>class="foo"<% else %>class="bar"<% end %>></div>' }
+        # Each attribute gets markers: _d/_g for attribute, _c/_f for value literal
+        let(:expected) { "div {   if true;  _d;    _c;    else;  _g;    _f;    end;   };    " }
+        # hybrid_code restores attributes from markers
+        let(:expected_hybrid) { 'div {   if true;  class="foo"   else;  class="bar"   end;   </div>' }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # Attribute value with multiple static text segments around ERB
+      # Only text AFTER the ERB gets a marker (flag-based detection sets @open_tag_has_erb
+      # when ERB is visited, so preceding text doesn't get markers)
+      describe "with attribute value containing ERB surrounded by static text" do
+        let(:source) { '<div class="prefix <%= middle %> suffix"></div>' }
+        # Only " suffix" (after ERB) gets a _b; marker
+        let(:expected) { "div {              _ = middle;  _b;      };    " }
+        # hybrid_code restores " suffix" but not "prefix " (visited before ERB set the flag)
+        let(:expected_hybrid) { "div {              _ = middle;   suffix  </div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
     end
   end
 end
