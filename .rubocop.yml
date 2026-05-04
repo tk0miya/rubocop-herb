@@ -5,6 +5,7 @@ AllCops:
   TargetRubyVersion: 3.3
 
 plugins:
+  - rubocop-numbered-params
   - rubocop-rake
   - rubocop-rbs_inline
   - rubocop-rspec

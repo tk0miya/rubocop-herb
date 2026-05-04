@@ -171,7 +171,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def contains_erb?(node) #: bool
         range = NodeRange.compute_char_range(node, source)
-        erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
+        erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
       end
 
       # Check if block notation fits within the open tag space
