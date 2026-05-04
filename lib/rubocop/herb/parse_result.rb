@@ -47,7 +47,7 @@ module RuboCop
       # Check if a range contains any ERB nodes
       # @rbs range: CharRange
       def contains_erb?(range) #: bool
-        erb_locations.keys.any? { |pos| pos >= range.from && pos < range.to }
+        erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
       end
 
       # Get all ERB comment nodes

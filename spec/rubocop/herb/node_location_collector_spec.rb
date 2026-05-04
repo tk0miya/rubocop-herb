@@ -134,7 +134,7 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
 
     describe "html_block_positions" do
       subject(:html_block_positions) do
-        result.html_block_positions.to_set { |n| n.open_tag.tag_opening.range.from }
+        result.html_block_positions.to_set { _1.open_tag.tag_opening.range.from }
       end
 
       context "when html_visualization is disabled" do

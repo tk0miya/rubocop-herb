@@ -7,7 +7,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
     subject(:collected_nodes) { described_class.collect(ast, html_block_positions, html_visualization:) }
 
     # Helper to extract byte positions from collected nodes for easier comparison
-    let(:collected_positions) { collected_nodes.to_set { |n| n.tag_opening.range.from } }
+    let(:collected_positions) { collected_nodes.to_set { _1.tag_opening.range.from } }
 
     let(:ast) { Herb.parse(code) }
     let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
