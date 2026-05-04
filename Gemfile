@@ -6,7 +6,7 @@ source "https://rubygems.org"
 gemspec
 
 gem "irb"
-gem "prism", "~> 1.8"
+gem "prism", "~> 1.9"
 gem "rake", "~> 13.4"
 gem "rbs-inline", "~> 0.13.0"
 gem "rspec", "~> 3.0"
