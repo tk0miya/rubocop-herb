@@ -6,7 +6,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
     return sources unless node.respond_to?(:type)
 
     sources << node.source if node.type == :send
-    node.children.each { |child| sources.concat(collect_send_sources(child)) }
+    node.children.each { sources.concat(collect_send_sources(_1)) }
     sources
   end
 

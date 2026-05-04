@@ -44,7 +44,7 @@ module RuboCop
       # @rbs byte_pos: Integer
       def byte_to_char_pos(byte_pos) #: Integer
         # Binary search to find the line containing byte_pos
-        line_idx = line_byte_offsets.bsearch_index { |offset| offset > byte_pos } || line_byte_offsets.size
+        line_idx = line_byte_offsets.bsearch_index { _1 > byte_pos } || line_byte_offsets.size
         line_idx -= 1 if line_idx.positive?
 
         # Get the starting positions for this line

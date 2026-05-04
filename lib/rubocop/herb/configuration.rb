@@ -66,12 +66,12 @@ module RuboCop
 
         # @rbs path: String
         def supported_file?(path) #: bool
-          @supported_extensions.any? { |ext| path.end_with?(ext) }
+          @supported_extensions.any? { path.end_with?(_1) }
         end
 
         def to_rubocop_config #: Hash[String, untyped]
           # Include both relative and absolute path patterns for glob matching
-          globs = @supported_extensions.flat_map { |ext| ["**/*#{ext}", "/**/*#{ext}"] }
+          globs = @supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
 
           config = { "AllCops" => { "Include" => globs } }
           excluded_cops.each do |cop|
