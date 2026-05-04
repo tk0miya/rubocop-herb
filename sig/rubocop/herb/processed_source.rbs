@@ -18,7 +18,7 @@ module RuboCop
       # @rbs hybrid_code: String
       # @rbs parse_result: ParseResult
       # @rbs parser_engine: Symbol
-      def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, parse_result: ParseResult, ?parser_engine: Symbol) -> untyped
+      def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, parse_result: ParseResult, ?parser_engine: Symbol) -> void
 
       private
 
@@ -27,7 +27,7 @@ module RuboCop
       # @rbs ruby_version: Float
       # @rbs parser_engine: Symbol
       # @rbs prism_result: untyped
-      def parse: (String ruby_code, Float ruby_version, Symbol parser_engine, untyped prism_result) -> untyped
+      def parse: (String ruby_code, Float ruby_version, Symbol parser_engine, untyped prism_result) -> void
 
       def transform_ast: () -> void
     end

@@ -50,10 +50,10 @@ module RuboCop
         "Style/SingleLineDoEndBlock" # Multi-line ERB blocks become single-line when HTML is rendered
       ].freeze #: Array[String]
 
-      # @rbs self.@supported_extensions: Array[String]
-      # @rbs self.@html_visualization: bool
-
       class << self
+        # @rbs @supported_extensions: Array[String]
+        # @rbs @html_visualization: bool
+
         # @rbs config: Hash[String, untyped]
         def setup(config) #: void
           @supported_extensions = config["extensions"] || DEFAULT_EXTENSIONS

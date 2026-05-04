@@ -33,6 +33,7 @@ module RuboCop
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
       #   def byteslice: (::Herb::Range) -> String
       #   def tail_expression?: (::Herb::AST::Node) -> bool
+
       def_delegators :parse_result, :source, :erb_locations, :erb_max_columns, :erb_comment_nodes,
                      :byteslice, :tail_expression?
 
