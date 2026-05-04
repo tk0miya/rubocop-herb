@@ -2,6 +2,7 @@
 
 AllCops:
   NewCops: enable
+  SuggestExtensions: false
   TargetRubyVersion: 3.3
 
 plugins:
@@ -9,6 +10,9 @@ plugins:
   - rubocop-rake
   - rubocop-rbs_inline
   - rubocop-rspec
+
+Layout/LineLength:
+  Max: 120
 
 Layout/LeadingCommentSpace:
   AllowRBSInlineAnnotation: true
