@@ -4,6 +4,6 @@
 
 target :lib do
   signature "sig"
-
   check "lib"
+  implicitly_returns_nil!
 end
