@@ -18,8 +18,8 @@ module RuboCop
       # @rbs hybrid_code: String
       # @rbs parse_result: ParseResult
       # @rbs parser_engine: Symbol
-      def initialize(ruby_code, ruby_version, path = nil, #: void
-                     hybrid_code:, parse_result:, parser_engine: :default)
+      def initialize(ruby_code, ruby_version, path = nil,
+                     hybrid_code:, parse_result:, parser_engine: :default) #: void
         @hybrid_code = hybrid_code
         @parse_result = parse_result
         super(ruby_code, ruby_version, path, parser_engine:)
@@ -32,7 +32,7 @@ module RuboCop
       # @rbs ruby_version: Float
       # @rbs parser_engine: Symbol
       # @rbs prism_result: untyped
-      def parse(ruby_code, ruby_version, parser_engine, prism_result)
+      def parse(ruby_code, ruby_version, parser_engine, prism_result) #: void
         super
         transform_ast if ast && parse_result.tags.any?
       end

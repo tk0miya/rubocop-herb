@@ -5,9 +5,9 @@ module RuboCop
     class Converter
       # Result of converting ERB source
       Result = Data.define(
-        :ruby_code, #: String
-        :hybrid_code, #: String
-        :parse_result #: ParseResult
+        :ruby_code,    #: String
+        :hybrid_code,  #: String
+        :parse_result  #: ParseResult
       )
 
       attr_reader :html_visualization #: bool

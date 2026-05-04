@@ -6,6 +6,7 @@ AllCops:
 
 plugins:
   - rubocop-rake
+  - rubocop-rbs_inline
   - rubocop-rspec
 
 Layout/LeadingCommentSpace:
@@ -38,6 +39,23 @@ RSpec/NestedGroups:
 
 Style/Documentation:
   Enabled: false
+
+Style/RbsInline/MissingTypeAnnotation:
+  EnforcedStyle: doc_style_and_return_annotation
+  Exclude:
+    - "spec/**/*"
+
+Style/RbsInline/RedundantTypeAnnotation:
+  EnforcedStyle: doc_style_and_return_annotation
+  Exclude:
+    - "spec/**/*"
+
+Style/RbsInline/RequireRbsInlineComment:
+  EnforcedStyle: never
+
+Style/RbsInline/UntypedInstanceVariable:
+  Exclude:
+    - "spec/**/*"
 
 Style/HashSyntax:
   EnforcedShorthandSyntax: always

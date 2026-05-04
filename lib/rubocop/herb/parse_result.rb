@@ -15,6 +15,7 @@ module RuboCop
       #   def code: () -> String
       #   def byteslice: (::Herb::Range) -> String
       #   def slice: (CharRange range) -> String
+
       def_delegators :source, :code, :byteslice, :slice
 
       attr_reader :source #: Source
@@ -32,8 +33,8 @@ module RuboCop
       # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
       # @rbs tail_expressions: Set[::Herb::AST::Node]
       # @rbs tags: Hash[Integer, Tag]
-      def initialize(source:, ast:, erb_locations:, erb_max_columns:, #: void
-                     html_block_positions:, tail_expressions:, tags:)
+      def initialize(source:, ast:, erb_locations:, erb_max_columns:,
+                     html_block_positions:, tail_expressions:, tags:) #: void
         @source = source
         @ast = ast
         @erb_locations = erb_locations

@@ -16,7 +16,10 @@ module RuboCop
       # Override to always use import! instead of merge!
       # This is necessary because extracted Ruby code has a different source_buffer
       # than the original ERB file, even when the offset is 0.
-      def collate_corrections(report, offset:, original:)
+      # @rbs report: untyped
+      # @rbs offset: Integer
+      # @rbs original: untyped
+      def collate_corrections(report, offset:, original:) #: Corrector
         corrector = Corrector.new(original)
 
         each_corrector(report) do |to_merge|
