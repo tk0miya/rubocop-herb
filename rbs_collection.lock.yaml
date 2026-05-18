@@ -53,6 +53,10 @@ gems:
   version: '0'
   source:
     type: stdlib
+- name: delegate
+  version: '0'
+  source:
+    type: stdlib
 - name: diff-lcs
   version: '1.5'
   source:
