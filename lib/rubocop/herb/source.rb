@@ -29,13 +29,14 @@ module RuboCop
       # Get a substring by byte range
       # @rbs range: ::Herb::Range
       def byteslice(range) #: String
-        code.byteslice(range.from, range.to - range.from).force_encoding(code.encoding)
+        sliced = code.byteslice(range.from, range.to - range.from) #: String
+        sliced.force_encoding(code.encoding)
       end
 
       # Get a substring by character range
       # @rbs range: CharRange
       def slice(range) #: String
-        code[range.from...range.to]
+        code[range.from...range.to] #: String
       end
 
       # Convert byte position to character position
@@ -48,12 +49,13 @@ module RuboCop
         line_idx -= 1 if line_idx.positive?
 
         # Get the starting positions for this line
-        line_byte_start = line_byte_offsets[line_idx]
-        line_char_start = line_char_offsets[line_idx]
+        line_byte_start = line_byte_offsets.fetch(line_idx)
+        line_char_start = line_char_offsets.fetch(line_idx)
 
         # Only process bytes within this line
         bytes_in_line = byte_pos - line_byte_start
-        chars_in_line = code.byteslice(line_byte_start, bytes_in_line).length
+        line_bytes = code.byteslice(line_byte_start, bytes_in_line) #: String
+        chars_in_line = line_bytes.length
 
         line_char_start + chars_in_line
       end
@@ -73,10 +75,11 @@ module RuboCop
       # @rbs line: Integer -- 1-indexed line number
       # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
       def byte_offset(line, column) #: Integer
-        line_start = line_byte_offsets[line - 1]
+        line_start = line_byte_offsets.fetch(line - 1)
         next_line_start = line_byte_offsets[line] || code.bytesize
-        line_content = code.byteslice(line_start, next_line_start - line_start)
-        line_start + line_content.chars[0, column].join.bytesize
+        line_content = code.byteslice(line_start, next_line_start - line_start) #: String
+        leading_chars = line_content.chars[0, column] #: Array[String]
+        line_start + leading_chars.join.bytesize
       end
 
       # Compute line offsets (both byte and character) for the source code
@@ -84,10 +87,14 @@ module RuboCop
       def compute_line_offsets(code) #: [Array[Integer], Array[Integer]]
         byte_offsets = [0]
         char_offsets = [0]
+        byte_total = 0
+        char_total = 0
 
         code.each_line do |line|
-          byte_offsets << (byte_offsets.last + line.bytesize)
-          char_offsets << (char_offsets.last + line.length)
+          byte_total += line.bytesize
+          char_total += line.length
+          byte_offsets << byte_total
+          char_offsets << char_total
         end
 
         [byte_offsets, char_offsets]

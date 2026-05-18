@@ -52,7 +52,10 @@ module RuboCop
 
       # Get all ERB comment nodes
       def erb_comment_nodes #: Array[::Herb::AST::ERBContentNode]
-        erb_locations.values.select(&:comment?).map(&:node)
+        erb_locations.values.select(&:comment?).filter_map do |loc|
+          node = loc.node
+          node if node.is_a?(::Herb::AST::ERBContentNode)
+        end
       end
 
       # Check if a node is a tail expression (output node at end of returning block)
