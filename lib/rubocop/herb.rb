@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "not_nilable"
+
 # NOTE: require_relative should be sorted in ASCII order
 require_relative "herb/char_range"
 require_relative "herb/configuration"
