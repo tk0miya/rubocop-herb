@@ -4,7 +4,7 @@ module RuboCop
   module Herb
     class Extractor
       # @rbs processed_source: ::RuboCop::ProcessedSource
-      def self.call: (::RuboCop::ProcessedSource processed_source) -> extractorResult
+      def self.call: (::RuboCop::ProcessedSource processed_source) -> ::RuboCop::Runner::extractorResult
 
       attr_reader processed_source: ::RuboCop::ProcessedSource
 

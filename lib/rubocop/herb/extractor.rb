@@ -5,7 +5,7 @@ module RuboCop
     class Extractor
       class << self
         # @rbs processed_source: ::RuboCop::ProcessedSource
-        def call(processed_source) #: extractorResult
+        def call(processed_source) #: ::RuboCop::Runner::extractorResult
           new(processed_source).call
         end
       end
