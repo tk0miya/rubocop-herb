@@ -94,14 +94,14 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def block_html_element?: (::Herb::AST::HTMLElementNode node) -> bool
 
-      # Check if an HTML element contains ERB nodes
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def contains_erb?: (::Herb::AST::HTMLElementNode node) -> bool
+      # Check if a node contains ERB nodes (within its byte range)
+      # @rbs node: ::Herb::AST::Node
+      def contains_erb?: (::Herb::AST::Node node) -> bool
 
       # Check if block notation fits within the open tag space
       # Block notation requires at least 3 bytes beyond tag name for " { "
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def fits_block_notation?: (::Herb::AST::HTMLOpenTagNode node) -> bool
+      # @rbs node: ::Herb::AST::Node?
+      def fits_block_notation?: (::Herb::AST::Node? node) -> bool
 
       # Record tag info for HTML elements
       # For elements with ERB: record open_tag (if it doesn't contain ERB) and close_tag
@@ -120,8 +120,8 @@ module RuboCop
       def record_html_comment_tag: (::Herb::AST::HTMLCommentNode node) -> void
 
       # Record tag info for AST restoration
-      # @rbs node: html_node
-      def record_tag: (html_node node) -> void
+      # @rbs node: ::Herb::AST::Node
+      def record_tag: (::Herb::AST::Node node) -> void
 
       # Check if text contains multi-byte characters
       # @rbs text: String

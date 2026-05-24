@@ -75,7 +75,10 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes(node) #: void
-        record_erb_location(node) if erb_node?(node)
+        if erb_node?(node)
+          erb = node #: erb_node
+          record_erb_location(erb)
+        end
         super
       end
 
@@ -118,7 +121,7 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::Node
       def erb_node?(node) #: bool
-        node.class.name.start_with?("Herb::AST::ERB")
+        node.class.name.not_nil!.start_with?("Herb::AST::ERB")
       end
 
       # Record the location of an ERB node
@@ -139,7 +142,7 @@ module RuboCop
       def update_erb_max_columns(type, line, column) #: void
         return if type == :comment
 
-        erb_max_columns[line] = [erb_max_columns[line] || 0, column].max
+        erb_max_columns[line] = [erb_max_columns[line] || 0, column].max.not_nil!
       end
 
       # Determine the type of an ERB node
@@ -147,7 +150,7 @@ module RuboCop
       def determine_type(node) #: ErbLocation::erb_node_type
         case node
         when ::Herb::AST::ERBContentNode
-          case node.tag_opening.value
+          case node.tag_opening.not_nil!.value
           when "<%#" then :comment
           when "<%=" then :output
           else :content
@@ -162,13 +165,12 @@ module RuboCop
       def block_html_element?(node) #: bool
         return false unless node.close_tag
         return false unless contains_erb?(node)
-        return false unless fits_block_notation?(node.open_tag)
 
-        true
+        fits_block_notation?(node.open_tag)
       end
 
-      # Check if an HTML element contains ERB nodes
-      # @rbs node: ::Herb::AST::HTMLElementNode
+      # Check if a node contains ERB nodes (within its byte range)
+      # @rbs node: ::Herb::AST::Node
       def contains_erb?(node) #: bool
         range = NodeRange.compute_char_range(node, source)
         erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
@@ -176,10 +178,12 @@ module RuboCop
 
       # Check if block notation fits within the open tag space
       # Block notation requires at least 3 bytes beyond tag name for " { "
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      # @rbs node: ::Herb::AST::Node?
       def fits_block_notation?(node) #: bool
-        tag_name = node.tag_name.value
-        tag_length = node.tag_closing.range.to - node.tag_opening.range.from
+        return false unless node.is_a?(::Herb::AST::HTMLOpenTagNode)
+
+        tag_name = node.tag_name.not_nil!.value
+        tag_length = node.tag_closing.not_nil!.range.to - node.tag_opening.not_nil!.range.from
         required_tag_length = tag_name.bytesize + 3 # "tag { " needs tag + " { "
         tag_length >= required_tag_length
       end
@@ -192,8 +196,11 @@ module RuboCop
         if contains_erb?(node)
           # Only restore open tag if it doesn't contain ERB (e.g., ERB in attributes)
           # Restoring tags with ERB causes false positives in Layout/SpaceAroundOperators
-          record_tag(node.open_tag) unless contains_erb?(node.open_tag)
-          record_tag(node.close_tag) if node.close_tag
+          open_tag = node.open_tag
+          record_tag(open_tag) if open_tag && !contains_erb?(open_tag)
+
+          close_tag = node.close_tag
+          record_tag(close_tag) if close_tag
         else
           record_tag(node)
         end
@@ -210,7 +217,7 @@ module RuboCop
         match = text.match(/\S/)
         return unless match
 
-        pos = range.from + match.begin(0)
+        pos = range.from + match.begin(0).not_nil!
         return unless pos + 4 <= range.to
 
         # Skip recording tag info for text with multi-byte characters
@@ -236,7 +243,7 @@ module RuboCop
       end
 
       # Record tag info for AST restoration
-      # @rbs node: html_node
+      # @rbs node: ::Herb::AST::Node
       def record_tag(node) #: void
         range = NodeRange.compute_char_range(node, source)
         tags[range.from] = Tag.new(range:, restore_source: true)

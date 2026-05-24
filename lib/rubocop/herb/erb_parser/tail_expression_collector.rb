@@ -52,9 +52,11 @@ module RuboCop
       # ERB block nodes and loop nodes: return value is discarded
       %i[block for while until].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
+          # @type self: TailExpressionCollector
+          # @type var node: erb_node
           record_node(node)
           push_block
-          super(node)
+          visit_child_nodes(node)
           pop_block
         end
       end
@@ -62,9 +64,11 @@ module RuboCop
       # Control flow nodes that start a statement: returns value, so last output is tail expression
       %i[if unless begin case].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
+          # @type self: TailExpressionCollector
+          # @type var node: erb_node
           record_node(node)
           push_block
-          super(node)
+          visit_child_nodes(node)
           pop_block(returning_value: true)
         end
       end
@@ -72,8 +76,10 @@ module RuboCop
       # Control flow branch nodes: internal to parent statement, not recorded in grandparent
       %i[else when rescue ensure].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
+          # @type self: TailExpressionCollector
+          # @type var node: erb_node
           push_block
-          super(node)
+          visit_child_nodes(node)
           pop_block(returning_value: true)
         end
       end
@@ -102,7 +108,7 @@ module RuboCop
       def visit_html_element_node(node) #: void
         return super unless html_visualization
 
-        record_node(node.open_tag)
+        record_node(node.open_tag.not_nil!)
         if html_block_positions.include?(node)
           push_block
           super

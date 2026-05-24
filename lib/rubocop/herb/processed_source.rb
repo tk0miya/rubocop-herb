@@ -10,7 +10,7 @@ module RuboCop
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
       attr_reader :hybrid_code #: String
       attr_reader :parse_result #: ParseResult
-      attr_reader :ast #: Parser::AST::Node?
+      attr_reader :ast #: RuboCop::AST::Node?
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
