@@ -74,8 +74,10 @@ module RuboCop
       # Define visit methods for ERB nodes that render code and continue traversal
       %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
+          # @type self: RubyRenderer
+          # @type var node: erb_node
           render_code_node(node)
-          super(node)
+          visit_child_nodes(node)
         end
       end
 
@@ -83,7 +85,7 @@ module RuboCop
       # Comments are skipped here and rendered later via render_comments
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
-        render_code_node(node) unless node.tag_opening.value == "<%#"
+        render_code_node(node) unless node.tag_opening.not_nil!.value == "<%#"
         super
       end
 
@@ -98,7 +100,7 @@ module RuboCop
           as_brace = parse_result.html_block_positions.include?(node)
           render_open_tag_node(node.open_tag, as_brace:)
           super
-          render_close_tag_node(node.close_tag, as_brace:) if node.close_tag
+          render_close_tag_node(node.close_tag, as_brace:)
         else
           render_open_tag_node(node.open_tag, as_brace: false)
         end
@@ -127,17 +129,17 @@ module RuboCop
 
       private
 
-      # @rbs node: ::Herb::AST::ERBContentNode
+      # @rbs node: erb_node
       def output_node?(node) #: bool
-        node.tag_opening.value == "<%="
+        node.tag_opening.not_nil!.value == "<%="
       end
 
-      # @rbs node: ::Herb::AST::Node
+      # @rbs node: erb_node
       def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
-        return unless node.respond_to?(:content) && node.content
+        return unless node.content
 
         code = extract_ruby_code(node)
-        range = NodeRange.byte_range_to_char_range(node.content.range, source)
+        range = NodeRange.byte_range_to_char_range(node.content.not_nil!.range, source)
         ruby_code[range.from, code.length] = code
 
         trailing_spaces = code.length - code.rstrip.length
@@ -157,9 +159,9 @@ module RuboCop
         !tail_expression?(node)
       end
 
-      # @rbs node: ::Herb::AST::Node
+      # @rbs node: erb_node
       def render_output_marker(node) #: void
-        pos = byte_to_char_pos(node.tag_opening.range.from)
+        pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
         ruby_code[pos] = "_"
         ruby_code[pos + 1] = " "
         ruby_code[pos + 2] = "="
@@ -168,29 +170,33 @@ module RuboCop
       # Render HTML open tag as Ruby code
       # When as_brace is true, uses brace notation: "div { "
       # Otherwise, uses semicolon notation: "div; "
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      # @rbs node: ::Herb::AST::Node?
       # @rbs as_brace: bool
       def render_open_tag_node(node, as_brace:) #: void
-        tag_name = node.tag_name.value
+        return unless node.is_a?(::Herb::AST::HTMLOpenTagNode)
+
+        tag_name = node.tag_name.not_nil!.value
         code = as_brace ? "#{tag_name} { " : "#{tag_name}; "
 
-        start_pos = byte_to_char_pos(node.tag_opening.range.from)
+        start_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
         ruby_code[start_pos, code.length] = code
       end
 
       # Render HTML close tag as Ruby code
       # When as_brace is true, renders "};" to ensure valid Ruby after block
       # Otherwise, renders "tagN; " with counter to distinguish closing tags
-      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      # @rbs node: ::Herb::AST::Node?
       # @rbs as_brace: bool
       def render_close_tag_node(node, as_brace:) #: void
-        start_pos = byte_to_char_pos(node.tag_opening.range.from)
+        return unless node.is_a?(::Herb::AST::HTMLCloseTagNode)
+
+        start_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
 
         if as_brace
           ruby_code[start_pos] = "}"
           ruby_code[start_pos + 1] = ";"
         else
-          tag_name = node.tag_name.value
+          tag_name = node.tag_name.not_nil!.value
           code = "#{tag_name}#{next_tag_counter}; "
           ruby_code[start_pos, code.length] = code
         end
@@ -207,7 +213,7 @@ module RuboCop
         match = text.match(/\S/)
         return unless match
 
-        pos = range.from + match.begin(0)
+        pos = range.from + match.begin(0).not_nil!
         return unless pos + 4 <= range.to
 
         render_tag_marker(pos)
@@ -228,17 +234,17 @@ module RuboCop
         line = node.location.end.line
         return true unless erb_max_columns.key?(line)
 
-        node.location.start.column >= erb_max_columns[line]
+        node.location.start.column >= erb_max_columns[line].not_nil!
       end
 
       # @rbs node: ::Herb::AST::ERBContentNode
       def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
-        hash_pos = byte_to_char_pos(node.tag_opening.range.to - 1)
+        hash_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to - 1)
         ruby_code[hash_pos] = "#"
 
         code = extract_ruby_code(node)
-        range = node.content.range
-        hash_column = node.tag_opening.location.start.column + 2
+        range = node.content.not_nil!.range
+        hash_column = node.tag_opening.not_nil!.location.start.column + 2
         formatted_code = format_multiline_comment(code, hash_column)
         char_from = byte_to_char_pos(range.from)
         ruby_code[char_from, formatted_code.length] = formatted_code
@@ -249,7 +255,7 @@ module RuboCop
       # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
-        render_tag_marker(byte_to_char_pos(node.comment_start.range.from))
+        render_tag_marker(byte_to_char_pos(node.comment_start.not_nil!.range.from))
       end
 
       # Render tag marker "_x;" at the given position and increment counter
@@ -291,9 +297,9 @@ module RuboCop
         source.byte_to_char_pos(byte_pos)
       end
 
-      # @rbs node: ::Herb::AST::Node
+      # @rbs node: erb_node
       def extract_ruby_code(node) #: String
-        byteslice(node.content.range)
+        byteslice(node.content.not_nil!.range)
       end
 
       # Check if an HTML node contains ERB
