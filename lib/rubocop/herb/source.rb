@@ -29,14 +29,14 @@ module RuboCop
       # Get a substring by byte range
       # @rbs range: ::Herb::Range
       def byteslice(range) #: String
-        sliced = code.byteslice(range.from, range.to - range.from) #: String
+        sliced = code.byteslice(range.from, range.to - range.from).not_nil!
         sliced.force_encoding(code.encoding)
       end
 
       # Get a substring by character range
       # @rbs range: CharRange
       def slice(range) #: String
-        code[range.from...range.to] #: String
+        code[range.from...range.to].not_nil!
       end
 
       # Convert byte position to character position
@@ -54,8 +54,7 @@ module RuboCop
 
         # Only process bytes within this line
         bytes_in_line = byte_pos - line_byte_start
-        line_bytes = code.byteslice(line_byte_start, bytes_in_line) #: String
-        chars_in_line = line_bytes.length
+        chars_in_line = code.byteslice(line_byte_start, bytes_in_line).not_nil!.length
 
         line_char_start + chars_in_line
       end
@@ -77,9 +76,8 @@ module RuboCop
       def byte_offset(line, column) #: Integer
         line_start = line_byte_offsets.fetch(line - 1)
         next_line_start = line_byte_offsets[line] || code.bytesize
-        line_content = code.byteslice(line_start, next_line_start - line_start) #: String
-        leading_chars = line_content.chars[0, column] #: Array[String]
-        line_start + leading_chars.join.bytesize
+        line_content = code.byteslice(line_start, next_line_start - line_start).not_nil!
+        line_start + line_content.chars[0, column].not_nil!.join.bytesize
       end
 
       # Compute line offsets (both byte and character) for the source code
