@@ -53,6 +53,14 @@ gems:
   version: '0'
   source:
     type: stdlib
+- name: dbm
+  version: '0'
+  source:
+    type: stdlib
+- name: delegate
+  version: '0'
+  source:
+    type: stdlib
 - name: diff-lcs
   version: '1.5'
   source:
@@ -137,6 +145,10 @@ gems:
   version: 0.3.0
   source:
     type: rubygems
+- name: not_nilable
+  version: 1.0.0
+  source:
+    type: rubygems
 - name: openssl
   version: '0'
   source:
@@ -173,6 +185,14 @@ gems:
   version: 1.9.0
   source:
     type: rubygems
+- name: pstore
+  version: '0'
+  source:
+    type: stdlib
+- name: psych
+  version: '0'
+  source:
+    type: stdlib
 - name: rainbow
   version: '3.0'
   source:
