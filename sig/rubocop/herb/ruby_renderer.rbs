@@ -93,11 +93,11 @@ module RuboCop
 
       private
 
-      # @rbs node: ::Herb::AST::ERBContentNode
-      def output_node?: (::Herb::AST::ERBContentNode node) -> bool
+      # @rbs node: erb_node
+      def output_node?: (erb_node node) -> bool
 
-      # @rbs node: ::Herb::AST::Node
-      def render_code_node: (::Herb::AST::Node node) -> void
+      # @rbs node: erb_node
+      def render_code_node: (erb_node node) -> void
 
       # Check if output node needs _ = marker
       # When html_visualization is disabled, always add marker to avoid Lint/Void false positives
@@ -105,22 +105,22 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def needs_output_marker?: (::Herb::AST::Node node) -> bool
 
-      # @rbs node: ::Herb::AST::Node
-      def render_output_marker: (::Herb::AST::Node node) -> void
+      # @rbs node: erb_node
+      def render_output_marker: (erb_node node) -> void
 
       # Render HTML open tag as Ruby code
       # When as_brace is true, uses brace notation: "div { "
       # Otherwise, uses semicolon notation: "div; "
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      # @rbs node: ::Herb::AST::Node?
       # @rbs as_brace: bool
-      def render_open_tag_node: (::Herb::AST::HTMLOpenTagNode node, as_brace: bool) -> void
+      def render_open_tag_node: (::Herb::AST::Node? node, as_brace: bool) -> void
 
       # Render HTML close tag as Ruby code
       # When as_brace is true, renders "};" to ensure valid Ruby after block
       # Otherwise, renders "tagN; " with counter to distinguish closing tags
-      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      # @rbs node: ::Herb::AST::Node?
       # @rbs as_brace: bool
-      def render_close_tag_node: (::Herb::AST::HTMLCloseTagNode node, as_brace: bool) -> void
+      def render_close_tag_node: (::Herb::AST::Node? node, as_brace: bool) -> void
 
       # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
@@ -166,8 +166,8 @@ module RuboCop
       # @rbs byte_pos: Integer
       def byte_to_char_pos: (Integer byte_pos) -> Integer
 
-      # @rbs node: ::Herb::AST::Node
-      def extract_ruby_code: (::Herb::AST::Node node) -> String
+      # @rbs node: erb_node
+      def extract_ruby_code: (erb_node node) -> String
 
       # Check if an HTML node contains ERB
       # @rbs node: html_node
