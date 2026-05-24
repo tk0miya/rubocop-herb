@@ -10,7 +10,7 @@ module RuboCop
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
       attr_reader :hybrid_code #: String
       attr_reader :parse_result #: ParseResult
-      attr_reader :ast #: ::AST::Node?
+      attr_reader :ast #: Parser::AST::Node?
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
@@ -38,6 +38,8 @@ module RuboCop
       end
 
       def transform_ast #: void
+        return unless ast
+
         buffer.instance_variable_set(:@source, hybrid_code)
         @ast = RuboCopASTTransformer.transform(ast, parse_result)
       end
