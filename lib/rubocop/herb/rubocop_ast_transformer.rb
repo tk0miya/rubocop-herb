@@ -10,7 +10,7 @@ module RuboCop
       # Transform AST to restore original HTML tag information
       # @rbs ast: Parser::AST::Node
       # @rbs parse_result: ParseResult
-      def self.transform(ast, parse_result) #: Parser::AST::Node
+      def self.transform(ast, parse_result) #: Parser::AST::Node?
         new(parse_result).process(ast)
       end
 
@@ -23,8 +23,8 @@ module RuboCop
       end
 
       # Process send nodes which represent HTML tags (e.g., div, p0)
-      # @rbs node: RuboCop::AST::SendNode
-      def on_send(node) #: RuboCop::AST::SendNode
+      # @rbs node: Parser::AST::Node
+      def on_send(node) #: Parser::AST::Node
         new_node = super
         restore_html_location(new_node)
       end

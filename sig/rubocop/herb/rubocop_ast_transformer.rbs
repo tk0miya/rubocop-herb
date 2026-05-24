@@ -8,7 +8,7 @@ module RuboCop
       # Transform AST to restore original HTML tag information
       # @rbs ast: Parser::AST::Node
       # @rbs parse_result: ParseResult
-      def self.transform: (Parser::AST::Node ast, ParseResult parse_result) -> Parser::AST::Node
+      def self.transform: (Parser::AST::Node ast, ParseResult parse_result) -> Parser::AST::Node?
 
       attr_reader parse_result: ParseResult
 
@@ -16,8 +16,8 @@ module RuboCop
       def initialize: (ParseResult parse_result) -> void
 
       # Process send nodes which represent HTML tags (e.g., div, p0)
-      # @rbs node: RuboCop::AST::SendNode
-      def on_send: (RuboCop::AST::SendNode node) -> RuboCop::AST::SendNode
+      # @rbs node: Parser::AST::Node
+      def on_send: (Parser::AST::Node node) -> Parser::AST::Node
 
       private
 

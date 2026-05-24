@@ -1,0 +1,17 @@
+# Supplemental signatures for the `parser` gem.
+#
+# The version shipped via rbs_collection does not declare `#initialize` for
+# Parser::Source::Map or Parser::Source::Map::Send. We use both constructors
+# in RuboCopASTTransformer, so declare them here.
+
+module Parser
+  module Source
+    class Map
+      def initialize: (Range expression) -> void
+    end
+
+    class Map::Send < Map
+      def initialize: (Range? dot_l, Range selector_l, Range? begin_l, Range? end_l, Range expression_l) -> void
+    end
+  end
+end

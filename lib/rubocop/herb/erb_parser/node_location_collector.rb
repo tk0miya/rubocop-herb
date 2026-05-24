@@ -203,7 +203,7 @@ module RuboCop
       # Text nodes with multi-byte characters are skipped
       # @rbs node: ::Herb::AST::HTMLTextNode
       def record_text_node_tag(node) #: void
-        range = NodeRange.location_to_char_range(node.location, source)
+        range = NodeRange.compute_char_range(node, source)
         text = source.slice(range)
 
         # Must have non-whitespace content and enough space for marker
