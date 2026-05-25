@@ -1,44 +1,20 @@
 ---
 path: ".gem_rbs_collection"
 gems:
-- name: activesupport
-  version: '7.0'
-  source:
-    type: git
-    name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
-    remote: https://github.com/ruby/gem_rbs_collection.git
-    repo_dir: gems
 - name: ast
   version: '2.4'
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
-- name: base64
-  version: 0.3.0
-  source:
-    type: rubygems
-- name: bigdecimal
-  version: 4.1.2
-  source:
-    type: rubygems
 - name: concurrent-ruby
   version: '1.1'
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
-    remote: https://github.com/ruby/gem_rbs_collection.git
-    repo_dir: gems
-- name: connection_pool
-  version: '2.4'
-  source:
-    type: git
-    name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: csv
@@ -46,17 +22,9 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
-- name: date
-  version: '0'
-  source:
-    type: stdlib
-- name: dbm
-  version: '0'
-  source:
-    type: stdlib
 - name: delegate
   version: '0'
   source:
@@ -66,19 +34,11 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
-- name: digest
-  version: '0'
-  source:
-    type: stdlib
-- name: erb
-  version: '0'
-  source:
-    type: stdlib
 - name: ffi
-  version: 1.17.3
+  version: 1.17.4
   source:
     type: rubygems
 - name: fileutils
@@ -93,14 +53,6 @@ gems:
   version: 0.10.1
   source:
     type: rubygems
-- name: i18n
-  version: '1.10'
-  source:
-    type: git
-    name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
-    remote: https://github.com/ruby/gem_rbs_collection.git
-    repo_dir: gems
 - name: io-console
   version: '0'
   source:
@@ -114,7 +66,7 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: listen
@@ -122,37 +74,25 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: logger
-  version: '0'
-  source:
-    type: stdlib
-- name: minitest
-  version: '5.25'
+  version: '1.7'
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: monitor
   version: '0'
   source:
     type: stdlib
-- name: mutex_m
-  version: 0.3.0
-  source:
-    type: rubygems
 - name: not_nilable
   version: 1.0.0
   source:
     type: rubygems
-- name: openssl
-  version: '0'
-  source:
-    type: stdlib
 - name: optparse
   version: '0'
   source:
@@ -162,7 +102,7 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: parser
@@ -170,7 +110,7 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: pp
@@ -185,20 +125,12 @@ gems:
   version: 1.9.0
   source:
     type: rubygems
-- name: pstore
-  version: '0'
-  source:
-    type: stdlib
-- name: psych
-  version: '0'
-  source:
-    type: stdlib
 - name: rainbow
   version: '3.0'
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: rake
@@ -206,15 +138,19 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
+- name: random-formatter
+  version: '0'
+  source:
+    type: stdlib
 - name: rbs
-  version: 3.10.4
+  version: 4.0.2
   source:
     type: rubygems
 - name: rbs-inline
-  version: 0.13.0
+  version: 0.14.0
   source:
     type: rubygems
 - name: rdoc
@@ -226,7 +162,7 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: rubocop
@@ -234,7 +170,7 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: rubocop-ast
@@ -242,7 +178,7 @@ gems:
   source:
     type: git
     name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
+    revision: 3f5e8df1ce89ea06067fa42263012c968b4e583e
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: rubocop-numbered-params
@@ -250,18 +186,10 @@ gems:
   source:
     type: rubygems
 - name: rubocop-rbs_inline
-  version: 1.5.4
+  version: 1.5.5
   source:
     type: rubygems
 - name: securerandom
-  version: '0'
-  source:
-    type: stdlib
-- name: singleton
-  version: '0'
-  source:
-    type: stdlib
-- name: socket
   version: '0'
   source:
     type: stdlib
@@ -273,26 +201,10 @@ gems:
   version: '0'
   source:
     type: stdlib
-- name: time
-  version: '0'
-  source:
-    type: stdlib
-- name: timeout
-  version: '0'
-  source:
-    type: stdlib
 - name: tsort
   version: '0'
   source:
     type: stdlib
-- name: tzinfo
-  version: '2.0'
-  source:
-    type: git
-    name: ruby/gem_rbs_collection
-    revision: 81fa8bd0617286078617a62b6a3229cebfd4af23
-    remote: https://github.com/ruby/gem_rbs_collection.git
-    repo_dir: gems
 - name: uri
   version: '0'
   source:
