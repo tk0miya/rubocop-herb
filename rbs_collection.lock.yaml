@@ -25,6 +25,10 @@ gems:
     revision: 5689759efdc7875d533e8e5b2376b4ab89472e36
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
+- name: dbm
+  version: '0'
+  source:
+    type: stdlib
 - name: delegate
   version: '0'
   source:
@@ -37,6 +41,10 @@ gems:
     revision: 5689759efdc7875d533e8e5b2376b4ab89472e36
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
+- name: erb
+  version: '0'
+  source:
+    type: stdlib
 - name: ffi
   version: 1.17.4
   source:
@@ -97,14 +105,6 @@ gems:
   version: '0'
   source:
     type: stdlib
-- name: parallel
-  version: '1.20'
-  source:
-    type: git
-    name: ruby/gem_rbs_collection
-    revision: 5689759efdc7875d533e8e5b2376b4ab89472e36
-    remote: https://github.com/ruby/gem_rbs_collection.git
-    repo_dir: gems
 - name: parser
   version: '3.2'
   source:
@@ -125,6 +125,18 @@ gems:
   version: 1.9.0
   source:
     type: rubygems
+- name: pstore
+  version: '0.2'
+  source:
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: fd96033ab2a1d6d3cbb5a7a993ba3d52877c81d7
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
+- name: psych
+  version: '0'
+  source:
+    type: stdlib
 - name: rainbow
   version: '3.0'
   source:
