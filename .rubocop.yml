@@ -10,15 +10,24 @@ plugins:
   - rubocop-rbs_inline
   - rubocop-rspec
 
-Layout/LineLength:
-  Max: 120
-
+# Layout
 Layout/LeadingCommentSpace:
   AllowRBSInlineAnnotation: true
   AllowSteepAnnotation: true
 
+Layout/LineLength:
+  Max: 120
+
+# Metrics
 Metrics/AbcSize:
   Max: 20
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*_spec.rb"
+
+Metrics/ClassLength:
+  Max: 200
 
 Metrics/MethodLength:
   Max: 30
@@ -26,6 +35,7 @@ Metrics/MethodLength:
 Metrics/ParameterLists:
   Max: 8
 
+# RSpec
 RSpec/ExampleLength:
   Enabled: false
 
@@ -41,9 +51,7 @@ RSpec/NamedSubject:
 RSpec/NestedGroups:
   Max: 5
 
-Style/Documentation:
-  Enabled: false
-
+# RbsInline
 Style/RbsInline/MissingTypeAnnotation:
   EnforcedStyle: doc_style_and_return_annotation
   Exclude:
@@ -60,6 +68,16 @@ Style/RbsInline/RequireRbsInlineComment:
 Style/RbsInline/UntypedInstanceVariable:
   Exclude:
     - "spec/**/*"
+
+# Style
+Style/AccessorGrouping:
+  Enabled: false
+
+Style/CommentedKeyword:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
 
 Style/HashSyntax:
   EnforcedShorthandSyntax: always

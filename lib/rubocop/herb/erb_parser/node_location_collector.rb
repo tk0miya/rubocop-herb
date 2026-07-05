@@ -7,7 +7,7 @@ module RuboCop
     # Visitor that collects both ERB locations and HTML block positions in a single AST traversal.
     # Combines the functionality of ErbLocationCollector and HtmlBlockCollector.
     # Also collects HTML tags when html_visualization is enabled.
-    class NodeLocationCollector < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
+    class NodeLocationCollector < ::Herb::Visitor
       NODE_TYPE_MAP = { #: Hash[Class, ErbLocation::erb_node_type]
         ::Herb::AST::ERBBlockNode => :block,
         ::Herb::AST::ERBIfNode => :if,
