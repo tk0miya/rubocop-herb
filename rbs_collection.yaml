@@ -21,3 +21,6 @@ path: .gem_rbs_collection
 gems:
   # For herb gem
   - name: delegate
+  # herb gem ships its own vendored RBS for parallel; ignore the collection copy
+  - name: parallel
+    ignore: true
