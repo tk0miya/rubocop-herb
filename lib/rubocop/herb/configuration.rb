@@ -6,6 +6,9 @@ module RuboCop
     module Configuration
       DEFAULT_EXTENSIONS = %w[.html.erb].freeze #: Array[String]
 
+      # @rbs self.@supported_extensions: Array[String]
+      # @rbs self.@html_visualization: bool
+
       # Cops to exclude from ERB files due to inherent incompatibilities
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
@@ -51,9 +54,6 @@ module RuboCop
       ].freeze #: Array[String]
 
       class << self
-        # @rbs @supported_extensions: Array[String]
-        # @rbs @html_visualization: bool
-
         # @rbs config: Hash[String, untyped]
         def setup(config) #: void
           @supported_extensions = config["extensions"] || DEFAULT_EXTENSIONS

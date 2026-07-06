@@ -6,6 +6,10 @@ module RuboCop
     module Configuration
       DEFAULT_EXTENSIONS: Array[String]
 
+      self.@supported_extensions: Array[String]
+
+      self.@html_visualization: bool
+
       # Cops to exclude from ERB files due to inherent incompatibilities
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS: Array[String]
@@ -17,10 +21,6 @@ module RuboCop
       # Cops excluded when HTML visualization is enabled.
       # HTML tags rendered as Ruby identifiers cause false positives.
       HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS: Array[String]
-
-      @supported_extensions: Array[String]
-
-      @html_visualization: bool
 
       # @rbs config: Hash[String, untyped]
       def self.setup: (Hash[String, untyped] config) -> void
