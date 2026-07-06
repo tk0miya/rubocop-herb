@@ -9,7 +9,7 @@ module RuboCop
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
     # Comments are retrieved from ParseResult and rendered at the end
     # with filtering applied.
-    class RubyRenderer < ::Herb::Visitor # rubocop:disable Metrics/ClassLength
+    class RubyRenderer < ::Herb::Visitor
       extend Forwardable
 
       # Render ERB source to Ruby code
