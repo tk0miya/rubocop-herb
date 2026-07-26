@@ -101,7 +101,7 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
-    rubocop-rbs_inline (1.6.1)
+    rubocop-rbs_inline (1.8.0)
       lint_roller (~> 1.1)
       rbs-inline
       rubocop (>= 1.72.1, < 2.0)
@@ -205,7 +205,7 @@ CHECKSUMS
   rubocop-herb (0.1.0)
   rubocop-numbered-params (1.0.1) sha256=dbafa50e23dfd30987da0f5f79424890be8764af6fa94fd2779520efcb2bc02a
   rubocop-rake (0.7.1) sha256=3797f2b6810c3e9df7376c26d5f44f3475eda59eb1adc38e6f62ecf027cbae4d
-  rubocop-rbs_inline (1.6.1) sha256=b08726516a1311c8b59accdc4a41dd9962b09aff5722f975e6b9a566ace78a1a
+  rubocop-rbs_inline (1.8.0) sha256=d7423ce247bf90a22221cb2aed9868aa6f80af6c1532c810bb021f1ef94c0c66
   rubocop-rspec (3.10.2) sha256=0b3e2ecc592cd10ecbf0095bb58d1e357905276e069643523cc19eb7495f65e2
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
