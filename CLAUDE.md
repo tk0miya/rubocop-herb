@@ -8,7 +8,7 @@ rubocop-herb is a RuboCop plugin gem for linting HTML + ERB files. It extracts R
 
 ## Setup for Claude Code on the Web
 
-When using Claude Code on the web (claude.ai/code), the environment is automatically configured by the SessionStart hook (`.claude/hooks/setup.sh`). This initializes rbenv with Ruby 3.3.6 and installs dependencies.
+When using Claude Code on the web (claude.ai/code), the environment is automatically configured by the SessionStart hook (`.claude/hooks/claude-code-web-session-start.sh`). This initializes rbenv, installs dependencies and installs the RBS collection.
 
 ## Common Commands
 
