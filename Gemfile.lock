@@ -109,6 +109,10 @@ GEM
       lint_roller (~> 1.1)
       regexp_parser (>= 2.0)
       rubocop (~> 1.86, >= 1.86.2)
+    rubocop-rspec-unused-let (1.2.0)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.72)
+      rubocop-rspec (~> 3.0)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
     steep (2.0.0)
@@ -154,6 +158,7 @@ DEPENDENCIES
   rubocop-rake (~> 0.7.1)
   rubocop-rbs_inline
   rubocop-rspec (~> 3.10)
+  rubocop-rspec-unused-let
   steep (~> 2.0)
 
 CHECKSUMS
@@ -207,6 +212,7 @@ CHECKSUMS
   rubocop-rake (0.7.1) sha256=3797f2b6810c3e9df7376c26d5f44f3475eda59eb1adc38e6f62ecf027cbae4d
   rubocop-rbs_inline (2.0.0) sha256=2131e1e95feccb7be253000f15d1ddfa7aff344d39e38d4b48fcf412a5c1992c
   rubocop-rspec (3.10.2) sha256=0b3e2ecc592cd10ecbf0095bb58d1e357905276e069643523cc19eb7495f65e2
+  rubocop-rspec-unused-let (1.2.0) sha256=4538e52586ff2daf95a7e8ce3a1da4f9867369cd9f631bf61afe81f7ecc5ed7c
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   steep (2.0.0) sha256=6eb0ecc09637bbb54f0a5f2cf63daea6d3208ccace64b4f1107d976333605c30
