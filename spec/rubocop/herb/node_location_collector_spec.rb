@@ -245,12 +245,9 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         context "with HTML element containing ERB" do
           let(:code) { "<div class=\"x\"><%= hello %></div>" }
 
-          it "collects ERB tag and HTML tags" do
+          it "collects ERB tag and HTML tags with correct restore_source" do
             # open_tag at 0, ERB at 15, close_tag at 27
             expect(tags.keys.sort).to eq [0, 15, 27]
-          end
-
-          it "sets restore_source correctly" do
             expect(tags[15].restore_source).to be false # ERB
             expect(tags[0].restore_source).to be true   # open_tag
             expect(tags[27].restore_source).to be true  # close_tag
