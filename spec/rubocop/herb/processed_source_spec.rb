@@ -21,13 +21,11 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       )
     end
 
-    it "restores original HTML source in send nodes" do
+    it "restores original HTML source in send nodes as a RuboCop AST Node" do
+      expect(processed_source.ast).to be_a(RuboCop::AST::Node)
+
       sources = collect_send_sources(processed_source.ast)
       expect(sources).to eq(["<div>", "</div>"])
-    end
-
-    it "returns RuboCop AST Node" do
-      expect(processed_source.ast).to be_a(RuboCop::AST::Node)
     end
   end
 
