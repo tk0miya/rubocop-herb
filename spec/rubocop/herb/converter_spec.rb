@@ -28,8 +28,10 @@ RSpec.describe RuboCop::Herb::Converter do
       end
     end
 
-    it "keeps ruby_code and hybrid_code the same length" do
-      expect(subject.ruby_code.length).to eq(subject.hybrid_code.length)
+    describe "ruby_code and hybrid_code" do
+      it "have the same length" do
+        expect(subject.ruby_code.length).to eq(subject.hybrid_code.length)
+      end
     end
   end
 
