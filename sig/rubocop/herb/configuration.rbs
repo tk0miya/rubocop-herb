@@ -6,8 +6,6 @@ module RuboCop
     module Configuration
       DEFAULT_EXTENSIONS: Array[String]
 
-      self.@supported_extensions: Array[String]
-
       self.@html_visualization: bool
 
       # Cops to exclude from ERB files due to inherent incompatibilities
@@ -34,9 +32,7 @@ module RuboCop
 
       def self.excluded_cops: () -> Array[String]
 
-      # attr_reader here would be simpler, but rbs-inline doesn't emit `self.`
-      # for an attr_reader nested inside `class << self`.
-      private def self.supported_extensions: () -> Array[String]
+      private attr_reader self.supported_extensions: Array[String]
     end
   end
 end
