@@ -33,13 +33,10 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
   end
 
   shared_examples "an ERB autocorrector" do
-    it "corrects the offense" do
+    it "corrects the offense while producing valid ERB" do
       runner.run(path, source, { autocorrect: true })
-      expect(runner.formatted_source).to eq expected
-    end
 
-    it "produces valid ERB" do
-      runner.run(path, source, { autocorrect: true })
+      expect(runner.formatted_source).to eq expected
       expect { ERB.new(runner.formatted_source) }.not_to raise_error
     end
   end
