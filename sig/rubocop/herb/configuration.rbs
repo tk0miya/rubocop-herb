@@ -33,6 +33,10 @@ module RuboCop
       def self.to_rubocop_config: () -> Hash[String, untyped]
 
       def self.excluded_cops: () -> Array[String]
+
+      # attr_reader here would be simpler, but rbs-inline doesn't emit `self.`
+      # for an attr_reader nested inside `class << self`.
+      private def self.supported_extensions: () -> Array[String]
     end
   end
 end

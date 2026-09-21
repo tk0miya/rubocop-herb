@@ -66,12 +66,12 @@ module RuboCop
 
         # @rbs path: String
         def supported_file?(path) #: bool
-          @supported_extensions.any? { path.end_with?(_1) }
+          supported_extensions.any? { path.end_with?(_1) }
         end
 
         def to_rubocop_config #: Hash[String, untyped]
           # Include both relative and absolute path patterns for glob matching
-          globs = @supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
+          globs = supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
 
           config = { "AllCops" => { "Include" => globs } }
           excluded_cops.each do |cop|
@@ -88,6 +88,14 @@ module RuboCop
             cops.concat(HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS)
           end
           cops
+        end
+
+        private
+
+        # attr_reader here would be simpler, but rbs-inline doesn't emit `self.`
+        # for an attr_reader nested inside `class << self`.
+        def supported_extensions #: Array[String] # rubocop:disable Style/TrivialAccessors
+          @supported_extensions
         end
       end
     end
