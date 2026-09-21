@@ -6,7 +6,6 @@ module RuboCop
     module Configuration
       DEFAULT_EXTENSIONS = %w[.html.erb].freeze #: Array[String]
 
-      # @rbs self.@supported_extensions: Array[String]
       # @rbs self.@html_visualization: bool
 
       # Cops to exclude from ERB files due to inherent incompatibilities
@@ -66,12 +65,12 @@ module RuboCop
 
         # @rbs path: String
         def supported_file?(path) #: bool
-          @supported_extensions.any? { path.end_with?(_1) }
+          supported_extensions.any? { path.end_with?(_1) }
         end
 
         def to_rubocop_config #: Hash[String, untyped]
           # Include both relative and absolute path patterns for glob matching
-          globs = @supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
+          globs = supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
 
           config = { "AllCops" => { "Include" => globs } }
           excluded_cops.each do |cop|
@@ -89,6 +88,16 @@ module RuboCop
           end
           cops
         end
+
+        private
+
+        # rbs-inline emits attr_reader as an instance reader regardless of
+        # nesting inside `class << self`, so declare the singleton reader by hand.
+        # @rbs skip
+        attr_reader :supported_extensions #: Array[String]
+
+        # @rbs!
+        #   private attr_reader self.supported_extensions: Array[String]
       end
     end
   end
