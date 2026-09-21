@@ -44,7 +44,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
       context "with output node in case-when block" do
         let(:code) { "<% case x %><% when 1 %><%= a %><% when 2 %><%= b %><% end %>" }
 
-        it "collects tail expressions from each when branch" do
+        it "collects tail expressions from each `when` branch" do
           expect(collected_positions).to eq Set[24, 44] # <%= a %>, <%= b %>
         end
       end
@@ -100,7 +100,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
       context "with nested if inside each" do
         let(:code) { "<% items.each do |item| %><% if item.valid? %><%= item %><% end %><% end %>" }
 
-        it "collects tail expression from inner if" do
+        it "collects tail expression from inner `if`" do
           expect(collected_positions).to eq Set[46] # <%= item %>
         end
       end
@@ -108,7 +108,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
       context "with output node followed by if block" do
         let(:code) { "<% if outer %><%= hello %><% if inner %><%= world %><% end %><% end %>" }
 
-        it "does not collect output node before nested if as tail expression" do
+        it "does not collect output node before nested `if` as tail expression" do
           # <%= hello %> is NOT a tail expression because <% if inner %>...<% end %> follows it
           # <%= world %> IS a tail expression of the inner if
           # The inner if block IS the tail expression of the outer if

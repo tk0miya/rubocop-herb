@@ -60,7 +60,7 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       context "with ERB if tag" do
         let(:code) { "<% if true %><%= value %><% end %>" }
 
-        it "sets type to :if for if node" do
+        it "sets type to :if for `if` node" do
           expect(erb_locations.values.first.type).to eq(:if)
         end
       end
