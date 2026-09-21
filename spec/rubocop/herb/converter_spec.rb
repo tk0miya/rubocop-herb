@@ -6,33 +6,30 @@ require "prism"
 
 RSpec.describe RuboCop::Herb::Converter do
   shared_examples "a Ruby code extractor for ERB" do
-    it "collects Ruby parts from ERB" do
-      expect(subject.ruby_code).to eq(expected)
+    describe "ruby_code" do
+      it "matches the expected code, preserves source length, and is valid Ruby" do
+        expect(subject.ruby_code).to eq(expected)
+        expect(subject.ruby_code.length).to eq(source.length)
+
+        # Skip for yield tests - yield is not valid Ruby outside of a method
+        unless defined?(skip_valid_ruby_check) && skip_valid_ruby_check
+          parse_result = Prism.parse(subject.ruby_code)
+          expect(parse_result.errors).to be_empty
+        end
+      end
     end
 
-    it "generates expected hybrid code" do
-      expected_hybrid_code = defined?(expected_hybrid) ? expected_hybrid : expected
-      expect(subject.hybrid_code).to eq(expected_hybrid_code)
+    describe "hybrid_code" do
+      it "matches the expected code and preserves source length" do
+        expected_hybrid_code = defined?(expected_hybrid) ? expected_hybrid : expected
+
+        expect(subject.hybrid_code).to eq(expected_hybrid_code)
+        expect(subject.hybrid_code.length).to eq(source.length)
+      end
     end
 
-    it "preserves character length in ruby_code" do
-      expect(subject.ruby_code.length).to eq(source.length)
-    end
-
-    it "preserves character length in hybrid_code" do
-      expect(subject.hybrid_code.length).to eq(source.length)
-    end
-
-    it "preserves character length between ruby_code and hybrid_code" do
+    it "keeps ruby_code and hybrid_code the same length" do
       expect(subject.ruby_code.length).to eq(subject.hybrid_code.length)
-    end
-
-    it "generates valid Ruby code" do
-      # Skip for yield tests - yield is not valid Ruby outside of a method
-      skip "yield is not valid Ruby outside of a method" if defined?(skip_valid_ruby_check) && skip_valid_ruby_check
-
-      parse_result = Prism.parse(subject.ruby_code)
-      expect(parse_result.errors).to be_empty
     end
   end
 
