@@ -268,7 +268,7 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         context "with HTML element containing ERB in attributes" do
           let(:code) { "<div class=\"<%= cls %>\">text</div>" }
 
-          it "does not collect open_tag (contains ERB)" do
+          it "does not collect the open_tag" do
             # open_tag contains ERB, so it should not be recorded
             # ERB at 12, text at 24, close_tag at 28
             expect(tags.keys.sort).to eq [12, 24, 28]
