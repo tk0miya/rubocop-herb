@@ -152,6 +152,37 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing block in output tag closed by end tag" do
+      let(:source) do
+        <<~ERB
+          <%= form_with model: @user do |f| %>
+            <%= f.text_field :name %>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Layout/BlockAlignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing block whose end tag follows HTML" do
+      let(:source) do
+        <<~ERB
+          <% items.each do |item| %>
+          <p><%= item %></p><% end %>
+        ERB
+      end
+
+      it "does not trigger Layout/BlockAlignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
   end
 
   context "when html_visualization is enabled" do
@@ -353,6 +384,22 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
 
       it "does not trigger Style/ConditionalAssignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing block in output tag closed by end tag" do
+      let(:source) do
+        <<~ERB
+          <%= form_with model: @user do |f| %>
+            <%= f.text_field :name %>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Layout/BlockAlignment" do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
