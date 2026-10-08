@@ -50,6 +50,27 @@ module RuboCop
       def tail_expression?(node) #: bool
         tail_expressions.include?(node)
       end
+
+      # Check if a range contains HTML content (non-whitespace characters outside ERB tags)
+      # @rbs range: CharRange
+      def contains_html?(range) #: bool
+        tag_ranges = erb_tag_ranges
+        code[range.from...range.to].to_s.each_char.with_index(range.from).any? do |char, pos|
+          char.match?(/\S/) && tag_ranges.none? { _1.from <= pos && pos < _1.to }
+        end
+      end
+
+      private
+
+      # Get the ranges of ERB tags (from `<%` to `%>`)
+      def erb_tag_ranges #: Array[CharRange]
+        erb_locations.values.map do |location|
+          node = location.node #: erb_node
+          opening = source.location_to_range(node.tag_opening.not_nil!.location)
+          closing = source.location_to_range(node.tag_closing.not_nil!.location)
+          NodeRange.byte_range_to_char_range(::Herb::Range.new(opening.from, closing.to), source)
+        end
+      end
     end
   end
 end

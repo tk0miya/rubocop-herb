@@ -2,7 +2,8 @@
 #
 # The version shipped via rbs_collection does not declare the methods below.
 # RuboCop::Herb::CommentConfig overrides CommentConfig#cop_enabled_at_lines? and
-# calls Cop::Base#cop_name, so declare them here.
+# calls Cop::Base#cop_name, and RuboCop::Herb::Patch::Team is prepended to Cop::Team,
+# so declare them here.
 
 module RuboCop
   class CommentConfig
@@ -12,6 +13,9 @@ module RuboCop
   module Cop
     class Base
       def cop_name: () -> String
+    end
+
+    class Team
     end
   end
 end

@@ -82,4 +82,58 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
 
     it_behaves_like "an ERB autocorrector"
   end
+
+  context "with Style/EmptyElse offense whose correction removes only ERB tags" do
+    let(:source) do
+      <<~ERB
+        <% if a %>
+          <p>a</p>
+        <% else %>
+        <% end %>
+      ERB
+    end
+    let(:expected) do
+      <<~ERB
+        <% if a %>
+          <p>a</p>
+        <% end %>
+      ERB
+    end
+
+    it_behaves_like "an ERB autocorrector"
+  end
+
+  context "with Lint/LiteralAsCondition offense whose correction would remove HTML" do
+    let(:source) do
+      <<~ERB
+        <% if true %>
+          <p>a</p>
+        <% end %>
+      ERB
+    end
+
+    it "keeps the source unchanged" do
+      runner.run(path, source, { autocorrect: true })
+
+      expect(runner.formatted_source).to eq source
+    end
+  end
+
+  context "with Style/UnlessElse offense whose correction would move HTML" do
+    let(:source) do
+      <<~ERB
+        <% unless a %>
+          <p>a</p>
+        <% else %>
+          <p>b</p>
+        <% end %>
+      ERB
+    end
+
+    it "keeps the source unchanged" do
+      runner.run(path, source, { autocorrect: true })
+
+      expect(runner.formatted_source).to eq source
+    end
+  end
 end

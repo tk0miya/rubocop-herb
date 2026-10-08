@@ -1,0 +1,22 @@
+# Generated from lib/rubocop/herb/patch/team.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    module Patch
+      # Patch for RuboCop::Cop::Team to skip autocorrections that would rewrite HTML.
+      # HTML parts are replaced with whitespace in the Ruby code, so a correction covering them
+      # (e.g. replacing a whole `if` statement with its body) would remove the HTML from the ERB file.
+      module Team
+        private
+
+        # @rbs report: untyped
+        # @rbs &block: (::RuboCop::Cop::Corrector) -> void
+        def each_corrector: (untyped report) { (::RuboCop::Cop::Corrector) -> void } -> void
+
+        # @rbs corrector: ::RuboCop::Cop::Corrector
+        # @rbs parse_result: ParseResult
+        def rewrites_html?: (::RuboCop::Cop::Corrector corrector, ParseResult parse_result) -> bool
+      end
+    end
+  end
+end

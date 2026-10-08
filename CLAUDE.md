@@ -149,7 +149,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **CommentConfig** (`lib/rubocop/herb/comment_config.rb`): RuboCop CommentConfig subclass that disables cops at given line ranges as if `rubocop:disable` comments were written there
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes
 - **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and html_visualization setting
-- **patch/team.rb** (`lib/rubocop/herb/patch/team.rb`): Monkey patch for RuboCop Team class to fix autocorrect with ruby_extractors
+- **patch/team.rb** (`lib/rubocop/herb/patch/team.rb`): Monkey patch for RuboCop Team class to skip autocorrections that would rewrite HTML in ERB files
 
 #### Utilities
 

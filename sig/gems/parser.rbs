@@ -3,9 +3,14 @@
 # The version shipped via rbs_collection does not declare `#initialize` for
 # Parser::Source::Map or Parser::Source::Map::Send. We use both constructors
 # in RuboCopASTTransformer, so declare them here.
+# It does not declare TreeRewriter#as_replacements either, which Patch::Team uses.
 
 module Parser
   module Source
+    class TreeRewriter
+      def as_replacements: () -> Array[[Range, String]]
+    end
+
     class Map
       def initialize: (Range expression) -> void
     end

@@ -51,6 +51,15 @@ module RuboCop
       # Check if a node is a tail expression (output node at end of returning block)
       # @rbs node: ::Herb::AST::Node
       def tail_expression?: (::Herb::AST::Node node) -> bool
+
+      # Check if a range contains HTML content (non-whitespace characters outside ERB tags)
+      # @rbs range: CharRange
+      def contains_html?: (CharRange range) -> bool
+
+      private
+
+      # Get the ranges of ERB tags (from `<%` to `%>`)
+      def erb_tag_ranges: () -> Array[CharRange]
     end
   end
 end
