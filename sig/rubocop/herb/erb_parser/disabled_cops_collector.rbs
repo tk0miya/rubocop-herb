@@ -1,0 +1,37 @@
+# Generated from lib/rubocop/herb/erb_parser/disabled_cops_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Visitor that collects the lines where cops should be disabled.
+    # Some cops report false positives because HTML parts are removed from the Ruby code.
+    # This collector finds such lines from the ERB structure.
+    class DisabledCopsCollector < ::Herb::Visitor
+      # Collect the disabled lines for each cop from a parse result
+      # @rbs ast: ::Herb::ParseResult
+      def self.collect: (::Herb::ParseResult ast) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader disabled_cops: Hash[String, Array[Range[Integer]]]
+
+      def initialize: () -> void
+
+      # Conditional branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBIfNode
+      def visit_erb_if_node: (::Herb::AST::ERBIfNode node) -> void
+
+      # Conditional branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBUnlessNode
+      def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
+
+      private
+
+      # Disable the cop at the lines of the ERB tag
+      # @rbs cop_name: String
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_cop: (String cop_name, ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
+
+      # Check if the nodes contain non-ERB content (except whitespace)
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def html_content?: (Array[::Herb::AST::Node] nodes) -> bool
+    end
+  end
+end
