@@ -35,7 +35,6 @@ module RuboCop
         "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
         "Lint/DuplicateBranch", # Branches may differ only in HTML content
         "Lint/EmptyBlock", # Block bodies may contain only HTML (no Ruby code)
-        "Lint/EmptyConditionalBody", # Conditional bodies may contain only HTML (no Ruby code)
         "Lint/EmptyWhen", # When bodies may contain only HTML (no Ruby code)
         "Style/ConditionalAssignment", # All output tags get _ = prefix to avoid Lint/Void
         "Style/EmptyElse", # Else branches may contain only HTML (no Ruby code)

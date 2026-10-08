@@ -183,6 +183,53 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing conditional branches containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <!-- b -->
+          <% end %>
+          <% unless c %>
+            c
+          <% end %>
+          <% if d %>
+            <a href="/">
+          <% end %>
+          d
+          <% if d %>
+            </a>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/EmptyConditionalBody" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing conditional branches without any content" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+          <% elsif b %>
+            <%= b %>
+          <% end %>
+          <% unless c %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/EmptyConditionalBody" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1], ["Lint/EmptyConditionalBody", 5]]
+      end
+    end
   end
 
   context "when html_visualization is enabled" do
