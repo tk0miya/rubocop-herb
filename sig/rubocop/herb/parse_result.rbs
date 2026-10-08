@@ -5,6 +5,31 @@ module RuboCop
     # Data class holding the results of parsing an ERB file.
     # Contains the parsed AST, collected ERB locations, and precomputed data
     # needed for rendering. Logic is minimal - mostly data access and simple queries.
+    class ParseResult < Data
+      attr_reader source(): Source
+
+      attr_reader ast(): ::Herb::ParseResult
+
+      attr_reader erb_locations(): Hash[Integer, ErbLocation]
+
+      attr_reader erb_max_columns(): Hash[Integer, Integer]
+
+      attr_reader html_block_positions(): Set[::Herb::AST::HTMLElementNode]
+
+      attr_reader tail_expressions(): Set[::Herb::AST::Node]
+
+      attr_reader tags(): Hash[Integer, Tag]
+
+      def self.new: (Source source, ::Herb::ParseResult ast, Hash[Integer, ErbLocation] erb_locations, Hash[Integer, Integer] erb_max_columns, Set[::Herb::AST::HTMLElementNode] html_block_positions, Set[::Herb::AST::Node] tail_expressions, Hash[Integer, Tag] tags) -> instance
+                  | (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[::Herb::AST::HTMLElementNode], tail_expressions: Set[::Herb::AST::Node], tags: Hash[Integer, Tag]) -> instance
+
+      def self.members: () -> [ :source, :ast, :erb_locations, :erb_max_columns, :html_block_positions, :tail_expressions, :tags ]
+
+      def members: () -> [ :source, :ast, :erb_locations, :erb_max_columns, :html_block_positions, :tail_expressions, :tags ]
+    end
+
+    # Methods are defined by reopening the class (not in a Data.define block)
+    # so that rbs-inline can generate their type signatures.
     class ParseResult
       extend Forwardable
 
@@ -13,29 +38,6 @@ module RuboCop
       def byteslice: (::Herb::Range) -> String
 
       def slice: (CharRange range) -> String
-
-      attr_reader source: Source
-
-      attr_reader ast: ::Herb::ParseResult
-
-      attr_reader erb_locations: Hash[Integer, ErbLocation]
-
-      attr_reader erb_max_columns: Hash[Integer, Integer]
-
-      attr_reader html_block_positions: Set[::Herb::AST::HTMLElementNode]
-
-      attr_reader tail_expressions: Set[::Herb::AST::Node]
-
-      attr_reader tags: Hash[Integer, Tag]
-
-      # @rbs source: Source
-      # @rbs ast: ::Herb::ParseResult
-      # @rbs erb_locations: Hash[Integer, ErbLocation]
-      # @rbs erb_max_columns: Hash[Integer, Integer]
-      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
-      # @rbs tail_expressions: Set[::Herb::AST::Node]
-      # @rbs tags: Hash[Integer, Tag]
-      def initialize: (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], html_block_positions: Set[::Herb::AST::HTMLElementNode], tail_expressions: Set[::Herb::AST::Node], tags: Hash[Integer, Tag]) -> void
 
       # Check if a range contains any ERB nodes
       # @rbs range: CharRange
