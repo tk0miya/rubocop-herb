@@ -69,5 +69,48 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({ "Lint/EmptyConditionalBody" => [2..2] })
       end
     end
+
+    context "with else branch containing an HTML element" do
+      let(:code) { "<% if a %>\n  <%= a %>\n<% else %>\n  <p>b</p>\n<% end %>" }
+
+      it "disables Style/EmptyElse at the else tag" do
+        expect(subject).to eq({ "Style/EmptyElse" => [3..3] })
+      end
+    end
+
+    context "with when branch containing an HTML element" do
+      let(:code) { "<% case a %>\n<% when 1 %>\n  <p>a</p>\n<% end %>" }
+
+      it "disables Lint/EmptyWhen at the when tag" do
+        expect(subject).to eq({ "Lint/EmptyWhen" => [2..2] })
+      end
+    end
+
+    context "with block containing an HTML element" do
+      let(:code) { "<% items.each do |item| %>\n  <p>a</p>\n<% end %>" }
+
+      it "disables Lint/EmptyBlock at the block tag" do
+        expect(subject).to eq({ "Lint/EmptyBlock" => [1..1] })
+      end
+    end
+
+    context "with output block containing an HTML element" do
+      let(:code) { "<%= form_with do |f| %>\n  <p>a</p>\n<% end %>" }
+
+      it "disables Lint/EmptyBlock at the block tag" do
+        expect(subject).to eq({ "Lint/EmptyBlock" => [1..1] })
+      end
+    end
+
+    context "with else branch, when branch and block containing only ERB" do
+      let(:code) do
+        "<% case a %>\n<% when 1 %>\n  <%= a %>\n<% else %>\n  <%= b %>\n<% end %>\n" \
+          "<% items.each do |item| %>\n  <%= item %>\n<% end %>"
+      end
+
+      it "disables nothing" do
+        expect(subject).to eq({})
+      end
+    end
   end
 end
