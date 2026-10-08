@@ -12,6 +12,8 @@ module RuboCop
 
       attr_reader ast: RuboCop::AST::Node?
 
+      @comment_config: CommentConfig?
+
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
@@ -19,6 +21,9 @@ module RuboCop
       # @rbs parse_result: ParseResult
       # @rbs parser_engine: Symbol
       def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, parse_result: ParseResult, ?parser_engine: Symbol) -> void
+
+      # Override comment_config to disable cops at the lines specified by the parse result
+      def comment_config: () -> CommentConfig
 
       private
 

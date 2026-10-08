@@ -80,4 +80,24 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       expect(processed_source.ast).to be_a(RuboCop::AST::Node)
     end
   end
+
+  describe "#comment_config" do
+    subject { processed_source.comment_config }
+
+    let(:erb_source) { "<%= @name %>" }
+    let(:conversion_result) { RuboCop::Herb::Converter.new(html_visualization: false).convert("test.html.erb", erb_source) }
+    let(:parse_result) { conversion_result.parse_result.with(disabled_cops: { "Style/StringLiterals" => [1..1] }) }
+    let(:processed_source) do
+      described_class.new(
+        conversion_result.ruby_code, 3.3, "test.html.erb",
+        hybrid_code: conversion_result.hybrid_code,
+        parse_result:
+      )
+    end
+
+    it "returns a CommentConfig with the disabled cops of the parse result" do
+      expect(subject).to be_a(RuboCop::Herb::CommentConfig)
+      expect(subject.disabled_cops).to eq({ "Style/StringLiterals" => [1..1] })
+    end
+  end
 end

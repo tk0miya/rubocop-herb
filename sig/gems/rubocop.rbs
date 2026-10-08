@@ -1,0 +1,17 @@
+# Supplemental signatures for the `rubocop` gem.
+#
+# The version shipped via rbs_collection does not declare the methods below.
+# RuboCop::Herb::CommentConfig overrides CommentConfig#cop_enabled_at_lines? and
+# calls Cop::Base#cop_name, so declare them here.
+
+module RuboCop
+  class CommentConfig
+    def cop_enabled_at_lines?: (Cop::Base | String cop, Integer first_line, Integer last_line) -> bool
+  end
+
+  module Cop
+    class Base
+      def cop_name: () -> String
+    end
+  end
+end

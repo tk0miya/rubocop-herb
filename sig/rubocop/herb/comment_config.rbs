@@ -1,0 +1,26 @@
+# Generated from lib/rubocop/herb/comment_config.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # CommentConfig subclass that disables cops at specific lines as if
+    # `rubocop:disable` comments were written there.
+    # This allows suppressing false positives caused by the ERB-to-Ruby conversion
+    # only at the affected lines, instead of excluding the cops for whole files.
+    #
+    # Only #cop_enabled_at_lines? is overridden since #cop_enabled_at_line? delegates to it.
+    # The disabled lines are not added to #cop_disabled_line_ranges
+    # so that Lint/RedundantCopDisableDirective does not regard them as directive comments.
+    class CommentConfig < ::RuboCop::CommentConfig
+      attr_reader disabled_cops: Hash[String, Array[Range[Integer]]]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs disabled_cops: Hash[String, Array[Range[Integer]]] -- line ranges (1-based) where each cop is disabled
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ?disabled_cops: Hash[String, Array[Range[Integer]]]) -> void
+
+      # @rbs cop: ::RuboCop::Cop::Base | String
+      # @rbs first_line: Integer
+      # @rbs last_line: Integer
+      def cop_enabled_at_lines?: (::RuboCop::Cop::Base | String cop, Integer first_line, Integer last_line) -> bool
+    end
+  end
+end

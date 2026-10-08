@@ -15,7 +15,8 @@ module RuboCop
       :erb_max_columns,       #: Hash[Integer, Integer]
       :html_block_positions,  #: Set[::Herb::AST::HTMLElementNode]
       :tail_expressions,      #: Set[::Herb::AST::Node]
-      :tags                   #: Hash[Integer, Tag]
+      :tags,                  #: Hash[Integer, Tag]
+      :disabled_cops          #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
     )
 
     # Methods are defined by reopening the class (not in a Data.define block)
