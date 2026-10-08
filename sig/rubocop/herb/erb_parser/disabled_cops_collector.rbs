@@ -22,12 +22,24 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
 
+      # Else branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBElseNode
+      def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
+
+      # When branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBWhenNode
+      def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+
+      # Blocks containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
+
       private
 
       # Disable the cop at the lines of the ERB tag
       # @rbs cop_name: String
-      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
-      def disable_cop: (String cop_name, ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
+      # @rbs node: erb_node
+      def disable_cop: (String cop_name, erb_node node) -> void
 
       # Check if the nodes contain non-ERB content (except whitespace)
       # @rbs nodes: Array[::Herb::AST::Node]

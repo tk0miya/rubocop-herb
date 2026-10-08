@@ -38,11 +38,32 @@ module RuboCop
         super
       end
 
+      # Else branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBElseNode
+      def visit_erb_else_node(node) #: void
+        disable_cop("Style/EmptyElse", node) if html_content?(node.statements)
+        super
+      end
+
+      # When branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBWhenNode
+      def visit_erb_when_node(node) #: void
+        disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
+        super
+      end
+
+      # Blocks containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def visit_erb_block_node(node) #: void
+        disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
+        super
+      end
+
       private
 
       # Disable the cop at the lines of the ERB tag
       # @rbs cop_name: String
-      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      # @rbs node: erb_node
       def disable_cop(cop_name, node) #: void
         first_line = node.tag_opening.not_nil!.location.start.line
         last_line = node.tag_closing.not_nil!.location.end.line
