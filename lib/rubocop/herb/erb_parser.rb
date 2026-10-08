@@ -35,7 +35,8 @@ module RuboCop
           erb_max_columns: result.erb_max_columns,
           html_block_positions: result.html_block_positions,
           tail_expressions:,
-          tags: result.tags
+          tags: result.tags,
+          disabled_cops: {}
         )
       end
     end
