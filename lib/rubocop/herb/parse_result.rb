@@ -8,6 +8,18 @@ module RuboCop
     # Data class holding the results of parsing an ERB file.
     # Contains the parsed AST, collected ERB locations, and precomputed data
     # needed for rendering. Logic is minimal - mostly data access and simple queries.
+    ParseResult = Data.define(
+      :source,                #: Source
+      :ast,                   #: ::Herb::ParseResult
+      :erb_locations,         #: Hash[Integer, ErbLocation]
+      :erb_max_columns,       #: Hash[Integer, Integer]
+      :html_block_positions,  #: Set[::Herb::AST::HTMLElementNode]
+      :tail_expressions,      #: Set[::Herb::AST::Node]
+      :tags                   #: Hash[Integer, Tag]
+    )
+
+    # Methods are defined by reopening the class (not in a Data.define block)
+    # so that rbs-inline can generate their type signatures.
     class ParseResult
       extend Forwardable
 
@@ -17,32 +29,6 @@ module RuboCop
       #   def slice: (CharRange range) -> String
 
       def_delegators :source, :code, :byteslice, :slice
-
-      attr_reader :source #: Source
-      attr_reader :ast #: ::Herb::ParseResult
-      attr_reader :erb_locations #: Hash[Integer, ErbLocation]
-      attr_reader :erb_max_columns #: Hash[Integer, Integer]
-      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
-      attr_reader :tail_expressions #: Set[::Herb::AST::Node]
-      attr_reader :tags #: Hash[Integer, Tag]
-
-      # @rbs source: Source
-      # @rbs ast: ::Herb::ParseResult
-      # @rbs erb_locations: Hash[Integer, ErbLocation]
-      # @rbs erb_max_columns: Hash[Integer, Integer]
-      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
-      # @rbs tail_expressions: Set[::Herb::AST::Node]
-      # @rbs tags: Hash[Integer, Tag]
-      def initialize(source:, ast:, erb_locations:, erb_max_columns:,
-                     html_block_positions:, tail_expressions:, tags:) #: void
-        @source = source
-        @ast = ast
-        @erb_locations = erb_locations
-        @erb_max_columns = erb_max_columns
-        @html_block_positions = html_block_positions
-        @tail_expressions = tail_expressions
-        @tags = tags
-      end
 
       # Check if a range contains any ERB nodes
       # @rbs range: CharRange
