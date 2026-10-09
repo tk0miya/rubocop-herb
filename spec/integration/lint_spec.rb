@@ -231,6 +231,44 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing rescue and ensure clauses containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% begin %>
+            <p>x</p>
+          <% rescue StandardError %>
+            <p>error</p>
+          <% ensure %>
+            <p>done</p>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/SuppressedException and Lint/EmptyEnsure" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing rescue and ensure clauses without any content" do
+      let(:source) do
+        <<~ERB
+          <% begin %>
+            <p>x</p>
+          <% rescue StandardError %>
+          <% ensure %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/SuppressedException and Lint/EmptyEnsure" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/SuppressedException", 3], ["Lint/EmptyEnsure", 4]]
+      end
+    end
+
     context "when analyzing conditionals written across ERB tags on a single line" do
       let(:source) do
         <<~ERB
