@@ -1,0 +1,10 @@
+# Supplemental signatures for the `cruise` gem.
+#
+# herb (>= 0.11) ships RBS for its dev server that refers to Cruise::Event,
+# but cruise is not a dependency of herb and has no RBS of its own.
+# Declare the referenced type so that the herb signatures can be loaded.
+
+module Cruise
+  class Event
+  end
+end

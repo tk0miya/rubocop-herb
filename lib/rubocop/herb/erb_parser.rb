@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "herb"
+require_relative "erb_parser/disabled_cops_collector"
 require_relative "erb_parser/node_location_collector"
 require_relative "erb_parser/tail_expression_collector"
 
@@ -36,7 +37,7 @@ module RuboCop
           html_block_positions: result.html_block_positions,
           tail_expressions:,
           tags: result.tags,
-          disabled_cops: {}
+          disabled_cops: DisabledCopsCollector.collect(ast)
         )
       end
     end

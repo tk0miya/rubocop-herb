@@ -183,6 +183,108 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq []
       end
     end
+
+    context "when analyzing conditional branches containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <!-- b -->
+          <% end %>
+          <% unless c %>
+            c
+          <% end %>
+          <% if d %>
+            <a href="/">
+          <% end %>
+          d
+          <% if d %>
+            </a>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/EmptyConditionalBody" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing conditional branches without any content" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+          <% elsif b %>
+            <%= b %>
+          <% end %>
+          <% unless c %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/EmptyConditionalBody" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1], ["Lint/EmptyConditionalBody", 5]]
+      end
+    end
+
+    context "with Lint/EmptyBlock enabled" do
+      # Lint/EmptyBlock is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
+          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyBlock" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing else branches, when branches and blocks containing only HTML" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% when 1 %>
+              <p>a</p>
+            <% else %>
+              <p>b</p>
+            <% end %>
+            <% items.each do |item| %>
+              <p>item</p>
+            <% end %>
+            <%= form_with do |f| %>
+              <p>form</p>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing else branches, when branches and blocks without any content" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% when 1 %>
+            <% else %>
+            <% end %>
+            <% items.each do |item| %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Lint/EmptyWhen", 2], ["Style/EmptyElse", 3], ["Lint/EmptyBlock", 5]]
+        end
+      end
+    end
   end
 
   context "when html_visualization is enabled" do

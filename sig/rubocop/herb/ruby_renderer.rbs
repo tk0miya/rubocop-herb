@@ -27,7 +27,7 @@ module RuboCop
 
       def erb_max_columns: () -> Hash[Integer, Integer]
 
-      def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
+      def erb_comment_nodes: () -> Array[erb_comment_node]
 
       def byteslice: (::Herb::Range) -> String
 
@@ -135,11 +135,11 @@ module RuboCop
       # Check if this comment can be rendered as a Ruby comment without breaking code
       # Comments are not renderable when there's code to the right on the same line,
       # because Ruby's # comment extends to end of line and would comment out the code
-      # @rbs node: ::Herb::AST::ERBContentNode
-      def renderable_comment?: (::Herb::AST::ERBContentNode node) -> bool
+      # @rbs node: erb_comment_node
+      def renderable_comment?: (erb_comment_node node) -> bool
 
-      # @rbs node: ::Herb::AST::ERBContentNode
-      def render_erb_comment_node: (::Herb::AST::ERBContentNode node) -> void
+      # @rbs node: erb_comment_node
+      def render_erb_comment_node: (erb_comment_node node) -> void
 
       # Render HTML comment as "_N;" to indicate content presence (like text nodes)
       # Places "_N;" at the start of the comment with counter
