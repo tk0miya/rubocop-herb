@@ -217,7 +217,7 @@ module RuboCop
 
       # Render HTML text node by placing "_N;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
+      # Uses "_N" with counter so that different HTML contents are rendered differently
       # Requires at least 4 characters from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
@@ -265,7 +265,7 @@ module RuboCop
 
       # Render HTML comment as "_N;" to indicate content presence (like text nodes)
       # Places "_N;" at the start of the comment with counter
-      # Uses "_N" with counter to avoid false positives from Style/IdenticalConditionalBranches
+      # Uses "_N" with counter so that different HTML contents are rendered differently
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
         render_tag_marker(byte_to_char_pos(node.comment_start.not_nil!.range.from))
