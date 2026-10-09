@@ -28,6 +28,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
+        disable_one_line_conditional(node)
         super
       end
 
@@ -35,6 +36,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
+        disable_one_line_conditional(node)
         super
       end
 
@@ -60,6 +62,20 @@ module RuboCop
       end
 
       private
+
+      # Conditionals written across multiple ERB tags on a single line become
+      # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
+      # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
+      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_one_line_conditional(node) #: void
+        return unless node.end_node # elsif nodes are checked as a part of the outer if node
+
+        first_line = node.location.start.line
+        return unless first_line == node.location.end.line
+
+        (disabled_cops["Style/OneLineConditional"] ||= []) << (first_line..first_line)
+      end
 
       # Disable the cop at the lines of the ERB tag
       # @rbs cop_name: String

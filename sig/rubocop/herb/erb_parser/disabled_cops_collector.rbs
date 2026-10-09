@@ -36,6 +36,13 @@ module RuboCop
 
       private
 
+      # Conditionals written across multiple ERB tags on a single line become
+      # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
+      # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
+      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_one_line_conditional: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
+
       # Disable the cop at the lines of the ERB tag
       # @rbs cop_name: String
       # @rbs node: erb_node

@@ -231,6 +231,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditionals written across ERB tags on a single line" do
+      let(:source) do
+        <<~ERB
+          <% if a %>foo<% elsif b %><% end %>
+          <% if a %><%= x %><% else %><%= y %><% end %>
+          <% unless a %><%= x %><% else %><%= y %><% end %>
+        ERB
+      end
+
+      it "does not trigger Style/OneLineConditional" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/UnlessElse", 3]]
+      end
+    end
+
+    context "when analyzing a conditional written in a single ERB tag" do
+      let(:source) { "<% if a then b else c end %>\n" }
+
+      it "triggers Style/OneLineConditional" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/OneLineConditional", 1]]
+      end
+    end
+
     context "with Lint/EmptyBlock enabled" do
       # Lint/EmptyBlock is a pending cop, so enable it explicitly
       let(:config) do
