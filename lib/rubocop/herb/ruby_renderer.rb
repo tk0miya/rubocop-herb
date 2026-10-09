@@ -30,7 +30,7 @@ module RuboCop
       #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
-      #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
+      #   def erb_comment_nodes: () -> Array[erb_comment_node]
       #   def byteslice: (::Herb::Range) -> String
       #   def tail_expression?: (::Herb::AST::Node) -> bool
 
@@ -229,7 +229,7 @@ module RuboCop
       # Check if this comment can be rendered as a Ruby comment without breaking code
       # Comments are not renderable when there's code to the right on the same line,
       # because Ruby's # comment extends to end of line and would comment out the code
-      # @rbs node: ::Herb::AST::ERBContentNode
+      # @rbs node: erb_comment_node
       def renderable_comment?(node) #: bool
         line = node.location.end.line
         return true unless erb_max_columns.key?(line)
@@ -237,7 +237,7 @@ module RuboCop
         node.location.start.column >= erb_max_columns[line].not_nil!
       end
 
-      # @rbs node: ::Herb::AST::ERBContentNode
+      # @rbs node: erb_comment_node
       def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
         hash_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to - 1)
         ruby_code[hash_pos] = "#"
