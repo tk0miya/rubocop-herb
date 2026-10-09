@@ -22,6 +22,7 @@ module RuboCop
         ::Herb::AST::ERBRescueNode => :rescue,
         ::Herb::AST::ERBEnsureNode => :ensure,
         ::Herb::AST::ERBYieldNode => :yield,
+        ::Herb::AST::ERBCommentNode => :comment,
         ::Herb::AST::ERBEndNode => :end
       }.freeze
 
@@ -146,12 +147,8 @@ module RuboCop
       end
 
       # Determine the type of an ERB node
-      # Comments are detected by their tag opening because the node class differs by herb version
-      # (see erb_comment_node)
       # @rbs node: erb_node
       def determine_type(node) #: ErbLocation::erb_node_type
-        return :comment if node.tag_opening.not_nil!.value == "<%#"
-
         case node
         when ::Herb::AST::ERBContentNode
           node.tag_opening.not_nil!.value == "<%=" ? :output : :content

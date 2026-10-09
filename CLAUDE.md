@@ -158,7 +158,10 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 
 ### Dependencies
 
-- `herb` (>= 0.8.0): ERB parser that provides AST for HTML+ERB files
+- `herb` (>= 0.11.0): ERB parser that provides AST for HTML+ERB files
+  - herb is still pre-1.0 and its AST changes between minor versions, so only the latest minor version is supported.
+    When bumping herb to a new minor version, raise the lower bound in the gemspec as well and drop code for older versions.
+    Do not add an upper bound.
 - `lint_roller` (>= 1.1.0): RuboCop plugin framework for registering extractors
 
 ### Configuration Options

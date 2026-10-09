@@ -46,7 +46,7 @@ module RuboCop
       def contains_erb?: (CharRange range) -> bool
 
       # Get all ERB comment nodes
-      def erb_comment_nodes: () -> Array[erb_comment_node]
+      def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
 
       # Check if a node is a tail expression (output node at end of returning block)
       # @rbs node: ::Herb::AST::Node
