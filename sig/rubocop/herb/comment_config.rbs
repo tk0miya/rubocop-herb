@@ -17,6 +17,8 @@ module RuboCop
       # @rbs disabled_cops: Hash[String, Array[Range[Integer]]] -- line ranges (1-based) where each cop is disabled
       def initialize: (::RuboCop::AST::ProcessedSource processed_source, ?disabled_cops: Hash[String, Array[Range[Integer]]]) -> void
 
+      # Check only the first line: an offense range may span into a disabled line of another branch
+      # (e.g. Lint/EmptyConditionalBody spans from `if` to the next `elsif`), hiding a truly empty branch.
       # @rbs cop: ::RuboCop::Cop::Base | String
       # @rbs first_line: Integer
       # @rbs last_line: Integer

@@ -22,13 +22,15 @@ module RuboCop
         @disabled_cops = disabled_cops
       end
 
+      # Check only the first line: an offense range may span into a disabled line of another branch
+      # (e.g. Lint/EmptyConditionalBody spans from `if` to the next `elsif`), hiding a truly empty branch.
       # @rbs cop: ::RuboCop::Cop::Base | String
       # @rbs first_line: Integer
       # @rbs last_line: Integer
       def cop_enabled_at_lines?(cop, first_line, last_line) #: bool
         cop_name = cop.is_a?(String) ? cop : cop.cop_name
         disabled_ranges = disabled_cops.fetch(cop_name, [])
-        return false if disabled_ranges.any? { _1.end >= first_line && _1.begin <= last_line }
+        return false if disabled_ranges.any? { _1.cover?(first_line) }
 
         super
       end

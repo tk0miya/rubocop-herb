@@ -64,11 +64,11 @@ RSpec.describe RuboCop::Herb::CommentConfig do
       end
     end
 
-    context "when the spans are outside, overlapping and inside the disabled ranges" do
+    context "when the spans start outside or inside the disabled ranges" do
       let(:spans) { [[1, 1], [1, 2], [3, 4], [4, 4]] }
 
-      it "returns false only for the spans overlapping the disabled ranges" do
-        expect(subject).to eq [true, false, false, true]
+      it "returns false only for the spans starting in the disabled ranges" do
+        expect(subject).to eq [true, true, false, true]
       end
     end
   end
