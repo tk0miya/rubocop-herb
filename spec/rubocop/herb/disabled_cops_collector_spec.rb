@@ -102,6 +102,46 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with rescue clause containing an HTML element" do
+      let(:code) { "<% begin %>\n  <p>x</p>\n<% rescue %>\n  <p>error</p>\n<% end %>" }
+
+      it "disables Lint/SuppressedException at the rescue tag" do
+        expect(subject).to eq({ "Lint/SuppressedException" => [3..3] })
+      end
+    end
+
+    context "with subsequent rescue clause containing an HTML element" do
+      let(:code) { "<% begin %>\n  <%= a %>\n<% rescue A %>\n  <%= b %>\n<% rescue B %>\n  <p>error</p>\n<% end %>" }
+
+      it "disables Lint/SuppressedException at the subsequent rescue tag" do
+        expect(subject).to eq({ "Lint/SuppressedException" => [5..5] })
+      end
+    end
+
+    context "with ensure clause containing an HTML element" do
+      let(:code) { "<% begin %>\n  <%= a %>\n<% ensure %>\n  <p>done</p>\n<% end %>" }
+
+      it "disables Lint/EmptyEnsure at the ensure tag" do
+        expect(subject).to eq({ "Lint/EmptyEnsure" => [3..3] })
+      end
+    end
+
+    context "with rescue and ensure clauses without any content" do
+      let(:code) { "<% begin %>\n  <%= a %>\n<% rescue %>\n<% ensure %>\n<% end %>" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
+      end
+    end
+
+    context "with rescue and ensure clauses containing only ERB" do
+      let(:code) { "<% begin %>\n  <%= a %>\n<% rescue %>\n  <%= b %>\n<% ensure %>\n  <%= c %>\n<% end %>" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
+      end
+    end
+
     context "with else branch, when branch and block containing only ERB" do
       let(:code) do
         "<% case a %>\n<% when 1 %>\n  <%= a %>\n<% else %>\n  <%= b %>\n<% end %>\n" \

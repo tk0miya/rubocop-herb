@@ -30,6 +30,14 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
 
+      # Rescue clauses containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBRescueNode
+      def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
+
+      # Ensure clauses containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBEnsureNode
+      def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
+
       # Blocks containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void

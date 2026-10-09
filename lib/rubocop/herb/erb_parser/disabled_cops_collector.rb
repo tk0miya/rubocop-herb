@@ -52,6 +52,20 @@ module RuboCop
         super
       end
 
+      # Rescue clauses containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBRescueNode
+      def visit_erb_rescue_node(node) #: void
+        disable_cop("Lint/SuppressedException", node) if html_content?(node.statements)
+        super
+      end
+
+      # Ensure clauses containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBEnsureNode
+      def visit_erb_ensure_node(node) #: void
+        disable_cop("Lint/EmptyEnsure", node) if html_content?(node.statements)
+        super
+      end
+
       # Blocks containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
