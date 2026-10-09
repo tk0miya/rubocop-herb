@@ -186,6 +186,42 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with case-in-ERB tags (pattern matching)" do
+        let(:source) do
+          ["<div>",
+           "  <% case value %>",
+           "  <% in Integer => n %>",
+           "    <%= n %>",
+           "  <% in String %>",
+           "    Text",
+           "  <% else %>",
+           "    Unknown",
+           "  <% end %>",
+           "</div>"].join("\n")
+        end
+        let(:expected) do
+          ["     ",
+           "     case value;  ",
+           "     in Integer => n;  ",
+           "    _ = n;  ",
+           "     in String;  ",
+           "        ",
+           "     else;  ",
+           "           ",
+           "     end;  ",
+           "      "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with case-in-ERB tags on single line" do
+        let(:source) { "<% case value %><% in 1 %>one<% end %>" }
+        let(:expected) { "   case value;     in 1;        end;  " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       # Loops
       describe "with block-ERB tags (each)" do
         let(:source) do
@@ -828,6 +864,47 @@ RSpec.describe RuboCop::Herb::Converter do
            "   else;  ",
            "  <li>_ = link_to page, url;  </li>",
            "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with case-in-ERB tags (pattern matching)" do
+        let(:source) do
+          ["<div>",
+           "  <% case value %>",
+           "  <% in Integer => n %>",
+           "    <%= n %>",
+           "  <% in String %>",
+           "    Text",
+           "  <% else %>",
+           "    Unknown",
+           "  <% end %>",
+           "</div>"].join("\n")
+        end
+        let(:expected) do
+          ["div; ",
+           "     case value;  ",
+           "     in Integer => n;  ",
+           "        n;  ",
+           "     in String;  ",
+           "    _b; ",
+           "     else;  ",
+           "    _c;    ",
+           "     end;  ",
+           "div3; "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["<div>",
+           "     case value;  ",
+           "     in Integer => n;  ",
+           "        n;  ",
+           "     in String;  ",
+           "    Text",
+           "     else;  ",
+           "    Unknown",
+           "     end;  ",
+           "</div>"].join("\n")
         end
 
         it_behaves_like "a Ruby code extractor for ERB"

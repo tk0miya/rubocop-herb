@@ -311,6 +311,56 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         end
       end
     end
+
+    context "when analyzing case-in (pattern matching)" do
+      let(:source) do
+        <<~ERB
+          <% case a %>
+          <% in 1 %>
+            <p>one</p>
+          <% in Integer => n %>
+            <%= n %>
+            <%= "n" %>
+          <% end %>
+          <% case b %><% in 1 %>x<% end %>
+        ERB
+      end
+
+      it "processes the file without extractor errors" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/StringLiterals", 6]]
+      end
+    end
+
+    context "with Lint/EmptyInPattern enabled" do
+      # Lint/EmptyInPattern is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
+          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyInPattern" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing in branches containing only HTML" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% in 1 %>
+              <p>a</p>
+            <% in 2 %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Lint/EmptyInPattern only for in branches without any content" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Lint/EmptyInPattern", 4]]
+        end
+      end
+    end
   end
 
   context "when html_visualization is enabled" do
@@ -531,6 +581,27 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing case-in (pattern matching)" do
+      let(:source) do
+        <<~ERB
+          <% case a %>
+          <% in 1 %>
+            <p>one</p>
+          <% in Integer => n %>
+            <%= n %>
+            <%= "n" %>
+          <% end %>
+          <% case b %><% in 1 %>x<% end %>
+        ERB
+      end
+
+      it "processes the file without extractor errors" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/StringLiterals", 6]]
       end
     end
   end

@@ -6,7 +6,7 @@ module RuboCop
   module Herb
     # Visitor that collects tail expression positions from an ERB document.
     # A tail expression is an output node (<%= %>) that is the last statement
-    # in a returning_value block (if/unless/else/when/begin/rescue/ensure).
+    # in a returning_value block (if/unless/else/when/in/begin/rescue/ensure).
     # These nodes don't need the `_ =` marker because their value is returned
     # as part of the control flow.
     class TailExpressionCollector < ::Herb::Visitor
@@ -45,6 +45,7 @@ module RuboCop
       #   def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
       #   def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
       #   def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+      #   def visit_erb_in_node: (::Herb::AST::ERBInNode node) -> void
       #   def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
       #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
       #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
@@ -62,7 +63,7 @@ module RuboCop
       end
 
       # Control flow nodes that start a statement: returns value, so last output is tail expression
-      %i[if unless begin case].each do |type|
+      %i[if unless begin case case_match].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           # @type self: TailExpressionCollector
           # @type var node: erb_node
@@ -74,7 +75,7 @@ module RuboCop
       end
 
       # Control flow branch nodes: internal to parent statement, not recorded in grandparent
-      %i[else when rescue ensure].each do |type|
+      %i[else when in rescue ensure].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           # @type self: TailExpressionCollector
           # @type var node: erb_node

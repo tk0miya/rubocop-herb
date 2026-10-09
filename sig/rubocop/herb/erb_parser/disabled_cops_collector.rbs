@@ -30,6 +30,10 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
 
+      # In branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBInNode
+      def visit_erb_in_node: (::Herb::AST::ERBInNode node) -> void
+
       # Blocks containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void

@@ -29,6 +29,8 @@ module RuboCop
     #                 | ::Herb::AST::ERBElseNode
     #                 | ::Herb::AST::ERBCaseNode
     #                 | ::Herb::AST::ERBWhenNode
+    #                 | ::Herb::AST::ERBCaseMatchNode
+    #                 | ::Herb::AST::ERBInNode
     #                 | ::Herb::AST::ERBBeginNode
     #                 | ::Herb::AST::ERBRescueNode
     #                 | ::Herb::AST::ERBEnsureNode

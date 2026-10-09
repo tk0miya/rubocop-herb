@@ -68,11 +68,13 @@ module RuboCop
       #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
       #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
       #   def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+      #   def visit_erb_case_match_node: (::Herb::AST::ERBCaseMatchNode node) -> void
+      #   def visit_erb_in_node: (::Herb::AST::ERBInNode node) -> void
       #   def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
       #   def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
       # Define visit methods for ERB nodes that render code and continue traversal
-      %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
+      %i[block for while until if unless else when in begin rescue ensure case case_match yield end].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           # @type self: RubyRenderer
           # @type var node: erb_node
