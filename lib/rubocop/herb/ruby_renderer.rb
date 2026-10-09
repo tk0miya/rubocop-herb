@@ -30,7 +30,7 @@ module RuboCop
       #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_max_columns: () -> Hash[Integer, Integer]
-      #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBContentNode]
+      #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
       #   def byteslice: (::Herb::Range) -> String
       #   def tail_expression?: (::Herb::AST::Node) -> bool
 
@@ -68,11 +68,13 @@ module RuboCop
       #   def visit_erb_rescue_node: (::Herb::AST::ERBRescueNode node) -> void
       #   def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
       #   def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+      #   def visit_erb_case_match_node: (::Herb::AST::ERBCaseMatchNode node) -> void
+      #   def visit_erb_in_node: (::Herb::AST::ERBInNode node) -> void
       #   def visit_erb_yield_node: (::Herb::AST::ERBYieldNode node) -> void
       #   def visit_erb_end_node: (::Herb::AST::ERBEndNode node) -> void
 
       # Define visit methods for ERB nodes that render code and continue traversal
-      %i[block for while until if unless else when begin rescue ensure case yield end].each do |type|
+      %i[block for while until if unless else when in begin rescue ensure case case_match yield end].each do |type|
         define_method(:"visit_erb_#{type}_node") do |node|
           # @type self: RubyRenderer
           # @type var node: erb_node
@@ -82,10 +84,10 @@ module RuboCop
       end
 
       # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
-      # Comments are skipped here and rendered later via render_comments
+      # Comments (ERBCommentNode) are not visited here; they are rendered later via render_comments
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
-        render_code_node(node) unless node.tag_opening.not_nil!.value == "<%#"
+        render_code_node(node)
         super
       end
 
@@ -131,22 +133,33 @@ module RuboCop
 
       # @rbs node: erb_node
       def output_node?(node) #: bool
-        node.tag_opening.not_nil!.value == "<%="
+        node.tag_opening&.value == "<%="
       end
 
       # @rbs node: erb_node
-      def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def render_code_node(node) #: void
         return unless node.content
 
         code = extract_ruby_code(node)
         range = NodeRange.byte_range_to_char_range(node.content.not_nil!.range, source)
         ruby_code[range.from, code.length] = code
 
+        render_semicolon(node, code, range)
+        render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
+      end
+
+      # Render a semicolon after the code to terminate the statement
+      # A node split from an ERB tag (e.g. `<% else; end %>`) has no tag closing; the following node
+      # continues in the same tag, so the code is kept as written
+      # @rbs node: erb_node
+      # @rbs code: String
+      # @rbs range: CharRange
+      def render_semicolon(node, code, range) #: void
+        return unless node.tag_closing
+
         trailing_spaces = code.length - code.rstrip.length
         semicolon_pos = range.to - trailing_spaces
         ruby_code[semicolon_pos] = ";" if semicolon_pos < ruby_code.size
-
-        render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
       end
 
       # Check if output node needs _ = marker
@@ -229,7 +242,7 @@ module RuboCop
       # Check if this comment can be rendered as a Ruby comment without breaking code
       # Comments are not renderable when there's code to the right on the same line,
       # because Ruby's # comment extends to end of line and would comment out the code
-      # @rbs node: ::Herb::AST::ERBContentNode
+      # @rbs node: ::Herb::AST::ERBCommentNode
       def renderable_comment?(node) #: bool
         line = node.location.end.line
         return true unless erb_max_columns.key?(line)
@@ -237,7 +250,7 @@ module RuboCop
         node.location.start.column >= erb_max_columns[line].not_nil!
       end
 
-      # @rbs node: ::Herb::AST::ERBContentNode
+      # @rbs node: ::Herb::AST::ERBCommentNode
       def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
         hash_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to - 1)
         ruby_code[hash_pos] = "#"

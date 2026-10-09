@@ -15,6 +15,8 @@ module RuboCop
         ::Herb::AST::ERBElseNode => :else,
         ::Herb::AST::ERBCaseNode => :case,
         ::Herb::AST::ERBWhenNode => :when,
+        ::Herb::AST::ERBCaseMatchNode => :case_match,
+        ::Herb::AST::ERBInNode => :in,
         ::Herb::AST::ERBForNode => :for,
         ::Herb::AST::ERBWhileNode => :while,
         ::Herb::AST::ERBUntilNode => :until,
@@ -22,6 +24,7 @@ module RuboCop
         ::Herb::AST::ERBRescueNode => :rescue,
         ::Herb::AST::ERBEnsureNode => :ensure,
         ::Herb::AST::ERBYieldNode => :yield,
+        ::Herb::AST::ERBCommentNode => :comment,
         ::Herb::AST::ERBEndNode => :end
       }.freeze
 
@@ -150,11 +153,7 @@ module RuboCop
       def determine_type(node) #: ErbLocation::erb_node_type
         case node
         when ::Herb::AST::ERBContentNode
-          case node.tag_opening.not_nil!.value
-          when "<%#" then :comment
-          when "<%=" then :output
-          else :content
-          end
+          node.tag_opening.not_nil!.value == "<%=" ? :output : :content
         else
           NODE_TYPE_MAP.fetch(node.class)
         end

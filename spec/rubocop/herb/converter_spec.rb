@@ -186,6 +186,42 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with case-in-ERB tags (pattern matching)" do
+        let(:source) do
+          ["<div>",
+           "  <% case value %>",
+           "  <% in Integer => n %>",
+           "    <%= n %>",
+           "  <% in String %>",
+           "    Text",
+           "  <% else %>",
+           "    Unknown",
+           "  <% end %>",
+           "</div>"].join("\n")
+        end
+        let(:expected) do
+          ["     ",
+           "     case value;  ",
+           "     in Integer => n;  ",
+           "    _ = n;  ",
+           "     in String;  ",
+           "        ",
+           "     else;  ",
+           "           ",
+           "     end;  ",
+           "      "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with case-in-ERB tags on single line" do
+        let(:source) { "<% case value %><% in 1 %>one<% end %>" }
+        let(:expected) { "   case value;     in 1;        end;  " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       # Loops
       describe "with block-ERB tags (each)" do
         let(:source) do
@@ -309,6 +345,41 @@ RSpec.describe RuboCop::Herb::Converter do
 
         # All output tags get _ = prefix when html_visualization is disabled.
         # cleanup is execution tag, not output tag, so it never gets _ =.
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # ERB tags split into multiple nodes by Herb
+      describe "with an ERB tag continuing and closing a control flow" do
+        let(:source) do
+          ["<% if admin? %>",
+           "  <%= name %>",
+           "<% else; end %>"].join("\n")
+        end
+        let(:expected) do
+          ["   if admin?;  ",
+           "  _ = name;  ",
+           "   else; end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an ERB tag holding a case and its first condition" do
+        let(:source) do
+          ["<% case status when :active %>",
+           "  Active",
+           "<% when :inactive %>",
+           "  Inactive",
+           "<% end %>"].join("\n")
+        end
+        let(:expected) do
+          ["   case status when :active;  ",
+           "        ",
+           "   when :inactive;  ",
+           "          ",
+           "   end;  "].join("\n")
+        end
+
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
@@ -806,6 +877,22 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with an ERB tag continuing and closing a control flow" do
+        let(:source) do
+          ["<% if admin? %>",
+           "  <%= name %>",
+           "<% else; end %>"].join("\n")
+        end
+        # name is a tail expression of the if statement even though the else and end are split from one tag
+        let(:expected) do
+          ["   if admin?;  ",
+           "      name;  ",
+           "   else; end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       describe "with if-else containing output tags wrapped in HTML elements" do
         let(:source) do
           ["<% if page.current? %>",
@@ -828,6 +915,47 @@ RSpec.describe RuboCop::Herb::Converter do
            "   else;  ",
            "  <li>_ = link_to page, url;  </li>",
            "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with case-in-ERB tags (pattern matching)" do
+        let(:source) do
+          ["<div>",
+           "  <% case value %>",
+           "  <% in Integer => n %>",
+           "    <%= n %>",
+           "  <% in String %>",
+           "    Text",
+           "  <% else %>",
+           "    Unknown",
+           "  <% end %>",
+           "</div>"].join("\n")
+        end
+        let(:expected) do
+          ["div; ",
+           "     case value;  ",
+           "     in Integer => n;  ",
+           "        n;  ",
+           "     in String;  ",
+           "    _b; ",
+           "     else;  ",
+           "    _c;    ",
+           "     end;  ",
+           "div3; "].join("\n")
+        end
+        let(:expected_hybrid) do
+          ["<div>",
+           "     case value;  ",
+           "     in Integer => n;  ",
+           "        n;  ",
+           "     in String;  ",
+           "    Text",
+           "     else;  ",
+           "    Unknown",
+           "     end;  ",
+           "</div>"].join("\n")
         end
 
         it_behaves_like "a Ruby code extractor for ERB"

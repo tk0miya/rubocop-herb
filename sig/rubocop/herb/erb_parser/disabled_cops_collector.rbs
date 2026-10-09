@@ -38,13 +38,26 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node: (::Herb::AST::ERBEnsureNode node) -> void
 
+      # In branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBInNode
+      def visit_erb_in_node: (::Herb::AST::ERBInNode node) -> void
+
       # Blocks containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
       private
 
+      # Conditionals written across multiple ERB tags on a single line become
+      # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
+      # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
+      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_one_line_conditional: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
+
       # Disable the cop at the lines of the ERB tag
+      # A node split from an ERB tag (e.g. `<% case x when 1 %>`) lacks its tag opening or closing,
+      # so its content is used instead
       # @rbs cop_name: String
       # @rbs node: erb_node
       def disable_cop: (String cop_name, erb_node node) -> void

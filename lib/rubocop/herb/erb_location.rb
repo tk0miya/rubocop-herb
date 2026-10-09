@@ -7,7 +7,7 @@ module RuboCop
       # @rbs!
       #   type erb_node_type = :content | :output | :comment
       #                      | :block | :if | :unless | :else
-      #                      | :case | :when
+      #                      | :case | :when | :case_match | :in
       #                      | :for | :while | :until
       #                      | :begin | :rescue | :ensure
       #                      | :yield | :end

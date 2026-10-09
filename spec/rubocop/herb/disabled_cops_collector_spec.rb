@@ -70,6 +70,30 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with if and elsif tags on a single line" do
+      let(:code) { "<% if a %>a<% elsif b %><% end %>" }
+
+      it "disables Style/OneLineConditional at the line" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1], "Style/OneLineConditional" => [1..1] })
+      end
+    end
+
+    context "with unless and else tags on a single line" do
+      let(:code) { "<% unless a %><%= a %><% else %><%= b %><% end %>" }
+
+      it "disables Style/OneLineConditional at the line" do
+        expect(subject).to eq({ "Style/OneLineConditional" => [1..1] })
+      end
+    end
+
+    context "with if statement in a single ERB tag" do
+      let(:code) { "<% if a then b else c end %>" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
+      end
+    end
+
     context "with else branch containing an HTML element" do
       let(:code) { "<% if a %>\n  <%= a %>\n<% else %>\n  <p>b</p>\n<% end %>" }
 
@@ -83,6 +107,14 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/EmptyWhen at the when tag" do
         expect(subject).to eq({ "Lint/EmptyWhen" => [2..2] })
+      end
+    end
+
+    context "with when branch split from an ERB tag holding the case" do
+      let(:code) { "<% case a when 1 %>\n  <p>a</p>\n<% end %>" }
+
+      it "disables Lint/EmptyWhen at the ERB tag" do
+        expect(subject).to eq({ "Lint/EmptyWhen" => [1..1] })
       end
     end
 

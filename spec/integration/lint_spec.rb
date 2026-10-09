@@ -269,6 +269,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditionals written across ERB tags on a single line" do
+      let(:source) do
+        <<~ERB
+          <% if a %>foo<% elsif b %><% end %>
+          <% if a %><%= x %><% else %><%= y %><% end %>
+          <% unless a %><%= x %><% else %><%= y %><% end %>
+        ERB
+      end
+
+      it "does not trigger Style/OneLineConditional" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/UnlessElse", 3]]
+      end
+    end
+
+    context "when analyzing a conditional written in a single ERB tag" do
+      let(:source) { "<% if a then b else c end %>\n" }
+
+      it "triggers Style/OneLineConditional" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/OneLineConditional", 1]]
+      end
+    end
+
     context "with Lint/EmptyBlock enabled" do
       # Lint/EmptyBlock is a pending cop, so enable it explicitly
       let(:config) do
@@ -320,6 +346,56 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           runner.run(path, source, {})
           offenses = runner.offenses.map { [_1.cop_name, _1.line] }
           expect(offenses).to eq [["Lint/EmptyWhen", 2], ["Style/EmptyElse", 3], ["Lint/EmptyBlock", 5]]
+        end
+      end
+    end
+
+    context "when analyzing case-in (pattern matching)" do
+      let(:source) do
+        <<~ERB
+          <% case a %>
+          <% in 1 %>
+            <p>one</p>
+          <% in Integer => n %>
+            <%= n %>
+            <%= "n" %>
+          <% end %>
+          <% case b %><% in 1 %>x<% end %>
+        ERB
+      end
+
+      it "processes the file without extractor errors" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/StringLiterals", 6]]
+      end
+    end
+
+    context "with Lint/EmptyInPattern enabled" do
+      # Lint/EmptyInPattern is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
+          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyInPattern" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing in branches containing only HTML" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% in 1 %>
+              <p>a</p>
+            <% in 2 %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Lint/EmptyInPattern only for in branches without any content" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Lint/EmptyInPattern", 4]]
         end
       end
     end
@@ -543,6 +619,27 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing case-in (pattern matching)" do
+      let(:source) do
+        <<~ERB
+          <% case a %>
+          <% in 1 %>
+            <p>one</p>
+          <% in Integer => n %>
+            <%= n %>
+            <%= "n" %>
+          <% end %>
+          <% case b %><% in 1 %>x<% end %>
+        ERB
+      end
+
+      it "processes the file without extractor errors" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/StringLiterals", 6]]
       end
     end
   end

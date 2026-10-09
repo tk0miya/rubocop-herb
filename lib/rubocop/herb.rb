@@ -29,6 +29,8 @@ module RuboCop
     #                 | ::Herb::AST::ERBElseNode
     #                 | ::Herb::AST::ERBCaseNode
     #                 | ::Herb::AST::ERBWhenNode
+    #                 | ::Herb::AST::ERBCaseMatchNode
+    #                 | ::Herb::AST::ERBInNode
     #                 | ::Herb::AST::ERBBeginNode
     #                 | ::Herb::AST::ERBRescueNode
     #                 | ::Herb::AST::ERBEnsureNode
@@ -37,6 +39,7 @@ module RuboCop
     #                 | ::Herb::AST::ERBWhileNode
     #                 | ::Herb::AST::ERBUntilNode
     #                 | ::Herb::AST::ERBContentNode
+    #                 | ::Herb::AST::ERBCommentNode
     #                 | ::Herb::AST::ERBEndNode
     #
     #   # Union type for all HTML nodes

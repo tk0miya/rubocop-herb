@@ -132,14 +132,14 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 #### Core Processing
 
 - **ErbParser** (`lib/rubocop/herb/erb_parser.rb`): Responsible for parsing and analyzing ERB documents. Parses using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects tail expressions via `TailExpressionCollector`, collects lines to disable cops via `DisabledCopsCollector`, and creates a `Source` object. Returns a `ParseResult`
-- **ParseResult** (`lib/rubocop/herb/parse_result.rb`): Data class holding parsed AST, ERB locations, line offsets, and utility methods for byte slicing and range conversion
+- **ParseResult** (`lib/rubocop/herb/parse_result.rb`): Data class holding the `Source`, parsed AST, ERB locations, tail expressions, tags and disabled cops, plus utility methods for slicing and lookups
 - **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Responsible for converting parsed results to Ruby code. Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML visualization
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
 - **TailExpressionCollector** (`lib/rubocop/herb/erb_parser/tail_expression_collector.rb`): Collects tail expression positions for control flow handling
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
 - **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information for byte/position calculations
-- **NodeRange** (`lib/rubocop/herb/node_range.rb`): Data class storing node range information (start/end positions)
+- **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
 
 #### RuboCop Integration
 
@@ -149,17 +149,22 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **CommentConfig** (`lib/rubocop/herb/comment_config.rb`): RuboCop CommentConfig subclass that disables cops at given line ranges as if `rubocop:disable` comments were written there
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes
 - **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and html_visualization setting
-- **patch/team.rb** (`lib/rubocop/herb/patch/team.rb`): Monkey patch for RuboCop Team class to fix autocorrect with ruby_extractors
 
 #### Utilities
 
-- **Characters** (`lib/rubocop/herb/characters.rb`): Byte constants for character manipulation (LF, CR, SPACE, HASH, SEMICOLON, etc.)
+- **CharRange** (`lib/rubocop/herb/char_range.rb`): Data class storing a character-based (not byte-based) range
+- **ErbLocation** (`lib/rubocop/herb/erb_location.rb`): Location and metadata (type, node, range, line, column) of an ERB node
 - **Tag** (`lib/rubocop/herb/tag.rb`): Data class storing tag range information for AST restoration
 
 ### Dependencies
 
-- `herb` (>= 0.8.0): ERB parser that provides AST for HTML+ERB files
+- `herb` (>= 0.11.0): ERB parser that provides AST for HTML+ERB files
+  - herb is still pre-1.0 and its AST changes between minor versions, so only the latest minor version is supported.
+    When bumping herb to a new minor version, raise the lower bound in the gemspec as well and drop code for older versions.
+    Do not add an upper bound.
 - `lint_roller` (>= 1.1.0): RuboCop plugin framework for registering extractors
+- `not_nilable`: Provides `#not_nil!` for unwrapping nilable values with type narrowing
+- `rubocop` (>= 1.90.0): The linter itself; 1.90.0 is required because `CommentConfig` overrides `cop_enabled_at_lines?`, introduced in that version
 
 ### Configuration Options
 

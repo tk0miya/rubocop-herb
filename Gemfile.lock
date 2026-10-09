@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     rubocop-herb (0.1.0)
-      herb (>= 0.8.0)
+      herb (>= 0.11.0)
       lint_roller (>= 1.1.0)
       not_nilable
       rubocop (>= 1.90.0)
@@ -20,9 +20,9 @@ GEM
     ffi (1.17.4-arm64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     fileutils (1.8.0)
-    herb (0.10.4)
-    herb (0.10.4-arm64-darwin)
-    herb (0.10.4-x86_64-linux-gnu)
+    herb (0.11.0)
+    herb (0.11.0-arm64-darwin)
+    herb (0.11.0-x86_64-linux-gnu)
     io-console (0.8.2)
     irb (1.18.0)
       pp (>= 0.6.0)
@@ -178,9 +178,9 @@ CHECKSUMS
   ffi (1.17.4-arm64-darwin) sha256=19071aaf1419251b0a46852abf960e77330a3b334d13a4ab51d58b31a937001b
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   fileutils (1.8.0) sha256=8c6b1df54e2540bdb2f39258f08af78853aa70bad52b4d394bbc6424593c6e02
-  herb (0.10.4) sha256=b3eecabd3fe32ddb12257a21719737f0cdcde9e75fb33ca26a93d3198ed9fc9a
-  herb (0.10.4-arm64-darwin) sha256=3842480fbe9f7a14368bfe76405f49bad75be4b2a99f9ddec5b50cbf44b245ba
-  herb (0.10.4-x86_64-linux-gnu) sha256=36591472b92e0f601e512b108bf25dbb761f32636703cb79d3f5388425476b1b
+  herb (0.11.0) sha256=cba4bfc57f7c1f4b3ee2f4ed02d966d121ce9d8649b087c721d4f9c61f7c63e2
+  herb (0.11.0-arm64-darwin) sha256=8972ac3e5a7ee7296a89d78fceb40d8fb85c3ea8d40c9781a9c8db3e58194501
+  herb (0.11.0-x86_64-linux-gnu) sha256=aba19094bc1618e1bc0fb59db52ba251c93a24598f5228815616b282f10bb8a0
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   json (3.0.2) sha256=8e6d7e7b11384c21230430cef90b71f14849a34a1f4452796670f7c981bd19df
