@@ -37,7 +37,11 @@ module RuboCop
     #                 | ::Herb::AST::ERBWhileNode
     #                 | ::Herb::AST::ERBUntilNode
     #                 | ::Herb::AST::ERBContentNode
+    #                 | ::Herb::AST::ERBCommentNode
     #                 | ::Herb::AST::ERBEndNode
+    #
+    #   # ERB comment nodes (<%# %>): ERBContentNode on herb < 0.11, ERBCommentNode on herb >= 0.11
+    #   type erb_comment_node = ::Herb::AST::ERBContentNode | ::Herb::AST::ERBCommentNode
     #
     #   # Union type for all HTML nodes
     #   type html_node = ::Herb::AST::HTMLElementNode

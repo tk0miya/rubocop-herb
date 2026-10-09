@@ -58,7 +58,7 @@ gems:
   source:
     type: stdlib
 - name: herb
-  version: 0.10.4
+  version: 0.11.0
   source:
     type: rubygems
 - name: io-console
