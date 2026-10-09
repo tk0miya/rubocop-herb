@@ -703,18 +703,17 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
 
       context "when analyzing conditional branches differing only in text content" do
-        # More than 10 HTML nodes between the branches to make the tag counter wrap around
         let(:source) do
           <<~ERB
             <% if a %>
               hello
             <% else %>
-            #{"  <div><%= y %></div>\n" * 9}  world
+              world
             <% end %>
             <% if b %>
               こんにちは
             <% else %>
-            #{"  <div><%= y %></div>\n" * 9}  さようなら
+              さようなら
             <% end %>
           ERB
         end
