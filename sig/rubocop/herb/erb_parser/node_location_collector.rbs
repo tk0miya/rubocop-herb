@@ -87,8 +87,6 @@ module RuboCop
       def update_erb_max_columns: (ErbLocation::erb_node_type type, Integer line, Integer column) -> void
 
       # Determine the type of an ERB node
-      # Comments are detected by their tag opening because the node class differs by herb version
-      # (see erb_comment_node)
       # @rbs node: erb_node
       def determine_type: (erb_node node) -> ErbLocation::erb_node_type
 

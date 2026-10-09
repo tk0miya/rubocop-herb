@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     rubocop-herb (0.1.0)
-      herb (>= 0.8.0)
+      herb (>= 0.11.0)
       lint_roller (>= 1.1.0)
       not_nilable
       rubocop (>= 1.90.0)
