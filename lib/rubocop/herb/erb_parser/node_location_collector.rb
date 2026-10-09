@@ -15,6 +15,8 @@ module RuboCop
         ::Herb::AST::ERBElseNode => :else,
         ::Herb::AST::ERBCaseNode => :case,
         ::Herb::AST::ERBWhenNode => :when,
+        ::Herb::AST::ERBCaseMatchNode => :case_match,
+        ::Herb::AST::ERBInNode => :in,
         ::Herb::AST::ERBForNode => :for,
         ::Herb::AST::ERBWhileNode => :while,
         ::Herb::AST::ERBUntilNode => :until,

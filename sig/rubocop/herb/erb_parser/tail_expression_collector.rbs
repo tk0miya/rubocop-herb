@@ -4,7 +4,7 @@ module RuboCop
   module Herb
     # Visitor that collects tail expression positions from an ERB document.
     # A tail expression is an output node (<%= %>) that is the last statement
-    # in a returning_value block (if/unless/else/when/begin/rescue/ensure).
+    # in a returning_value block (if/unless/else/when/in/begin/rescue/ensure).
     # These nodes don't need the `_ =` marker because their value is returned
     # as part of the control flow.
     class TailExpressionCollector < ::Herb::Visitor
@@ -41,6 +41,8 @@ module RuboCop
       def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
 
       def visit_erb_when_node: (::Herb::AST::ERBWhenNode node) -> void
+
+      def visit_erb_in_node: (::Herb::AST::ERBInNode node) -> void
 
       def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
 

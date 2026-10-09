@@ -54,6 +54,13 @@ module RuboCop
         super
       end
 
+      # In branches containing only HTML become empty in the Ruby code
+      # @rbs node: ::Herb::AST::ERBInNode
+      def visit_erb_in_node(node) #: void
+        disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
+        super
+      end
+
       # Blocks containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void

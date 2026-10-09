@@ -4,7 +4,7 @@ module RuboCop
   module Herb
     # Represents the location and metadata of an ERB node
     class ErbLocation
-      type erb_node_type = :content | :output | :comment | :block | :if | :unless | :else | :case | :when | :for | :while | :until | :begin | :rescue | :ensure | :yield | :end
+      type erb_node_type = :content | :output | :comment | :block | :if | :unless | :else | :case | :when | :case_match | :in | :for | :while | :until | :begin | :rescue | :ensure | :yield | :end
 
       attr_reader type: erb_node_type
 
