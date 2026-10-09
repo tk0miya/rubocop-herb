@@ -110,6 +110,14 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with when branch split from an ERB tag holding the case" do
+      let(:code) { "<% case a when 1 %>\n  <p>a</p>\n<% end %>" }
+
+      it "disables Lint/EmptyWhen at the ERB tag" do
+        expect(subject).to eq({ "Lint/EmptyWhen" => [1..1] })
+      end
+    end
+
     context "with block containing an HTML element" do
       let(:code) { "<% items.each do |item| %>\n  <p>a</p>\n<% end %>" }
 

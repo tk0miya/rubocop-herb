@@ -85,11 +85,13 @@ module RuboCop
       end
 
       # Disable the cop at the lines of the ERB tag
+      # A node split from an ERB tag (e.g. `<% case x when 1 %>`) lacks its tag opening or closing,
+      # so its content is used instead
       # @rbs cop_name: String
       # @rbs node: erb_node
       def disable_cop(cop_name, node) #: void
-        first_line = node.tag_opening.not_nil!.location.start.line
-        last_line = node.tag_closing.not_nil!.location.end.line
+        first_line = (node.tag_opening || node.content).not_nil!.location.start.line
+        last_line = (node.tag_closing || node.content).not_nil!.location.end.line
         (disabled_cops[cop_name] ||= []) << (first_line..last_line)
       end
 

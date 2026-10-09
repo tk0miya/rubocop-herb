@@ -133,22 +133,33 @@ module RuboCop
 
       # @rbs node: erb_node
       def output_node?(node) #: bool
-        node.tag_opening.not_nil!.value == "<%="
+        node.tag_opening&.value == "<%="
       end
 
       # @rbs node: erb_node
-      def render_code_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def render_code_node(node) #: void
         return unless node.content
 
         code = extract_ruby_code(node)
         range = NodeRange.byte_range_to_char_range(node.content.not_nil!.range, source)
         ruby_code[range.from, code.length] = code
 
+        render_semicolon(node, code, range)
+        render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
+      end
+
+      # Render a semicolon after the code to terminate the statement
+      # A node split from an ERB tag (e.g. `<% else; end %>`) has no tag closing; the following node
+      # continues in the same tag, so the code is kept as written
+      # @rbs node: erb_node
+      # @rbs code: String
+      # @rbs range: CharRange
+      def render_semicolon(node, code, range) #: void
+        return unless node.tag_closing
+
         trailing_spaces = code.length - code.rstrip.length
         semicolon_pos = range.to - trailing_spaces
         ruby_code[semicolon_pos] = ";" if semicolon_pos < ruby_code.size
-
-        render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
       end
 
       # Check if output node needs _ = marker
