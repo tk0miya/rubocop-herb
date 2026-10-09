@@ -295,6 +295,63 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "with Lint/DuplicateBranch enabled" do
+      # Lint/DuplicateBranch is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
+          f.write(YAML.dump(rubocop_config.merge("Lint/DuplicateBranch" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing conditional branches differing only in HTML content" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p>a</p>
+            <% else %>
+              <p>b</p>
+            <% end %>
+            <% case b %>
+            <% when 1 %>
+              <p>a</p>
+            <% else %>
+              <p>b</p>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing conditional branches containing different HTML and the same Ruby code" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p>a</p>
+              <%= x %>
+            <% else %>
+              <p>b</p>
+              <%= x %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 3],
+                                  ["Lint/DuplicateBranch", 4],
+                                  ["Style/IdenticalConditionalBranches", 6]]
+        end
+      end
+    end
+
     context "with Lint/EmptyBlock enabled" do
       # Lint/EmptyBlock is a pending cop, so enable it explicitly
       let(:config) do
@@ -603,6 +660,145 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
+      end
+    end
+
+    context "with Lint/DuplicateBranch enabled" do
+      # Lint/DuplicateBranch is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
+          f.write(YAML.dump(rubocop_config.merge("Lint/DuplicateBranch" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing conditional branches differing only in HTML content" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p>a</p>
+            <% else %>
+              <p>b</p>
+            <% end %>
+            <% case b %>
+            <% when 1 %>
+              <p>a</p>
+            <% else %>
+              <p>b</p>
+            <% end %>
+            <% if c %>
+              <p class="<%= klass %>">a</p>
+            <% else %>
+              <p class="<%= klass %>">b</p>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing conditional branches differing only in text content" do
+        # More than 10 HTML nodes between the branches to make the tag counter wrap around
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              hello
+            <% else %>
+            #{"  <div><%= y %></div>\n" * 9}  world
+            <% end %>
+            <% if b %>
+              こんにちは
+            <% else %>
+            #{"  <div><%= y %></div>\n" * 9}  さようなら
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing ERB tags split into multiple nodes" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p>a</p>
+            <% else; end %>
+          ERB
+        end
+
+        it "processes the file without extractor errors" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Style/EmptyElse", 3]]
+        end
+      end
+
+      context "when analyzing conditional branches containing the same HTML and different Ruby code" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p><%= x %></p>
+            <% else %>
+              <p><%= y %></p>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing conditional branches containing different HTML and the same Ruby code" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p>a</p>
+              <%= x %>
+            <% else %>
+              <p>b</p>
+              <%= x %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Style/IdenticalConditionalBranches only for the Ruby code" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.location.source] }
+          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 3, "x"],
+                                  ["Style/IdenticalConditionalBranches", 6, "x"]]
+        end
+      end
+
+      context "when analyzing conditional branches containing only the same Ruby code" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <%= x %>
+            <% else %>
+              <%= x %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 2],
+                                  ["Lint/DuplicateBranch", 3],
+                                  ["Style/IdenticalConditionalBranches", 4]]
+        end
       end
     end
 

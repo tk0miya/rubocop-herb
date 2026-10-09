@@ -33,9 +33,7 @@ module RuboCop
       # HTML parts are replaced with whitespace, causing false positives.
       HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS = [
         "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
-        "Lint/DuplicateBranch", # Branches may differ only in HTML content
         "Style/ConditionalAssignment", # All output tags get _ = prefix to avoid Lint/Void
-        "Style/IdenticalConditionalBranches", # Branches may differ only in HTML content
         "Style/Next", # Loop conditions may guard HTML output, not suitable for next
         "Style/RedundantCondition" # Condition may appear redundant when HTML is removed
       ].freeze #: Array[String]

@@ -1293,7 +1293,7 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      # Each HTML content gets unique counter to avoid Style/IdenticalConditionalBranches false positive
+      # Each HTML content gets unique counter
       describe "with if-else containing different HTML content in each branch" do
         let(:source) do
           ["<span>",
