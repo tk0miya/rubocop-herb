@@ -312,6 +312,41 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      # ERB tags split into multiple nodes by Herb
+      describe "with an ERB tag continuing and closing a control flow" do
+        let(:source) do
+          ["<% if admin? %>",
+           "  <%= name %>",
+           "<% else; end %>"].join("\n")
+        end
+        let(:expected) do
+          ["   if admin?;  ",
+           "  _ = name;  ",
+           "   else; end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an ERB tag holding a case and its first condition" do
+        let(:source) do
+          ["<% case status when :active %>",
+           "  Active",
+           "<% when :inactive %>",
+           "  Inactive",
+           "<% end %>"].join("\n")
+        end
+        let(:expected) do
+          ["   case status when :active;  ",
+           "        ",
+           "   when :inactive;  ",
+           "          ",
+           "   end;  "].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       # Complex cases
       describe "with nested ERB tags" do
         let(:source) do
@@ -801,6 +836,22 @@ RSpec.describe RuboCop::Herb::Converter do
            "    Hello, Admin!",
            "     end;  ",
            "</div>"].join("\n")
+        end
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with an ERB tag continuing and closing a control flow" do
+        let(:source) do
+          ["<% if admin? %>",
+           "  <%= name %>",
+           "<% else; end %>"].join("\n")
+        end
+        # name is a tail expression of the if statement even though the else and end are split from one tag
+        let(:expected) do
+          ["   if admin?;  ",
+           "      name;  ",
+           "   else; end;  "].join("\n")
         end
 
         it_behaves_like "a Ruby code extractor for ERB"
