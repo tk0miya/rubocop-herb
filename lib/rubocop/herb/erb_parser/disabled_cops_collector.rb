@@ -10,18 +10,22 @@ module RuboCop
     class DisabledCopsCollector < ::Herb::Visitor
       # Collect the disabled lines for each cop from a parse result
       # @rbs ast: ::Herb::ParseResult
-      def self.collect(ast) #: Hash[String, Array[Range[Integer]]]
-        collector = new
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode] -- HTML elements rendered as `tag { ... }`
+      def self.collect(ast, html_block_positions: Set.new) #: Hash[String, Array[Range[Integer]]]
+        collector = new(html_block_positions)
         ast.visit(collector)
         collector.disabled_cops
       end
 
       attr_reader :disabled_cops #: Hash[String, Array[Range[Integer]]]
+      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
 
-      def initialize #: void
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
+      def initialize(html_block_positions) #: void
         @disabled_cops = {}
+        @html_block_positions = html_block_positions
 
-        super
+        super()
       end
 
       # Conditional branches containing only HTML become empty in the Ruby code
@@ -82,7 +86,29 @@ module RuboCop
         super
       end
 
+      # HTML elements rendered as `tag { ... }` (html_visualization) are not blocks written by users
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def visit_html_element_node(node) #: void
+        disable_html_block_cops(node) if html_block_positions.include?(node)
+        super
+      end
+
       private
+
+      # Disable the cops reporting the braces of an HTML element rendered as `tag { ... }`
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def disable_html_block_cops(node) #: void
+        open_tag_line = node.open_tag.not_nil!.location.start.line
+
+        # `{` is rendered right after the tag name
+        disable_line("Layout/SpaceBeforeBlockBraces", open_tag_line)
+      end
+
+      # @rbs cop_name: String
+      # @rbs line: Integer
+      def disable_line(cop_name, line) #: void
+        (disabled_cops[cop_name] ||= []) << (line..line)
+      end
 
       # Conditionals written across multiple ERB tags on a single line become
       # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
@@ -95,7 +121,7 @@ module RuboCop
         first_line = node.location.start.line
         return unless first_line == node.location.end.line
 
-        (disabled_cops["Style/OneLineConditional"] ||= []) << (first_line..first_line)
+        disable_line("Style/OneLineConditional", first_line)
       end
 
       # Disable the cop at the lines of the ERB tag

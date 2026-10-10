@@ -8,11 +8,15 @@ module RuboCop
     class DisabledCopsCollector < ::Herb::Visitor
       # Collect the disabled lines for each cop from a parse result
       # @rbs ast: ::Herb::ParseResult
-      def self.collect: (::Herb::ParseResult ast) -> Hash[String, Array[Range[Integer]]]
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode] -- HTML elements rendered as `tag { ... }`
+      def self.collect: (::Herb::ParseResult ast, ?html_block_positions: Set[::Herb::AST::HTMLElementNode]) -> Hash[String, Array[Range[Integer]]]
 
       attr_reader disabled_cops: Hash[String, Array[Range[Integer]]]
 
-      def initialize: () -> void
+      attr_reader html_block_positions: Set[::Herb::AST::HTMLElementNode]
+
+      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
+      def initialize: (Set[::Herb::AST::HTMLElementNode] html_block_positions) -> void
 
       # Conditional branches containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBIfNode
@@ -46,7 +50,19 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
+      # HTML elements rendered as `tag { ... }` (html_visualization) are not blocks written by users
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
+
       private
+
+      # Disable the cops reporting the braces of an HTML element rendered as `tag { ... }`
+      # @rbs node: ::Herb::AST::HTMLElementNode
+      def disable_html_block_cops: (::Herb::AST::HTMLElementNode node) -> void
+
+      # @rbs cop_name: String
+      # @rbs line: Integer
+      def disable_line: (String cop_name, Integer line) -> void
 
       # Conditionals written across multiple ERB tags on a single line become
       # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
