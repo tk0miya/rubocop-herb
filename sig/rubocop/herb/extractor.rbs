@@ -17,6 +17,12 @@ module RuboCop
 
       # @rbs result: Converter::Result
       def build_processed_source: (Converter::Result result) -> ProcessedSource
+
+      # Restore CRLF line endings of the raw source so that cops checking the raw source
+      # (e.g. Layout/EndOfLine) still work. The conversion keeps lines as is,
+      # so the lines of the Ruby code correspond to those of the raw source.
+      # @rbs ruby_code: String
+      def restore_crlf: (String ruby_code) -> String
     end
   end
 end

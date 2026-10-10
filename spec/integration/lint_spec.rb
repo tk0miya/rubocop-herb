@@ -741,6 +741,26 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         end
       end
     end
+
+    context "when analyzing ERB with CRLF line endings" do
+      let(:source) { "<div>\r\n  <p>\r\n    <%= a %>\r\n    <%= x==1 %>\r\n  </p>\r\n</div>\r\n" }
+
+      it "reports the same offenses as the LF equivalent besides Layout/EndOfLine" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Layout/SpaceAroundOperators", 4, 9]]
+      end
+    end
+
+    context "when analyzing ERB with mixed line endings" do
+      let(:source) { "<div>\n  <%= a %>\r\n</div>\n" }
+
+      it "triggers Layout/EndOfLine only at the line ending with CRLF" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 2, 0]]
+      end
+    end
   end
 
   context "when html_visualization is enabled" do
@@ -753,6 +773,16 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing ERB with CRLF line endings" do
+      let(:source) { "<div>\r\n  <p>\r\n    <%= a %>\r\n    <%= x==1 %>\r\n  </p>\r\n</div>\r\n" }
+
+      it "reports the same offenses as the LF equivalent besides Layout/EndOfLine" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Layout/SpaceAroundOperators", 4, 9]]
       end
     end
 
