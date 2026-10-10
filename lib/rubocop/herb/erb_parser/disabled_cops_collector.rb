@@ -108,6 +108,20 @@ module RuboCop
 
         # The braces are restored to the HTML tags, so the cop regards a single-line block as a do...end block
         disable_line("Style/SingleLineDoEndBlock", open_tag_line) if close_tag_line == open_tag_line
+        # The content following the open tag is the block body on the same line as `{`
+        disable_line("Layout/MultilineBlockLayout", open_tag_line) if first_content_line(node.body) == open_tag_line
+      end
+
+      # The line of the first non-whitespace content in the nodes
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def first_content_line(nodes) #: Integer?
+        nodes.each do |node|
+          return node.location.start.line unless node.is_a?(::Herb::AST::HTMLTextNode)
+
+          leading_text = node.content.to_s[/\A\s*(?=\S)/]
+          return node.location.start.line + leading_text.count("\n") if leading_text
+        end
+        nil
       end
 
       # @rbs cop_name: String

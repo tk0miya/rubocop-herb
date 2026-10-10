@@ -60,6 +60,10 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def disable_html_block_cops: (::Herb::AST::HTMLElementNode node) -> void
 
+      # The line of the first non-whitespace content in the nodes
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def first_content_line: (Array[::Herb::AST::Node] nodes) -> Integer?
+
       # @rbs cop_name: String
       # @rbs line: Integer
       def disable_line: (String cop_name, Integer line) -> void
