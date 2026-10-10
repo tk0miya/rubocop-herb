@@ -214,24 +214,24 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block containing an HTML element" do
       let(:code) { "<% items.each do |item| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyBlock at the block tag" do
-        expect(subject).to eq({ "Lint/EmptyBlock" => [1..1] })
+      it "disables Lint/EmptyBlock at the block tag and Layout/BlockAlignment at the end tag" do
+        expect(subject).to eq({ "Lint/EmptyBlock" => [1..1], "Layout/BlockAlignment" => [3..3] })
       end
     end
 
     context "with output block containing an HTML element" do
       let(:code) { "<%= form_with do |f| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyBlock at the block tag" do
-        expect(subject).to eq({ "Lint/EmptyBlock" => [1..1] })
+      it "disables Lint/EmptyBlock at the block tag and Layout/BlockAlignment at the end tag" do
+        expect(subject).to eq({ "Lint/EmptyBlock" => [1..1], "Layout/BlockAlignment" => [3..3] })
       end
     end
 
     context "with block written across ERB tags on a single line" do
       let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
 
-      it "disables Style/BlockDelimiters at the line" do
-        expect(subject).to eq({ "Style/BlockDelimiters" => [1..1] })
+      it "disables Style/BlockDelimiters and Layout/BlockAlignment at the line" do
+        expect(subject).to eq({ "Style/BlockDelimiters" => [1..1], "Layout/BlockAlignment" => [1..1] })
       end
     end
 
@@ -289,8 +289,12 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
           "<% items.each do |item| %>\n  <%= item %>\n<% end %>"
       end
 
-      it "disables only Style/ConditionalAssignment at the case tag and Layout/EndAlignment at the end tag" do
-        expect(subject).to eq({ "Style/ConditionalAssignment" => [1..1], **end_alignment(6..6) })
+      it "disables only Style/ConditionalAssignment at the case tag and the alignment cops at the end tags" do
+        expect(subject).to eq({
+                                "Style/ConditionalAssignment" => [1..1],
+                                **end_alignment(6..6),
+                                "Layout/BlockAlignment" => [9..9]
+                              })
       end
     end
 
@@ -309,7 +313,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         it "disables the cops for the braces at the open tag and the close tag" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
-                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3]
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3],
+                                  "Layout/BlockAlignment" => [3..3]
                                 })
         end
       end
@@ -320,7 +325,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         it "disables the cops for the braces at the first line of the open tag and the close tag" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
-                                  "Layout/SpaceInsideBlockBraces" => [1..1, 4..4]
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 4..4],
+                                  "Layout/BlockAlignment" => [4..4]
                                 })
         end
       end
@@ -346,6 +352,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
                                   "Layout/SpaceInsideBlockBraces" => [1..1, 2..2],
+                                  "Layout/BlockAlignment" => [2..2],
                                   "Layout/MultilineBlockLayout" => [1..1]
                                 })
         end
@@ -357,7 +364,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         it "disables the cops for the braces" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
-                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3]
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3],
+                                  "Layout/BlockAlignment" => [3..3]
                                 })
         end
       end
@@ -369,6 +377,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
                                   "Layout/SpaceInsideBlockBraces" => [1..1, 3..3],
+                                  "Layout/BlockAlignment" => [3..3],
                                   "Layout/MultilineBlockLayout" => [1..1]
                                 })
         end
@@ -380,7 +389,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         it "disables the cops for the braces" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
-                                  "Layout/SpaceInsideBlockBraces" => [1..1, 4..4]
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 4..4],
+                                  "Layout/BlockAlignment" => [4..4]
                                 })
         end
       end

@@ -88,6 +88,12 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode
       def disable_end_alignment: (::Herb::AST::ERBEndNode end_node) -> void
 
+      # The column of the end tag follows the HTML structure, and the block start is shifted by the output marker
+      # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`). Blocks written within a single ERB tag
+      # are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode
+      def disable_block_alignment: (::Herb::AST::ERBEndNode end_node) -> void
+
       # The line of the first non-whitespace content in the nodes
       # @rbs nodes: Array[::Herb::AST::Node]
       def first_content_line: (Array[::Herb::AST::Node] nodes) -> Integer?

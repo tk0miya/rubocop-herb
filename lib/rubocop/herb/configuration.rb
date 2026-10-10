@@ -11,7 +11,6 @@ module RuboCop
       # Cops to exclude from ERB files due to inherent incompatibilities
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
-        "Layout/BlockAlignment", # Output tag markers shift block start; ERB end may follow HTML
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
         "Layout/ExtraSpacing", # Whitespace padding preserves positions but creates extra spaces
         "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently

@@ -155,37 +155,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
-    context "when analyzing block in output tag closed by end tag" do
-      let(:source) do
-        <<~ERB
-          <%= form_with model: @user do |f| %>
-            <%= f.text_field :name %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Layout/BlockAlignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing block whose end tag follows HTML" do
-      let(:source) do
-        <<~ERB
-          <% items.each do |item| %>
-          <p><%= item %></p><% end %>
-        ERB
-      end
-
-      it "does not trigger Layout/BlockAlignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
     context "when analyzing conditional branches containing only HTML" do
       let(:source) do
         <<~ERB
@@ -467,6 +436,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/EndAlignment", 13]]
+      end
+    end
+
+    context "when analyzing blocks whose end tags follow the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <%= form_with model: @user do |f| %>
+            <%= f.text_field :name %>
+              <% end %>
+          <% items.each do |item| %>
+          <p><%= item %></p><% end %>
+          <div class="a">
+            <%= x %>
+              </div>
+          <% items.each do |item| %>
+            <% item.children.each do |child|
+                 child.save(item)
+            end %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Layout/BlockAlignment only for the block in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/BlockAlignment", 12]]
       end
     end
 
@@ -1222,19 +1217,27 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
-    context "when analyzing block in output tag closed by end tag" do
+    context "when analyzing blocks whose end tags follow the HTML structure" do
       let(:source) do
         <<~ERB
           <%= form_with model: @user do |f| %>
             <%= f.text_field :name %>
+              <% end %>
+          <div class="a">
+            <%= x %>
+              </div>
+          <% items.each do |item| %>
+            <% item.children.each do |child|
+                 child.save(item)
+            end %>
           <% end %>
         ERB
       end
 
-      it "does not trigger Layout/BlockAlignment" do
+      it "triggers Layout/BlockAlignment only for the block in a single ERB tag" do
         runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/BlockAlignment", 10]]
       end
     end
 
