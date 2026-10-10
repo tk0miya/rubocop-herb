@@ -6,83 +6,92 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
   describe ".collect" do
     subject { described_class.collect(Herb.parse(code)) }
 
+    # Cops disabled at the if/unless tags of conditionals written across ERB tags
+    def conditional_cops(*ranges)
+      { "Style/IfWithSemicolon" => ranges }
+    end
+
     context "with if branch containing an HTML element" do
       let(:code) { "<% if a %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyConditionalBody at the if tag" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1] })
+      it "disables Lint/EmptyConditionalBody and the conditional cops at the if tag" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1], **conditional_cops(1..1) })
       end
     end
 
     context "with unless branch containing text" do
       let(:code) { "<% unless a %>\n  a\n<% end %>" }
 
-      it "disables Lint/EmptyConditionalBody at the unless tag" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1] })
+      it "disables Lint/EmptyConditionalBody and the conditional cops at the unless tag" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1], **conditional_cops(1..1) })
       end
     end
 
     context "with elsif branch containing an HTML comment" do
       let(:code) { "<% if a %>\n  <%= a %>\n<% elsif b %>\n  <!-- b -->\n<% end %>" }
 
-      it "disables Lint/EmptyConditionalBody at the elsif tag" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [3..3] })
+      it "disables Lint/EmptyConditionalBody at the elsif tag and the conditional cops at the if tag" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [3..3], **conditional_cops(1..1) })
       end
     end
 
     context "with if branches containing only an open tag or a close tag" do
       let(:code) { "<% if a %>\n  <a href=\"/\">\n<% end %>\ntext\n<% if a %>\n  </a>\n<% end %>" }
 
-      it "disables Lint/EmptyConditionalBody at both if tags" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1, 5..5] })
+      it "disables Lint/EmptyConditionalBody and the conditional cops at both if tags" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1, 5..5], **conditional_cops(1..1, 5..5) })
       end
     end
 
     context "with if tag spanning multiple lines" do
       let(:code) { "<% if a &&\n     b %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyConditionalBody at all lines of the if tag" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..2] })
+      it "disables Lint/EmptyConditionalBody and the conditional cops at all lines of the if tag" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..2], **conditional_cops(1..2) })
       end
     end
 
     context "with if branch containing only whitespace" do
       let(:code) { "<% if a %>\n  \n<% end %>" }
 
-      it "disables nothing" do
-        expect(subject).to eq({})
+      it "disables only the conditional cops at the if tag" do
+        expect(subject).to eq(conditional_cops(1..1))
       end
     end
 
     context "with if branch containing only ERB" do
       let(:code) { "<% if a %>\n  <%= a %>\n<% end %>" }
 
-      it "disables nothing" do
-        expect(subject).to eq({})
+      it "disables only the conditional cops at the if tag" do
+        expect(subject).to eq(conditional_cops(1..1))
       end
     end
 
     context "with nested if branches containing an HTML element" do
       let(:code) { "<% if a %>\n  <% if b %>\n    <p>b</p>\n  <% end %>\n<% end %>" }
 
-      it "disables Lint/EmptyConditionalBody at the inner if tag" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [2..2] })
+      it "disables Lint/EmptyConditionalBody at the inner if tag and the conditional cops at both if tags" do
+        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [2..2], **conditional_cops(1..1, 2..2) })
       end
     end
 
     context "with if and elsif tags on a single line" do
       let(:code) { "<% if a %>a<% elsif b %><% end %>" }
 
-      it "disables Style/OneLineConditional at the line" do
-        expect(subject).to eq({ "Lint/EmptyConditionalBody" => [1..1], "Style/OneLineConditional" => [1..1] })
+      it "disables the conditional cops and Style/OneLineConditional at the line" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                "Style/OneLineConditional" => [1..1],
+                                **conditional_cops(1..1)
+                              })
       end
     end
 
     context "with unless and else tags on a single line" do
       let(:code) { "<% unless a %><%= a %><% else %><%= b %><% end %>" }
 
-      it "disables Style/OneLineConditional at the line" do
-        expect(subject).to eq({ "Style/OneLineConditional" => [1..1] })
+      it "disables the conditional cops and Style/OneLineConditional at the line" do
+        expect(subject).to eq({ "Style/OneLineConditional" => [1..1], **conditional_cops(1..1) })
       end
     end
 
@@ -98,7 +107,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       let(:code) { "<% if a %>\n  <%= a %>\n<% else %>\n  <p>b</p>\n<% end %>" }
 
       it "disables Style/EmptyElse at the else tag" do
-        expect(subject).to eq({ "Style/EmptyElse" => [3..3] })
+        expect(subject).to eq({ "Style/EmptyElse" => [3..3], **conditional_cops(1..1) })
       end
     end
 

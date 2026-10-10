@@ -68,10 +68,14 @@ module RuboCop
       # @rbs line: Integer
       def disable_line: (String cop_name, Integer line) -> void
 
+      # Disable the cops reporting conditionals written across multiple ERB tags
+      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_conditional_cops: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
+
       # Conditionals written across multiple ERB tags on a single line become
       # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
       # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
-      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
       # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
       def disable_one_line_conditional: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
 

@@ -32,7 +32,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
-        disable_one_line_conditional(node)
+        disable_conditional_cops(node)
         super
       end
 
@@ -40,7 +40,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
-        disable_one_line_conditional(node)
+        disable_conditional_cops(node)
         super
       end
 
@@ -130,14 +130,22 @@ module RuboCop
         (disabled_cops[cop_name] ||= []) << (line..line)
       end
 
+      # Disable the cops reporting conditionals written across multiple ERB tags
+      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_conditional_cops(node) #: void
+        return unless node.end_node # elsif nodes are checked as a part of the outer if node
+
+        # A semicolon is rendered at the closing of the if tag (`if a;`)
+        disable_cop("Style/IfWithSemicolon", node)
+        disable_one_line_conditional(node)
+      end
+
       # Conditionals written across multiple ERB tags on a single line become
       # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
       # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
-      # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
       # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
       def disable_one_line_conditional(node) #: void
-        return unless node.end_node # elsif nodes are checked as a part of the outer if node
-
         first_line = node.location.start.line
         return unless first_line == node.location.end.line
 
