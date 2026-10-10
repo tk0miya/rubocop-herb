@@ -786,6 +786,16 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing ERB with mixed line endings" do
+      let(:source) { "<div>\n  <%= a %>\r\n</div>\n" }
+
+      it "triggers Layout/EndOfLine only at the line ending with CRLF" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 2, 0]]
+      end
+    end
+
     context "when analyzing if-else-end with output tags" do
       let(:source) do
         <<~ERB
@@ -816,6 +826,39 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
 
       it "does not trigger Style/ConditionalAssignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing each block with output tags" do
+      let(:source) do
+        <<~ERB
+          <% items.each do |item| %>
+            <%= item %>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing if block with output tag followed by non-output tag" do
+      let(:source) do
+        <<~ERB
+          <% if foo? %>
+            <%= 'close' if bar? %>
+            <% :foo %>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
@@ -856,6 +899,206 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing ERB with multi-byte characters in comments" do
+      let(:source) do
+        <<~ERB
+          <div class="form">
+            <%# 日本語コメント %>
+            <div class="inner">
+              <input value="<%= foo.bar %>" />
+              <label><%= baz(qux: @value) %></label>
+            </div>
+          </div>
+        ERB
+      end
+
+      it "does not trigger Layout/SpaceBeforeFirstArg" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing conditional branches containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <!-- b -->
+          <% end %>
+          <% unless c %>
+            c
+          <% end %>
+          <% if d %>
+            <a href="/">
+          <% end %>
+          d
+          <% if d %>
+            </a>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/EmptyConditionalBody" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing conditional branches without any content" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+          <% elsif b %>
+            <%= b %>
+          <% end %>
+          <% unless c %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/EmptyConditionalBody" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1], ["Lint/EmptyConditionalBody", 5]]
+      end
+    end
+
+    context "when analyzing an empty if branch followed by an elsif branch containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+          <% elsif b %>
+            <p>b</p>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/EmptyConditionalBody only for the empty if branch" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1]]
+      end
+    end
+
+    context "when analyzing rescue and ensure clauses containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% begin %>
+            <p>x</p>
+          <% rescue StandardError %>
+            <p>error</p>
+          <% ensure %>
+            <p>done</p>
+          <% end %>
+        ERB
+      end
+
+      it "does not trigger Lint/SuppressedException and Lint/EmptyEnsure" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing rescue and ensure clauses without any content" do
+      let(:source) do
+        <<~ERB
+          <% begin %>
+            <p>x</p>
+          <% rescue StandardError %>
+          <% ensure %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/SuppressedException and Lint/EmptyEnsure" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/SuppressedException", 3], ["Lint/EmptyEnsure", 4]]
+      end
+    end
+
+    context "when analyzing conditionals written across ERB tags on a single line" do
+      let(:source) do
+        <<~ERB
+          <% if a %>foo<% elsif b %><% end %>
+          <% if a %><%= x %><% else %><%= y %><% end %>
+          <% unless a %><%= x %><% else %><%= y %><% end %>
+        ERB
+      end
+
+      it "does not trigger Style/OneLineConditional" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/UnlessElse", 3]]
+      end
+    end
+
+    context "when analyzing a conditional written in a single ERB tag" do
+      let(:source) { "<% if a then b else c end %>\n" }
+
+      it "triggers Style/OneLineConditional" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/OneLineConditional", 1]]
+      end
+    end
+
+    context "when analyzing conditionals written across ERB tags and in a single ERB tag" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <p>b</p>
+          <% end %>
+          <% unless c %>
+            <%= c %>
+          <% end %>
+          <% if d; foo; end %>
+        ERB
+      end
+
+      it "triggers Style/IfWithSemicolon and Style/IfUnlessModifier only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/IfUnlessModifier", 9], ["Style/IfWithSemicolon", 9]]
+      end
+    end
+
+    context "when analyzing case statements with output tags and a conditional assignment in a single ERB tag" do
+      let(:source) do
+        <<~ERB
+          <% case a %>
+          <% when 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case b %>
+          <% in 1 %>
+            <%= x %>
+          <% in 2 %>
+            <%= y %>
+          <% end %>
+          <% if c
+               @z = 1
+             else
+               @z = 2
+             end %>
+        ERB
+      end
+
+      it "triggers Style/ConditionalAssignment only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/ConditionalAssignment", 13]]
       end
     end
 
@@ -1206,6 +1449,60 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "with Lint/EmptyBlock enabled" do
+      # Lint/EmptyBlock is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyBlock" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing else branches, when branches and blocks containing only HTML" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% when 1 %>
+              <p>a</p>
+            <% else %>
+              <p>b</p>
+            <% end %>
+            <% items.each do %>
+              <p>item</p>
+            <% end %>
+            <%= form_with do %>
+              <p>form</p>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing else branches, when branches and blocks without any content" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% when 1 %>
+            <% else %>
+            <% end %>
+            <% items.each do |item| %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Lint/EmptyWhen", 2], ["Style/EmptyElse", 3], ["Lint/EmptyBlock", 5]]
+        end
+      end
+    end
+
     context "when analyzing conditionals whose branches output the condition" do
       let(:source) do
         <<~ERB
@@ -1416,6 +1713,34 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Style/StringLiterals", 6]]
+      end
+    end
+
+    context "with Lint/EmptyInPattern enabled" do
+      # Lint/EmptyInPattern is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyInPattern" => { "Enabled" => true })))
+          f.close
+        end
+      end
+
+      context "when analyzing in branches containing only HTML" do
+        let(:source) do
+          <<~ERB
+            <% case a %>
+            <% in 1 %>
+              <p>a</p>
+            <% in 2 %>
+            <% end %>
+          ERB
+        end
+
+        it "triggers Lint/EmptyInPattern only for in branches without any content" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Lint/EmptyInPattern", 4]]
+        end
       end
     end
 
