@@ -99,9 +99,12 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def disable_html_block_cops(node) #: void
         open_tag_line = node.open_tag.not_nil!.location.start.line
+        close_tag_line = node.close_tag.not_nil!.location.start.line
 
-        # `{` is rendered right after the tag name
+        # `{` is rendered right after the tag name, and `}` at the start of the close tag
         disable_line("Layout/SpaceBeforeBlockBraces", open_tag_line)
+        disable_line("Layout/SpaceInsideBlockBraces", open_tag_line)
+        disable_line("Layout/SpaceInsideBlockBraces", close_tag_line) if close_tag_line != open_tag_line
       end
 
       # @rbs cop_name: String
