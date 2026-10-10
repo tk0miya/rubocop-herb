@@ -104,7 +104,7 @@ module RuboCop
       # When using brace notation, push a block context so that ERB nodes inside
       # are not treated as tail expressions of outer blocks (HTML blocks don't return values)
       # For non-brace elements with closing tags, the closing tag is also recorded as it
-      # generates Ruby code (e.g., div0;) that comes after any ERB inside the element.
+      # generates Ruby code (e.g., div;) that comes after any ERB inside the element.
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         return super unless html_visualization
@@ -116,7 +116,7 @@ module RuboCop
           pop_block
         else
           super
-          # Record close tag for non-brace elements (rendered as tagN;)
+          # Record close tag for non-brace elements (rendered as tag;)
           record_node(node.close_tag) if node.close_tag
         end
       end

@@ -25,7 +25,7 @@ module RuboCop
         super()
       end
 
-      # Process send nodes which represent HTML tags (e.g., div, p0)
+      # Process send nodes which represent HTML tags (e.g., div, p)
       # @rbs node: Parser::AST::Node
       def on_send(node) #: Parser::AST::Node
         new_node = super

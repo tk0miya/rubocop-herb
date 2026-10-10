@@ -244,7 +244,7 @@ RSpec.describe RuboCop::Herb::TailExpressionCollector do
 
       context "with output node wrapped in HTML element without attributes" do
         # HTML element without brace notation but with closing tag
-        # The closing tag (li0;) comes after the ERB, so ERB is not a tail expression
+        # The closing tag (li;) comes after the ERB, so ERB is not a tail expression
         let(:code) { "<% if cond %><li><%= x %></li><% end %>" }
 
         it "collects closing tag as tail expression" do

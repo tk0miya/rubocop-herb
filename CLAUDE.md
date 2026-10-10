@@ -38,11 +38,11 @@ A development tool that reads ERB from stdin and outputs the converted Ruby code
 ```bash
 # Convert ERB from stdin (with HTML visualization enabled by default)
 echo '<div><%= @name %></div>' | bin/erb2ruby
-#=> div;     @name;         p0;
+#=> div; _ = @name;  div;
 
 # Convert ERB without HTML visualization
 echo '<div><%= @name %></div>' | bin/erb2ruby --disable-html-visualization
-#=>          @name;
+#=>      _ = @name;
 
 # Convert ERB file
 bin/erb2ruby < app/views/users/show.html.erb
@@ -112,9 +112,9 @@ The original ERB template containing HTML markup and embedded Ruby code.
 The input file parsed and converted to valid Ruby code. ERB tags are extracted as-is, and HTML tags are converted to Ruby-like identifiers (when `html_visualization` is enabled). RuboCop parses this Ruby code to build an AST for analysis.
 
 ```ruby
-div           ;
-  @user.name;
-p0;
+div {
+  _ = @user.name;
+};
 ```
 
 #### 3. Hybrid Code
@@ -123,7 +123,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 
 ```
 <div class="user">
-  @user.name;
+  _ = @user.name;
 </div>
 ```
 

@@ -23,7 +23,6 @@ module RuboCop
 
       attr_reader :ruby_code #: String
       attr_reader :parse_result #: ParseResult
-      attr_reader :tag_counter #: Integer
       attr_reader :html_visualization #: bool
 
       # @rbs!
@@ -42,7 +41,6 @@ module RuboCop
       def initialize(parse_result, html_visualization: false) #: void
         @parse_result = parse_result
         @ruby_code = bleach_code(parse_result.code)
-        @tag_counter = 0
         @html_visualization = html_visualization
 
         super()
@@ -197,7 +195,7 @@ module RuboCop
 
       # Render HTML close tag as Ruby code
       # When as_brace is true, renders "};" to ensure valid Ruby after block
-      # Otherwise, renders "tagN; " with counter to distinguish closing tags
+      # Otherwise, renders "tag; "
       # @rbs node: ::Herb::AST::Node?
       # @rbs as_brace: bool
       def render_close_tag_node(node, as_brace:) #: void
@@ -210,14 +208,13 @@ module RuboCop
           ruby_code[start_pos + 1] = ";"
         else
           tag_name = node.tag_name.not_nil!.value
-          code = "#{tag_name}#{next_tag_counter}; "
+          code = "#{tag_name}; "
           ruby_code[start_pos, code.length] = code
         end
       end
 
-      # Render HTML text node by placing "_N;" at first non-whitespace position
+      # Render HTML text node by placing "_a;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Uses "_N" with counter so that different HTML contents are rendered differently
       # Requires at least 4 characters from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
@@ -263,26 +260,17 @@ module RuboCop
         ruby_code[char_from, formatted_code.length] = formatted_code
       end
 
-      # Render HTML comment as "_N;" to indicate content presence (like text nodes)
-      # Places "_N;" at the start of the comment with counter
-      # Uses "_N" with counter so that different HTML contents are rendered differently
+      # Render HTML comment as "_a;" at the start of the comment to indicate content presence (like text nodes)
       # @rbs node: ::Herb::AST::HTMLCommentNode
       def render_html_comment_node(node) #: void
         render_tag_marker(byte_to_char_pos(node.comment_start.not_nil!.range.from))
       end
 
-      # Render tag marker "_x;" at the given position and increment counter
-      # Uses alphabetic markers (_a, _b, ... _z) to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
+      # Render tag marker "_a;" at the given position
+      # Uses an alphabetic marker to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
       # @rbs pos: Integer -- character position in ruby_code
       def render_tag_marker(pos) #: void
-        ruby_code[pos] = "_"
-        ruby_code[pos + 1] = ("a".ord + next_tag_counter).chr
-        ruby_code[pos + 2] = ";"
-      end
-
-      # Increment tag counter and return new value (cycles through 0-9)
-      def next_tag_counter #: Integer
-        @tag_counter = tag_counter.succ % 10
+        ruby_code[pos, 3] = "_a;"
       end
 
       # @rbs code: String

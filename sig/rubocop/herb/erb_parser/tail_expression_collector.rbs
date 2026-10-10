@@ -63,7 +63,7 @@ module RuboCop
       # When using brace notation, push a block context so that ERB nodes inside
       # are not treated as tail expressions of outer blocks (HTML blocks don't return values)
       # For non-brace elements with closing tags, the closing tag is also recorded as it
-      # generates Ruby code (e.g., div0;) that comes after any ERB inside the element.
+      # generates Ruby code (e.g., div;) that comes after any ERB inside the element.
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 

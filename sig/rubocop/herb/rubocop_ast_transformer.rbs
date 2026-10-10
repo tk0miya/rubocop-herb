@@ -18,7 +18,7 @@ module RuboCop
       # @rbs parse_result: ParseResult
       def initialize: (ParseResult parse_result) -> void
 
-      # Process send nodes which represent HTML tags (e.g., div, p0)
+      # Process send nodes which represent HTML tags (e.g., div, p)
       # @rbs node: Parser::AST::Node
       def on_send: (Parser::AST::Node node) -> Parser::AST::Node
 
