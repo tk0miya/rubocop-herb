@@ -12,6 +12,11 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
 
+      # The position to render the marker of a text node:
+      # 3 characters in the line followed by at least 1 character (space or newline) for "_a;",
+      # or 2 characters followed by a newline for "_a" (the newline terminates the statement)
+      TEXT_MARKER_POSITION = /\S(?:[^\r\n]{2}.|[^\r\n](?=\r?\n))/m #: Regexp
+
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
@@ -105,7 +110,7 @@ module RuboCop
       end
 
       # Visit HTML text nodes (plain text content between tags)
-      # Renders underscore at first non-whitespace position to indicate content presence
+      # Renders a marker to indicate content presence
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
         render_text_node(node) if html_visualization
@@ -195,20 +200,22 @@ module RuboCop
         ruby_code[pos]&.match?(/[\r\n]/) || false
       end
 
-      # Render HTML text node by placing "_a;" at first non-whitespace position
+      # Render HTML text node by placing a marker ("_a;" or "_a") at the first position where it fits in the line
+      # (see TEXT_MARKER_POSITION)
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Requires at least 4 characters from the first non-whitespace position to end
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = NodeRange.compute_char_range(node, source)
         text = source.slice(range)
-        match = text.match(/\S/)
+        match = text.match(TEXT_MARKER_POSITION)
         return unless match
 
         pos = range.from + match.begin(0).not_nil!
-        return unless pos + 4 <= range.to
-
-        render_tag_marker(pos)
+        if match[0].not_nil!.length > 2
+          render_tag_marker(pos)
+        else
+          ruby_code[pos, 2] = "_a"
+        end
       end
 
       # Render collected comments that can be safely converted to Ruby comments

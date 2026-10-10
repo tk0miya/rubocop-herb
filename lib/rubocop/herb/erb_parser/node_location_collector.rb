@@ -179,12 +179,8 @@ module RuboCop
         range = NodeRange.compute_char_range(node, source)
         text = source.slice(range)
 
-        # Must have non-whitespace content and enough space for marker
-        match = text.match(/\S/)
-        return unless match
-
-        pos = range.from + match.begin(0).not_nil!
-        return unless pos + 4 <= range.to
+        # Must have space for the marker rendered by RubyRenderer
+        return unless text.match?(RubyRenderer::TEXT_MARKER_POSITION)
 
         # Skip recording tag info for text with multi-byte characters
         # Multi-byte chars are bleached to multiple spaces, changing character count
