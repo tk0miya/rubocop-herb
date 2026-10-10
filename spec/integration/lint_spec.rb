@@ -967,5 +967,29 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq [["Layout/SpaceBeforeBlockBraces", 4], ["Layout/SpaceInsideBlockBraces", 4]]
       end
     end
+
+    context "with Style/SingleLineDoEndBlock enabled" do
+      # Style/SingleLineDoEndBlock is a pending cop, so enable it explicitly
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          f.write(YAML.dump(rubocop_config.merge("Style/SingleLineDoEndBlock" => { "Enabled" => true })))
+          f.close
+        end
+      end
+      let(:source) do
+        <<~ERB
+          <ul class="a"><li class="b"><%= x %></li>
+            <li class="b"><%= y %></li>
+          </ul>
+          <% items.each do |item| %><%= item %><% end %>
+        ERB
+      end
+
+      it "triggers Style/SingleLineDoEndBlock only for the Ruby block" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/SingleLineDoEndBlock", 4]]
+      end
+    end
   end
 end

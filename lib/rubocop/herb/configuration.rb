@@ -41,8 +41,7 @@ module RuboCop
       # Cops excluded when HTML visualization is enabled.
       # HTML tags rendered as Ruby identifiers cause false positives.
       HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS = [
-        "Layout/MultilineBlockLayout", # HTML rendered as `tag { }` triggers block layout warnings
-        "Style/SingleLineDoEndBlock" # Multi-line ERB blocks become single-line when HTML is rendered
+        "Layout/MultilineBlockLayout" # HTML rendered as `tag { }` triggers block layout warnings
       ].freeze #: Array[String]
 
       class << self
