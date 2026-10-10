@@ -29,9 +29,9 @@ plugins:
   - rubocop-herb
 ```
 
-### Running herb-lint together (Herb/Lint cop)
+### Running herb-lint together (Herb/Linting cop)
 
-The `Herb/Lint` cop (enabled by default) runs [herb-lint](https://herb-tools.dev/projects/linter)
+The `Herb/Linting` cop (enabled by default) runs [herb-lint](https://herb-tools.dev/projects/linter)
 on HTML+ERB files and reports its offenses together with RuboCop's ones.
 It requires Node.js and `@herb-tools/linter` installed in the project:
 
@@ -44,14 +44,17 @@ If herb-lint is not available, the cop reports an error asking to set it up
 To use rubocop-herb without herb-lint, disable the cop in `.rubocop.yml`:
 
 ```yaml
-Herb/Lint:
+Herb/Linting:
   Enabled: false
   # NodeCommand: node  # The Node.js executable (default: node)
 ```
 
 herb-lint is configured with `.herb.yml` in the project root as usual
 (rules, `linter.exclude`, custom rules in `.herb/rules/`, and `<%# herb:disable %>` comments work as in herb-lint).
-`<%# rubocop:disable Herb/Lint %>` also disables the cop.
+`<%# rubocop:disable Herb/Linting %>` also disables the cop.
+
+Offenses are reported as `[rule-name] message`, and the severities of herb-lint are mapped to
+RuboCop's ones as follows: `error` → `error`, `warning` → `warning`, `info` → `convention`, `hint` → `refactor`.
 
 A Node.js process is spawned once per RuboCop process and reused for all files,
 so the startup cost of Node.js (a few hundred milliseconds) is paid only once.

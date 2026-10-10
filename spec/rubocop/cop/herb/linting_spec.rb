@@ -3,8 +3,8 @@
 require "fileutils"
 require "tmpdir"
 
-RSpec.describe RuboCop::Cop::Herb::Lint do
-  let(:cop) { described_class.new(RuboCop::Config.new("Herb/Lint" => { "NodeCommand" => node_command })) }
+RSpec.describe RuboCop::Cop::Herb::Linting do
+  let(:cop) { described_class.new(RuboCop::Config.new("Herb/Linting" => { "NodeCommand" => node_command })) }
   let(:node_command) { "node" }
   let(:project_root) { Dir.mktmpdir }
 

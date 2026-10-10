@@ -20,12 +20,12 @@ module RuboCop
       #
       #   # good
       #   <img src="logo.png" alt="Logo">
-      class Lint < Base
+      class Linting < Base
         SEVERITIES = {
           "error" => :error,
           "warning" => :warning,
-          "info" => :info,
-          "hint" => :info
+          "info" => :convention,
+          "hint" => :refactor
         }.freeze #: Hash[String, Symbol]
 
         # Files affecting the result of herb-lint other than the linted file itself
@@ -59,8 +59,8 @@ module RuboCop
         # @rbs path: String -- absolute path of the file
         def lint(source, path) #: void
           client.lint(path, source.parse_result.code).each do |offense|
-            add_offense(offense_range(offense), message: "#{offense.rule}: #{offense.message}",
-                                                severity: SEVERITIES.fetch(offense.severity, :warning))
+            add_offense(offense_range(offense), message: "[#{offense.rule}] #{offense.message}",
+                                                severity: SEVERITIES.fetch(offense.severity, :convention))
           end
         rescue ::RuboCop::Herb::HerbLintClient::StartupError => e
           # Do not consume the report on a file where it would be suppressed by a disable comment
@@ -69,7 +69,7 @@ module RuboCop
 
           add_offense(source.buffer.line_range(1),
                       message: "herb-lint is not available: #{e.message}. Set up herb-lint " \
-                               "(`npm install --save-dev @herb-tools/linter`) or disable Herb/Lint cop.",
+                               "(`npm install --save-dev @herb-tools/linter`) or disable Herb/Linting cop.",
                       severity: :error)
         end
 
