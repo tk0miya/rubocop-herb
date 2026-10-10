@@ -67,7 +67,7 @@ module RuboCop
           # Include both relative and absolute path patterns for glob matching
           globs = supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
 
-          config = { "AllCops" => { "Include" => globs } }
+          config = { "AllCops" => { "Include" => globs }, "Herb/Lint" => herb_lint_config(globs) }
           excluded_cops.each do |cop|
             config[cop] = { "Exclude" => globs }
           end
@@ -85,6 +85,17 @@ module RuboCop
         end
 
         private
+
+        # Default configuration of Herb/Lint cop (enabled; it reports an error if herb-lint is not set up)
+        # @rbs globs: Array[String]
+        def herb_lint_config(globs) #: Hash[String, untyped]
+          {
+            "Description" => "Runs herb-lint (@herb-tools/linter) on HTML+ERB files.",
+            "Enabled" => true,
+            "Include" => globs,
+            "NodeCommand" => "node"
+          }
+        end
 
         # rbs-inline emits attr_reader as an instance reader regardless of
         # nesting inside `class << self`, so declare the singleton reader by hand.

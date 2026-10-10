@@ -29,5 +29,8 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
 
+      - name: Install Node.js packages
+        run: npm ci
+
       - name: Run CI
         run: bundle exec rake ci

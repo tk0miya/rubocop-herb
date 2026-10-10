@@ -32,6 +32,10 @@ module RuboCop
 
       def self.excluded_cops: () -> Array[String]
 
+      # Default configuration of Herb/Lint cop (enabled; it reports an error if herb-lint is not set up)
+      # @rbs globs: Array[String]
+      private def self.herb_lint_config: (Array[String] globs) -> Hash[String, untyped]
+
       private attr_reader self.supported_extensions: Array[String]
     end
   end

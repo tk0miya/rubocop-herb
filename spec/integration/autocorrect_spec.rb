@@ -16,10 +16,12 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
   end
   let(:config) do
     Tempfile.new([".rubocop", ".yml"]).tap do |f|
-      f.write(YAML.dump(RuboCop::Herb::Configuration.to_rubocop_config))
+      f.write(YAML.dump(rubocop_config))
       f.close
     end
   end
+  # Herb/Lint is tested in herb_lint_spec.rb
+  let(:rubocop_config) { RuboCop::Herb::Configuration.to_rubocop_config.merge("Herb/Lint" => { "Enabled" => false }) }
   let(:path) { "test.html.erb" }
 
   before do

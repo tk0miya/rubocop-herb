@@ -1,0 +1,8 @@
+{
+  "name": "rubocop-herb-development",
+  "private": true,
+  "description": "Node.js packages used to test the Herb/Lint cop",
+  "devDependencies": {
+    "@herb-tools/linter": "0.11.0"
+  }
+}

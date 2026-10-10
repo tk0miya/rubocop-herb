@@ -16,10 +16,12 @@ RSpec.describe "Lint with RuboCop", type: :feature do
   end
   let(:config) do
     Tempfile.new([".rubocop", ".yml"]).tap do |f|
-      f.write(YAML.dump(RuboCop::Herb::Configuration.to_rubocop_config))
+      f.write(YAML.dump(rubocop_config))
       f.close
     end
   end
+  # Herb/Lint is tested in herb_lint_spec.rb
+  let(:rubocop_config) { RuboCop::Herb::Configuration.to_rubocop_config.merge("Herb/Lint" => { "Enabled" => false }) }
   let(:path) { "test.html.erb" }
 
   before do
@@ -316,7 +318,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
         Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
           f.write(YAML.dump(rubocop_config.merge("Lint/DuplicateBranch" => { "Enabled" => true })))
           f.close
         end
@@ -391,7 +392,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       # Lint/EmptyBlock is a pending cop, so enable it explicitly
       let(:config) do
         Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
           f.write(YAML.dump(rubocop_config.merge("Lint/EmptyBlock" => { "Enabled" => true })))
           f.close
         end
@@ -467,7 +467,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       # Lint/EmptyInPattern is a pending cop, so enable it explicitly
       let(:config) do
         Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
           f.write(YAML.dump(rubocop_config.merge("Lint/EmptyInPattern" => { "Enabled" => true })))
           f.close
         end
@@ -702,7 +701,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
         Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          rubocop_config = RuboCop::Herb::Configuration.to_rubocop_config
           f.write(YAML.dump(rubocop_config.merge("Lint/DuplicateBranch" => { "Enabled" => true })))
           f.close
         end
