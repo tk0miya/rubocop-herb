@@ -8,7 +8,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
     # Cops disabled at the if/unless tags of conditionals written across ERB tags
     def conditional_cops(*ranges)
-      { "Style/IfWithSemicolon" => ranges }
+      { "Style/IfWithSemicolon" => ranges, "Style/IfUnlessModifier" => ranges }
     end
 
     context "with if branch containing an HTML element" do
