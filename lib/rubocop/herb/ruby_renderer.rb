@@ -105,7 +105,7 @@ module RuboCop
       end
 
       # Visit HTML text nodes (plain text content between tags)
-      # Renders underscore at first non-whitespace position to indicate content presence
+      # Renders "_a;" marker to indicate content presence
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
         render_text_node(node) if html_visualization
@@ -195,20 +195,17 @@ module RuboCop
         ruby_code[pos]&.match?(/[\r\n]/) || false
       end
 
-      # Render HTML text node by placing "_a;" at first non-whitespace position
+      # Render HTML text node by placing "_a;" at the first non-whitespace position where it fits in the line
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Requires at least 4 characters from the first non-whitespace position to end
+      # Requires 3 characters in the line for the marker, followed by at least 1 character (space or newline)
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = NodeRange.compute_char_range(node, source)
         text = source.slice(range)
-        match = text.match(/\S/)
+        match = text.match(/\S[^\r\n]{2}./m)
         return unless match
 
-        pos = range.from + match.begin(0).not_nil!
-        return unless pos + 4 <= range.to
-
-        render_tag_marker(pos)
+        render_tag_marker(range.from + match.begin(0).not_nil!)
       end
 
       # Render collected comments that can be safely converted to Ruby comments

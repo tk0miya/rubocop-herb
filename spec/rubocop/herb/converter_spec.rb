@@ -7,9 +7,9 @@ require "prism"
 RSpec.describe RuboCop::Herb::Converter do
   shared_examples "a Ruby code extractor for ERB" do
     describe "ruby_code" do
-      it "matches the expected code, preserves source length, and is valid Ruby" do
+      it "matches the expected code, preserves source length and lines, and is valid Ruby" do
         expect(subject.ruby_code).to eq(expected)
-        expect(subject.ruby_code.length).to eq(source.length)
+        expect(subject.ruby_code.lines.map(&:length)).to eq(source.lines.map(&:length))
 
         # Skip for yield tests - yield is not valid Ruby outside of a method
         unless defined?(skip_valid_ruby_check) && skip_valid_ruby_check
@@ -854,6 +854,15 @@ RSpec.describe RuboCop::Herb::Converter do
         let(:source) { "<div>abcd<%= x %></div>" }
         let(:expected) { "div; _a; _ = x;  div;  " }
         let(:expected_hybrid) { "<div>abcd_ = x;  </div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      # The marker is placed at the line where it fits not to overwrite the newline
+      describe "with text node spanning multiple lines" do
+        let(:source) { "<div>ab\ncdef<%= x %></div>" }
+        let(:expected) { "div;   \n_a; _ = x;  div;  " }
+        let(:expected_hybrid) { "<div>ab\ncdef_ = x;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
