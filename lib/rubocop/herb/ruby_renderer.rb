@@ -148,14 +148,19 @@ module RuboCop
       # Render a semicolon after the code to terminate the statement
       # A node split from an ERB tag (e.g. `<% else; end %>`) has no tag closing; the following node
       # continues in the same tag, so the code is kept as written
+      # The code followed by a newline (e.g. `%>` on its own line) is already terminated by the newline,
+      # so the whitespace after the code is kept as written to keep the lines of the source
+      # (and the trailing whitespace of the line)
       # @rbs node: erb_node
       # @rbs code: String
       # @rbs range: CharRange
       def render_semicolon(node, code, range) #: void
         return unless node.tag_closing
 
-        trailing_spaces = code.length - code.rstrip.length
-        semicolon_pos = range.to - trailing_spaces
+        trailing_spaces = code[code.rstrip.length..].to_s
+        return if trailing_spaces.include?("\n")
+
+        semicolon_pos = range.to - trailing_spaces.length
         ruby_code[semicolon_pos] = ";" if semicolon_pos < ruby_code.size
       end
 

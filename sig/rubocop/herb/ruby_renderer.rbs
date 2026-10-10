@@ -102,6 +102,9 @@ module RuboCop
       # Render a semicolon after the code to terminate the statement
       # A node split from an ERB tag (e.g. `<% else; end %>`) has no tag closing; the following node
       # continues in the same tag, so the code is kept as written
+      # The code followed by a newline (e.g. `%>` on its own line) is already terminated by the newline,
+      # so the whitespace after the code is kept as written to keep the lines of the source
+      # (and the trailing whitespace of the line)
       # @rbs node: erb_node
       # @rbs code: String
       # @rbs range: CharRange

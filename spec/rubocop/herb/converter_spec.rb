@@ -497,6 +497,20 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with a multiline ERB tag whose tag closing is on its own line" do
+        let(:source) { "<%\n  foo\n%>\n<%= bar %>" }
+        let(:expected) { "  \n  foo\n  \n_ = bar;  " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
+      describe "with a multiline ERB tag whose code has trailing whitespace before the tag closing" do
+        let(:source) { "<%\n  foo  \n%>" }
+        let(:expected) { "  \n  foo  \n  " }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       # ERB yield tags
       # Note: yield is not valid Ruby outside of a method, so skip_valid_ruby_check is set
       describe "with yield ERB tag" do
