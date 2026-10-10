@@ -14,6 +14,8 @@ module RuboCop
 
       @comment_config: CommentConfig?
 
+      @correction_validator: CorrectionValidator?
+
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
@@ -25,6 +27,9 @@ module RuboCop
       # Override comment_config to disable cops at the lines specified by the parse result
       # and the lines of expressions that cannot be moved out of conditionals
       def comment_config: () -> CommentConfig
+
+      # Validator to discard autocorrections that would break the ERB template
+      def correction_validator: () -> CorrectionValidator
 
       private
 

@@ -13,6 +13,7 @@ module RuboCop
       attr_reader :ast #: RuboCop::AST::Node?
 
       # @rbs @comment_config: CommentConfig?
+      # @rbs @correction_validator: CorrectionValidator?
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
@@ -31,6 +32,11 @@ module RuboCop
       # and the lines of expressions that cannot be moved out of conditionals
       def comment_config #: CommentConfig
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
+      end
+
+      # Validator to discard autocorrections that would break the ERB template
+      def correction_validator #: CorrectionValidator
+        @correction_validator ||= CorrectionValidator.new(parse_result)
       end
 
       private
