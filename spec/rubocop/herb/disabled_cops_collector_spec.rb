@@ -184,5 +184,39 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({})
       end
     end
+
+    context "with HTML elements rendered as blocks" do
+      subject { described_class.collect(ast, html_block_positions:) }
+
+      let(:ast) { Herb.parse(code) }
+      let(:source) { RuboCop::Herb::Source.new(path: "test.html.erb", code:) }
+      let(:html_block_positions) do
+        RuboCop::Herb::NodeLocationCollector.collect(source, ast, html_visualization: true).html_block_positions
+      end
+
+      context "with HTML element containing ERB" do
+        let(:code) { "<div class=\"a\">\n  <%= x %>\n</div>" }
+
+        it "disables Layout/SpaceBeforeBlockBraces at the open tag" do
+          expect(subject).to eq({ "Layout/SpaceBeforeBlockBraces" => [1..1] })
+        end
+      end
+
+      context "with open tag spanning multiple lines" do
+        let(:code) { "<div class=\"a\"\n     id=\"b\">\n  <%= x %>\n</div>" }
+
+        it "disables Layout/SpaceBeforeBlockBraces at the open tag" do
+          expect(subject).to eq({ "Layout/SpaceBeforeBlockBraces" => [1..1] })
+        end
+      end
+
+      context "with HTML element too short to be rendered as a block" do
+        let(:code) { "<div>\n  <%= x %>\n</div>" }
+
+        it "disables nothing" do
+          expect(subject).to eq({})
+        end
+      end
+    end
   end
 end

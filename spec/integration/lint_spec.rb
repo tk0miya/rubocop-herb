@@ -926,5 +926,26 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq [["Style/StringLiterals", 6]]
       end
     end
+
+    context "with Layout/SpaceBeforeBlockBraces configured to no_space" do
+      let(:config) do
+        Tempfile.new([".rubocop", ".yml"]).tap do |f|
+          f.write(YAML.dump(rubocop_config.merge("Layout/SpaceBeforeBlockBraces" => { "EnforcedStyle" => "no_space" })))
+          f.close
+        end
+      end
+      let(:source) do
+        <<~ERB
+          <p class="a"><%= x %></p>
+          <% items.each { |item| puts item } %>
+        ERB
+      end
+
+      it "triggers Layout/SpaceBeforeBlockBraces only for the Ruby block" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/SpaceBeforeBlockBraces", 2]]
+      end
+    end
   end
 end

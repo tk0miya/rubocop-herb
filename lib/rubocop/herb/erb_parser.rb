@@ -37,7 +37,7 @@ module RuboCop
           html_block_positions: result.html_block_positions,
           tail_expressions:,
           tags: result.tags,
-          disabled_cops: DisabledCopsCollector.collect(ast)
+          disabled_cops: DisabledCopsCollector.collect(ast, html_block_positions: result.html_block_positions)
         )
       end
     end
