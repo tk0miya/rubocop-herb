@@ -38,14 +38,8 @@ module RuboCop
       # @rbs pos: Integer
       def html_code?: (Integer pos) -> bool
 
-      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # Memoized ParseResult#erb_tag_ranges
       def erb_tag_ranges: () -> Array[CharRange]
-
-      # Character range of an ERB tag
-      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
-      # or closing, so its content is used instead
-      # @rbs loc: ErbLocation
-      def erb_tag_range: (ErbLocation loc) -> CharRange
 
       # Build a new location map with HTML source range
       # @rbs node: Parser::AST::Node

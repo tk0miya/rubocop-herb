@@ -1,0 +1,86 @@
+# Generated from lib/rubocop/herb/immovable_expression_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Collects the lines where Style/IdenticalConditionalBranches should be disabled.
+    # The cop suggests moving an expression shared by all branches out of the conditional,
+    # but an expression next to HTML cannot be moved without changing the output
+    # (e.g. `x` in `<div><%= x %></div>` or `<input <%= x %>>`).
+    # Such expressions are found from the Ruby AST and the HTML in the original source.
+    class ImmovableExpressionCollector
+      COP_NAME: String
+
+      # Tokens that are not expressions (newlines, semicolons and comments)
+      SKIPPED_TOKEN_TYPES: Array[Symbol]
+
+      # Collect the disabled lines from a processed source
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def self.collect: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader ast: ::RuboCop::AST::Node?
+
+      attr_reader tokens: Array[::RuboCop::AST::Token]
+
+      attr_reader parse_result: ParseResult
+
+      attr_reader erb_tag_ranges: Array[CharRange]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> void
+
+      # Only the first line of each expression is disabled, which is enough to suppress the offense
+      # at the expression, so that offenses inside a multi-line expression are still reported
+      def collect: () -> Hash[String, Array[Range[Integer]]]
+
+      private
+
+      # Identical tails (or heads) of the branches that cannot be moved after (or before) the conditional
+      # An expression that is both a tail and a head (a branch having a single expression) is immovable
+      # only if it can be moved in neither direction
+      # (the direction of the autocorrection is not considered; it is unsafe and does not work for ERB anyway)
+      # @rbs branches: Array[::RuboCop::AST::Node]
+      def immovable_expressions: (Array[::RuboCop::AST::Node] branches) -> Array[::RuboCop::AST::Node]
+
+      # Split identical expressions into immovable ones and movable ones
+      # The expressions are immovable if HTML is next to any of them
+      # Expressions that are not identical are neither, because the cop does not report them
+      # @rbs expressions: Array[::RuboCop::AST::Node]
+      # @rbs &: (::RuboCop::AST::Node) -> bool -- checks if HTML is next to the expression
+      def split_by_movability: (Array[::RuboCop::AST::Node] expressions) { (::RuboCop::AST::Node) -> bool } -> [ Array[::RuboCop::AST::Node], Array[::RuboCop::AST::Node] ]
+
+      # Last expressions of the branches
+      # @rbs branches: Array[::RuboCop::AST::Node]
+      def tails: (Array[::RuboCop::AST::Node] branches) -> Array[::RuboCop::AST::Node]
+
+      # First expressions of the branches
+      # @rbs branches: Array[::RuboCop::AST::Node]
+      def heads: (Array[::RuboCop::AST::Node] branches) -> Array[::RuboCop::AST::Node]
+
+      # Branches compared by Style/IdenticalConditionalBranches
+      # Returns an empty array if the conditional has a branch without expressions (including a missing else)
+      # @rbs node: ::RuboCop::AST::Node
+      def branches: (::RuboCop::AST::Node node) -> Array[::RuboCop::AST::Node]
+
+      # @rbs node: ::RuboCop::AST::IfNode
+      def if_branches: (::RuboCop::AST::IfNode node) -> Array[::RuboCop::AST::Node?]
+
+      # Check if HTML follows the expression in its branch
+      # @rbs node: ::RuboCop::AST::Node
+      def html_after?: (::RuboCop::AST::Node node) -> bool
+
+      # Check if HTML precedes the expression in its branch
+      # @rbs node: ::RuboCop::AST::Node
+      def html_before?: (::RuboCop::AST::Node node) -> bool
+
+      # Check if the original source contains HTML (non-whitespace characters outside of ERB tags) in the range
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def html_between?: (Integer from, Integer to) -> bool
+
+      # @rbs pos: Integer
+      def erb_tag?: (Integer pos) -> bool
+    end
+  end
+end

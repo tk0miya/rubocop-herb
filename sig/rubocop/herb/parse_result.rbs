@@ -51,6 +51,11 @@ module RuboCop
       # Check if a node is a tail expression (output node at end of returning block)
       # @rbs node: ::Herb::AST::Node
       def tail_expression?: (::Herb::AST::Node node) -> bool
+
+      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      def erb_tag_ranges: () -> Array[CharRange]
     end
   end
 end
