@@ -44,6 +44,20 @@ module RuboCop
         super
       end
 
+      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # @rbs node: ::Herb::AST::ERBCaseNode
+      def visit_erb_case_node(node) #: void
+        disable_cop("Style/ConditionalAssignment", node)
+        super
+      end
+
+      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # @rbs node: ::Herb::AST::ERBCaseMatchNode
+      def visit_erb_case_match_node(node) #: void
+        disable_cop("Style/ConditionalAssignment", node)
+        super
+      end
+
       # Else branches containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
@@ -140,6 +154,8 @@ module RuboCop
         disable_cop("Style/IfWithSemicolon", node)
         # Converting them to modifier form breaks the template (e.g. it drops HTML)
         disable_cop("Style/IfUnlessModifier", node)
+        # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+        disable_cop("Style/ConditionalAssignment", node)
         disable_one_line_conditional(node)
       end
 

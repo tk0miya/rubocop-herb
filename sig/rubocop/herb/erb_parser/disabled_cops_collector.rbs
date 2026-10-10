@@ -26,6 +26,14 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
 
+      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # @rbs node: ::Herb::AST::ERBCaseNode
+      def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
+
+      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # @rbs node: ::Herb::AST::ERBCaseMatchNode
+      def visit_erb_case_match_node: (::Herb::AST::ERBCaseMatchNode node) -> void
+
       # Else branches containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
