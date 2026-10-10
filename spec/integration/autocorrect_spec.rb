@@ -84,4 +84,12 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
 
     it_behaves_like "an ERB autocorrector"
   end
+
+  context "with Layout/SpaceAroundOperators offense in ERB with CRLF line endings" do
+    let(:source) { "<div>\r\n  <%= x==1 %>\r\n</div>\r\n" }
+    # Parser::Source::Buffer normalizes CRLF to LF, as it does for Ruby files
+    let(:expected) { "<div>\n  <%= x == 1 %>\n</div>\n" }
+
+    it_behaves_like "an ERB autocorrector"
+  end
 end

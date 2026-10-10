@@ -21,8 +21,10 @@ module RuboCop
         path = processed_source.path
         return unless path && Configuration.supported_file?(path)
 
+        # Convert the source normalized by Parser::Source::Buffer (CRLF to LF) so that
+        # the positions in the result match the buffer of the original processed source
         result = Converter.new(html_visualization: Configuration.html_visualization?)
-                          .convert(path, processed_source.raw_source)
+                          .convert(path, processed_source.buffer.source)
 
         [{
           offset: 0,
@@ -35,7 +37,7 @@ module RuboCop
       # @rbs result: Converter::Result
       def build_processed_source(result) #: ProcessedSource
         ProcessedSource.new(
-          result.ruby_code,
+          restore_crlf(result.ruby_code),
           processed_source.ruby_version,
           processed_source.path,
           hybrid_code: result.hybrid_code,
@@ -45,6 +47,20 @@ module RuboCop
           ps.config = processed_source.config
           ps.registry = processed_source.registry
         end
+      end
+
+      # Restore CRLF line endings of the raw source so that cops checking the raw source
+      # (e.g. Layout/EndOfLine) still work. The conversion keeps lines as is,
+      # so the lines of the Ruby code correspond to those of the raw source.
+      # @rbs ruby_code: String
+      def restore_crlf(ruby_code) #: String
+        raw_source = processed_source.raw_source
+        return ruby_code unless raw_source.include?("\r\n")
+
+        raw_lines = raw_source.lines
+        ruby_code.lines.each_with_index.map do |line, index|
+          raw_lines[index]&.end_with?("\r\n") ? line.sub(/\n\z/, "\r\n") : line
+        end.join
       end
     end
   end
