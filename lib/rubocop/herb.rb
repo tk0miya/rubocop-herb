@@ -5,6 +5,7 @@ require "not_nilable"
 # NOTE: require_relative should be sorted in ASCII order
 require_relative "herb/char_range"
 require_relative "herb/comment_config"
+require_relative "herb/comment_indentation_collector"
 require_relative "herb/configuration"
 require_relative "herb/converter"
 require_relative "herb/erb_location"

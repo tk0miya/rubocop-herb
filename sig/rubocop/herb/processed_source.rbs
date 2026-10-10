@@ -24,7 +24,7 @@ module RuboCop
 
       # Override comment_config to disable cops at the lines specified by the parse result,
       # the lines of expressions that cannot be moved out of conditionals
-      # and the lines of statements indented by the HTML structure
+      # and the lines of statements and comments indented by the HTML structure
       def comment_config: () -> CommentConfig
 
       private

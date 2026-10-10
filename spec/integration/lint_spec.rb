@@ -543,6 +543,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing comments indented by the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <%# header %>
+              <%= @x %>
+            <% # label %>
+                <p><%= @y %></p>
+          </div>
+          <% @items.each do |item|
+               # aligned
+               item.save
+                 # misaligned
+               item.reload
+             end %>
+          <% # last %>
+        ERB
+      end
+
+      it "triggers Layout/CommentIndentation only for the comment in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/CommentIndentation", 10]]
+      end
+    end
+
     context "when analyzing control flows whose branches output values followed by HTML" do
       let(:source) do
         <<~ERB
@@ -1394,6 +1420,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/IndentationConsistency", 12]]
+      end
+    end
+
+    context "when analyzing comments indented by the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <%# header %>
+              <%= @x %>
+            <% # label %>
+                <p><%= @y %></p>
+          </div>
+          <% @items.each do |item|
+               # aligned
+               item.save
+                 # misaligned
+               item.reload
+             end %>
+          <% # last %>
+        ERB
+      end
+
+      it "triggers Layout/CommentIndentation only for the comment in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/CommentIndentation", 10]]
       end
     end
 

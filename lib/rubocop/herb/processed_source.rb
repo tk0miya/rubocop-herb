@@ -29,7 +29,7 @@ module RuboCop
 
       # Override comment_config to disable cops at the lines specified by the parse result,
       # the lines of expressions that cannot be moved out of conditionals
-      # and the lines of statements indented by the HTML structure
+      # and the lines of statements and comments indented by the HTML structure
       def comment_config #: CommentConfig
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
@@ -39,7 +39,9 @@ module RuboCop
       def disabled_cops #: Hash[String, Array[Range[Integer]]]
         immovable_expressions = ImmovableExpressionCollector.collect(self, parse_result)
         inconsistent_indentations = IndentationConsistencyCollector.collect(self, parse_result)
-        [immovable_expressions, inconsistent_indentations].reduce(parse_result.disabled_cops) do |disabled_cops, lines|
+        comment_indentations = CommentIndentationCollector.collect(self, parse_result)
+        [immovable_expressions, inconsistent_indentations, comment_indentations]
+          .reduce(parse_result.disabled_cops) do |disabled_cops, lines|
           disabled_cops.merge(lines) { |_cop, lines1, lines2| lines1 + lines2 }
         end
       end
