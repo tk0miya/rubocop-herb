@@ -123,6 +123,8 @@ module RuboCop
       def visit_erb_block_node(node) #: void
         disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
         disable_single_line_block(node)
+        end_node = node.end_node
+        disable_block_alignment(end_node) if end_node
         super
       end
 
@@ -144,12 +146,15 @@ module RuboCop
         # `{` is rendered right after the tag name, and `}` at the start of the close tag
         disable_line("Layout/SpaceBeforeBlockBraces", open_tag_line)
         disable_line("Layout/SpaceInsideBlockBraces", open_tag_line)
-        disable_line("Layout/SpaceInsideBlockBraces", close_tag_line) if close_tag_line != open_tag_line
 
-        # The braces are restored to the HTML tags, so the cops regard a single-line block as a do...end block
         if close_tag_line == open_tag_line
+          # The braces are restored to the HTML tags, so the cops regard a single-line block as a do...end block
           disable_line("Style/SingleLineDoEndBlock", open_tag_line)
           disable_line("Style/BlockDelimiters", open_tag_line)
+        else
+          disable_line("Layout/SpaceInsideBlockBraces", close_tag_line)
+          # The alignment of the close tag is a matter of HTML, not Ruby
+          disable_line("Layout/BlockAlignment", close_tag_line)
         end
         # The content following the open tag is the block body on the same line as `{`
         disable_line("Layout/MultilineBlockLayout", open_tag_line) if first_content_line(node.body) == open_tag_line
@@ -171,6 +176,14 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode
       def disable_end_alignment(end_node) #: void
         disable_cop("Layout/EndAlignment", end_node)
+      end
+
+      # The column of the end tag follows the HTML structure, and the block start is shifted by the output marker
+      # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`). Blocks written within a single ERB tag
+      # are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode
+      def disable_block_alignment(end_node) #: void
+        disable_cop("Layout/BlockAlignment", end_node)
       end
 
       # The line of the first non-whitespace content in the nodes
