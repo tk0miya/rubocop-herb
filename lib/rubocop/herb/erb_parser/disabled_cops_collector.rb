@@ -36,6 +36,7 @@ module RuboCop
         disable_conditional_cops(node)
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node # elsif nodes have no end tag
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -46,6 +47,7 @@ module RuboCop
         disable_conditional_cops(node)
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -72,6 +74,7 @@ module RuboCop
       def visit_erb_while_node(node) #: void
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -80,6 +83,21 @@ module RuboCop
       def visit_erb_until_node(node) #: void
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node
+        disable_body_indentation(node.statements)
+        super
+      end
+
+      # The body of loops is indented by the HTML structure
+      # @rbs node: ::Herb::AST::ERBForNode
+      def visit_erb_for_node(node) #: void
+        disable_body_indentation(node.statements)
+        super
+      end
+
+      # The body of begin is indented by the HTML structure
+      # @rbs node: ::Herb::AST::ERBBeginNode
+      def visit_erb_begin_node(node) #: void
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -87,6 +105,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
         disable_cop("Style/EmptyElse", node) if html_content?(node.statements)
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -94,6 +113,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
         disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -101,6 +121,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node(node) #: void
         disable_cop("Lint/SuppressedException", node) if html_content?(node.statements)
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -108,6 +129,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node(node) #: void
         disable_cop("Lint/EmptyEnsure", node) if html_content?(node.statements)
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -115,6 +137,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBInNode
       def visit_erb_in_node(node) #: void
         disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
+        disable_body_indentation(node.statements)
         super
       end
 
@@ -125,13 +148,17 @@ module RuboCop
         disable_single_line_block(node)
         end_node = node.end_node
         disable_block_alignment(end_node) if end_node
+        disable_body_indentation(node.body)
         super
       end
 
       # HTML elements rendered as `tag { ... }` (html_visualization) are not blocks written by users
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
-        disable_html_block_cops(node) if html_block_positions.include?(node)
+        if html_block_positions.include?(node)
+          disable_html_block_cops(node)
+          disable_body_indentation(node.body)
+        end
         super
       end
 
@@ -184,6 +211,62 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode
       def disable_block_alignment(end_node) #: void
         disable_cop("Layout/BlockAlignment", end_node)
+      end
+
+      # The bodies of conditionals, loops and blocks written across ERB tags (and HTML blocks) are indented
+      # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
+      # the first HTML content (html_visualization) or the first ERB tag in it, so the cop is disabled
+      # from the first content to the first ERB tag. ERB tags without Ruby code (e.g. `<%# note %>` and
+      # `<% # note %>`) are skipped as they are not statements. Bodies written within a single ERB tag
+      # are still checked.
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def disable_body_indentation(nodes) #: void
+        first_line = first_content_line(nodes.reject { codeless_erb?(_1) })
+        return unless first_line
+
+        last_line = first_erb_line(nodes) || first_line
+        (disabled_cops["Layout/IndentationWidth"] ||= []) << (first_line..last_line)
+      end
+
+      # The line of the Ruby code in the first ERB tag (except the ones without code) in the nodes,
+      # including the ones in HTML elements
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def first_erb_line(nodes) #: Integer?
+        nodes.each do |node|
+          next if codeless_erb?(node)
+          return ruby_code_line(node) if node.type.start_with?("AST_ERB_")
+
+          line = first_erb_line(node.compact_child_nodes)
+          return line if line
+        end
+        nil
+      end
+
+      # Whether the node is an ERB comment or an ERB tag containing only whitespace and Ruby comments
+      # @rbs node: ::Herb::AST::Node
+      def codeless_erb?(node) #: bool
+        return true if node.is_a?(::Herb::AST::ERBCommentNode)
+        return false unless node.is_a?(::Herb::AST::ERBContentNode)
+
+        code_line_offset(node.content&.value.to_s).nil?
+      end
+
+      # The line of the first Ruby code in the ERB tag
+      # (e.g. the line next to `<%` for a tag whose code starts at the next line)
+      # @rbs node: ::Herb::AST::Node
+      def ruby_code_line(node) #: Integer
+        erb = node #: erb_node
+        content = erb.content
+        offset = code_line_offset(content&.value.to_s)
+        return erb.location.start.line unless content && offset
+
+        content.location.start.line + offset
+      end
+
+      # The index of the first line containing Ruby code (except whitespace and comments) in the code
+      # @rbs code: String
+      def code_line_offset(code) #: Integer?
+        code.lines.index { !_1.sub(/#.*/, "").strip.empty? }
       end
 
       # The line of the first non-whitespace content in the nodes

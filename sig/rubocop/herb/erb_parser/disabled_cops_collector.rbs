@@ -43,6 +43,14 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBUntilNode
       def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
 
+      # The body of loops is indented by the HTML structure
+      # @rbs node: ::Herb::AST::ERBForNode
+      def visit_erb_for_node: (::Herb::AST::ERBForNode node) -> void
+
+      # The body of begin is indented by the HTML structure
+      # @rbs node: ::Herb::AST::ERBBeginNode
+      def visit_erb_begin_node: (::Herb::AST::ERBBeginNode node) -> void
+
       # Else branches containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
@@ -93,6 +101,33 @@ module RuboCop
       # are still checked.
       # @rbs end_node: ::Herb::AST::ERBEndNode
       def disable_block_alignment: (::Herb::AST::ERBEndNode end_node) -> void
+
+      # The bodies of conditionals, loops and blocks written across ERB tags (and HTML blocks) are indented
+      # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
+      # the first HTML content (html_visualization) or the first ERB tag in it, so the cop is disabled
+      # from the first content to the first ERB tag. ERB tags without Ruby code (e.g. `<%# note %>` and
+      # `<% # note %>`) are skipped as they are not statements. Bodies written within a single ERB tag
+      # are still checked.
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def disable_body_indentation: (Array[::Herb::AST::Node] nodes) -> void
+
+      # The line of the Ruby code in the first ERB tag (except the ones without code) in the nodes,
+      # including the ones in HTML elements
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def first_erb_line: (Array[::Herb::AST::Node] nodes) -> Integer?
+
+      # Whether the node is an ERB comment or an ERB tag containing only whitespace and Ruby comments
+      # @rbs node: ::Herb::AST::Node
+      def codeless_erb?: (::Herb::AST::Node node) -> bool
+
+      # The line of the first Ruby code in the ERB tag
+      # (e.g. the line next to `<%` for a tag whose code starts at the next line)
+      # @rbs node: ::Herb::AST::Node
+      def ruby_code_line: (::Herb::AST::Node node) -> Integer
+
+      # The index of the first line containing Ruby code (except whitespace and comments) in the code
+      # @rbs code: String
+      def code_line_offset: (String code) -> Integer?
 
       # The line of the first non-whitespace content in the nodes
       # @rbs nodes: Array[::Herb::AST::Node]

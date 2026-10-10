@@ -440,6 +440,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
 
     context "when analyzing blocks whose end tags follow the HTML structure" do
+      # The misaligned `end` also triggers Layout/IndentationWidth, which measures the body from `end`
+      let(:rubocop_config) { super().merge("Layout/IndentationWidth" => { "Enabled" => false }) }
       let(:source) do
         <<~ERB
           <%= form_with model: @user do |f| %>
@@ -462,6 +464,55 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/BlockAlignment", 12]]
+      end
+    end
+
+    context "when analyzing bodies indented by the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <ul>
+            <% items.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+          <% if a %>
+                <%= a %>
+          <% else %>
+               <p>
+            <%= c %>
+               </p>
+          <% end %>
+          <% while q %>
+           <%# comment %>
+                <%= q %>
+          <% end %>
+          <% until r %>
+           <%# comment %>
+                <p>r</p>
+          <% end %>
+          <% unless s %>
+            <%
+              foo(s) %>
+          <% end %>
+          <% unless t %>
+            <% # note %>
+                <%= t %>
+          <% end %>
+          <div class="a">
+                <%= v %>
+          </div>
+          <% if z
+                 foo
+             else
+               bar
+             end %>
+        ERB
+      end
+
+      it "triggers Layout/IndentationWidth only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/IndentationWidth", 33]]
       end
     end
 
@@ -1218,6 +1269,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
 
     context "when analyzing blocks whose end tags follow the HTML structure" do
+      # The misaligned `end` also triggers Layout/IndentationWidth, which measures the body from `end`
+      let(:rubocop_config) { super().merge("Layout/IndentationWidth" => { "Enabled" => false }) }
       let(:source) do
         <<~ERB
           <%= form_with model: @user do |f| %>
@@ -1238,6 +1291,55 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/BlockAlignment", 10]]
+      end
+    end
+
+    context "when analyzing bodies indented by the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <ul>
+            <% items.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+          <% if a %>
+                <%= a %>
+          <% else %>
+               <p>
+            <%= c %>
+               </p>
+          <% end %>
+          <% while q %>
+           <%# comment %>
+                <%= q %>
+          <% end %>
+          <% until r %>
+           <%# comment %>
+                <p>r</p>
+          <% end %>
+          <% unless s %>
+            <%
+              foo(s) %>
+          <% end %>
+          <% unless t %>
+            <% # note %>
+                <%= t %>
+          <% end %>
+          <div class="a">
+                <%= v %>
+          </div>
+          <% if z
+                 foo
+             else
+               bar
+             end %>
+        ERB
+      end
+
+      it "triggers Layout/IndentationWidth only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/IndentationWidth", 33]]
       end
     end
 
