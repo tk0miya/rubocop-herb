@@ -1388,5 +1388,26 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq [["Style/StringLiterals", 6]]
       end
     end
+
+    context "when analyzing open tags whose tag name is followed by a newline" do
+      let(:source) do
+        <<~ERB
+          <div
+            class="<%= x %>"><% if y %>
+            <%= z %>
+          <% end %>
+          </div>
+          <div
+            class="<%= #{"x" * 100} %>">
+          </div>
+        ERB
+      end
+
+      it "does not trigger any cops" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq []
+      end
+    end
   end
 end

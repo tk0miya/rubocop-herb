@@ -1269,6 +1269,14 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
+      describe "with open tag whose tag name is followed by a newline" do
+        let(:source) { "<div\n  class=\"<%= x %>\">\n  <%= y %>\n</div>" }
+        let(:expected) { "div;\n         _ = x;    \n  _ = y;  \ndiv;  " }
+        let(:expected_hybrid) { "div;\n         _ = x;    \n  _ = y;  \n</div>" }
+
+        it_behaves_like "a Ruby code extractor for ERB"
+      end
+
       # Void elements (no close tag) render only the open tag
       describe "with void element containing ERB in attributes" do
         let(:source) { '<meta content="<%= x %>">' }
