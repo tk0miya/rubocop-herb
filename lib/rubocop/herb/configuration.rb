@@ -12,7 +12,6 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
-        "Layout/ExtraSpacing", # Whitespace padding preserves positions but creates extra spaces
         "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/InitialIndentation", # ERB code may start at any indentation level within HTML
         "Layout/LeadingEmptyLines", # ERB files may not start with Ruby code

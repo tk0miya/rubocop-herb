@@ -1,0 +1,44 @@
+# Generated from lib/rubocop/herb/extra_spacing_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Collects the lines where Layout/ExtraSpacing should be disabled.
+    # ERB tag delimiters and HTML are rendered as whitespace (e.g. `<%= a %> <%= b %>` becomes
+    # `_ = a;  _ = b;`), so the cop reports the spaces between tokens on the line.
+    # Such spaces are found from the tokens and the original source: spaces written by users are
+    # whitespace in the original source and in an ERB tag. The spaces written in ERB tags are still
+    # checked unless rendered spaces are on the same line.
+    class ExtraSpacingCollector
+      COP_NAME: String
+
+      # Collect the disabled lines from a processed source
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def self.collect: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader tokens: Array[::RuboCop::AST::Token]
+
+      attr_reader code: String
+
+      attr_reader erb_tag_ranges: Array[CharRange]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> void
+
+      def collect: () -> Hash[String, Array[Range[Integer]]]
+
+      private
+
+      # Check if the spaces between the tokens are reported by the cop and rendered by the conversion
+      # @rbs token: ::RuboCop::AST::Token
+      # @rbs next_token: ::RuboCop::AST::Token
+      def rendered_spaces_between?: (::RuboCop::AST::Token token, ::RuboCop::AST::Token next_token) -> bool
+
+      # Check if the spaces in the range are written in an ERB tag of the original source
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def written_in_erb_tag?: (Integer from, Integer to) -> bool
+    end
+  end
+end

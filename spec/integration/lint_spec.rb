@@ -516,6 +516,28 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing spaces rendered by the conversion" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <%= @a %> <%= @b %>
+            <span>  <%= @c %></span>
+          </div>
+          <% if @a %><p>x</p><% end %>
+          <%
+            @e = 1  # first
+          %>
+          <%= @x  # second %>
+        ERB
+      end
+
+      it "triggers Layout/ExtraSpacing only for the spaces written in ERB tags" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/ExtraSpacing", 7], ["Layout/ExtraSpacing", 9]]
+      end
+    end
+
     context "when analyzing control flows whose branches output values followed by HTML" do
       let(:source) do
         <<~ERB
@@ -1340,6 +1362,28 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/IndentationWidth", 33]]
+      end
+    end
+
+    context "when analyzing spaces rendered by the conversion" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <%= @a %> <%= @b %>
+            <span>  <%= @c %></span>
+          </div>
+          <% if @a %><p>x</p><% end %>
+          <%
+            @e = 1  # first
+          %>
+          <%= @x  # second %>
+        ERB
+      end
+
+      it "triggers Layout/ExtraSpacing only for the spaces written in ERB tags" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/ExtraSpacing", 7], ["Layout/ExtraSpacing", 9]]
       end
     end
 

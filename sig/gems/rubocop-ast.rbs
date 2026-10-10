@@ -1,8 +1,8 @@
 # Supplemental signatures for the `rubocop-ast` gem.
 #
 # The version shipped via rbs_collection does not declare the methods below.
-# RuboCop::Herb::ImmovableExpressionCollector reads the tokens of a ProcessedSource,
-# so declare them here.
+# RuboCop::Herb::ImmovableExpressionCollector and RuboCop::Herb::ExtraSpacingCollector read
+# the tokens of a ProcessedSource, so declare them here.
 
 module RuboCop
   module AST
@@ -14,6 +14,7 @@ module RuboCop
       def type: () -> Symbol
       def begin_pos: () -> Integer
       def end_pos: () -> Integer
+      def line: () -> Integer
     end
   end
 end
