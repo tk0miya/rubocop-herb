@@ -22,7 +22,7 @@ require_relative "herb/source"
 require_relative "herb/tag"
 require_relative "herb/version"
 
-require_relative "cop/herb/lint"
+require_relative "cop/herb/linting"
 
 module RuboCop
   module Herb

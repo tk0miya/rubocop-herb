@@ -20,8 +20,8 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
       f.close
     end
   end
-  # Herb/Lint is tested in herb_lint_spec.rb
-  let(:rubocop_config) { RuboCop::Herb::Configuration.to_rubocop_config.merge("Herb/Lint" => { "Enabled" => false }) }
+  # Herb/Linting is tested in herb_lint_spec.rb
+  let(:rubocop_config) { RuboCop::Herb::Configuration.to_rubocop_config.merge("Herb/Linting" => { "Enabled" => false }) }
   let(:path) { "test.html.erb" }
 
   before do

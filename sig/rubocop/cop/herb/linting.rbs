@@ -1,4 +1,4 @@
-# Generated from lib/rubocop/cop/herb/lint.rb with RBS::Inline
+# Generated from lib/rubocop/cop/herb/linting.rb with RBS::Inline
 
 module RuboCop
   module Cop
@@ -17,7 +17,7 @@ module RuboCop
       #
       #   # good
       #   <img src="logo.png" alt="Logo">
-      class Lint < Base
+      class Linting < Base
         SEVERITIES: Hash[String, Symbol]
 
         # Files affecting the result of herb-lint other than the linted file itself

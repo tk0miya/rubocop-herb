@@ -7,7 +7,7 @@ require "rubocop/lsp/stdin_runner"
 require "tempfile"
 require "yaml"
 
-RSpec.describe "Lint with Herb/Lint cop", type: :feature do
+RSpec.describe "Lint with Herb/Linting cop", type: :feature do
   let(:runner) { RuboCop::Lsp::StdinRunner.new(config_store) }
   let(:config_store) do
     RuboCop::ConfigStore.new.tap do |store|
@@ -36,7 +36,7 @@ RSpec.describe "Lint with Herb/Lint cop", type: :feature do
   end
 
   def herb_lint_offenses
-    runner.offenses.select { _1.cop_name == "Herb/Lint" }.map do |offense|
+    runner.offenses.select { _1.cop_name == "Herb/Linting" }.map do |offense|
       [offense.severity.name, offense.line, offense.column, offense.location.source, offense.message]
     end
   end
@@ -51,14 +51,31 @@ RSpec.describe "Lint with Herb/Lint cop", type: :feature do
       ERB
     end
 
-    it "reports them as offenses of Herb/Lint" do
+    it "reports them as offenses of Herb/Linting" do
       runner.run(path, source, {})
       expect(herb_lint_offenses).to eq [
         [:warning, 2, 9, "img",
-         "Herb/Lint: html-img-require-alt: Missing required `alt` attribute on `<img>` tag. " \
+         "Herb/Linting: [html-img-require-alt] Missing required `alt` attribute on `<img>` tag. " \
          "Add `alt=\"\"` for decorative images or `alt=\"description\"` for informative images."],
         [:error, 2, 17, "logo.png",
-         "Herb/Lint: html-attribute-values-require-quotes: " \
+         "Herb/Linting: [html-attribute-values-require-quotes] " \
+         "Attribute value should be quoted: `src=\"logo.png\"`. Always wrap attribute values in quotes."]
+      ]
+    end
+  end
+
+  context "when the severities of herb-lint offenses are info and hint" do
+    let(:project_root) { File.expand_path("../fixtures/herb_lint_severity", __dir__) }
+    let(:source) { "<img src=logo.png>\n" }
+
+    it "reports them as convention and refactor" do
+      runner.run(path, source, {})
+      expect(herb_lint_offenses).to eq [
+        [:convention, 1, 1, "img",
+         "Herb/Linting: [html-img-require-alt] Missing required `alt` attribute on `<img>` tag. " \
+         "Add `alt=\"\"` for decorative images or `alt=\"description\"` for informative images."],
+        [:refactor, 1, 9, "logo.png",
+         "Herb/Linting: [html-attribute-values-require-quotes] " \
          "Attribute value should be quoted: `src=\"logo.png\"`. Always wrap attribute values in quotes."]
       ]
     end
@@ -96,7 +113,7 @@ RSpec.describe "Lint with Herb/Lint cop", type: :feature do
   context "when the herb-lint offense is disabled with rubocop:disable comment" do
     let(:source) do
       <<~ERB
-        <img src="logo.png"> <%# rubocop:disable Herb/Lint %>
+        <img src="logo.png"> <%# rubocop:disable Herb/Linting %>
       ERB
     end
 
@@ -109,15 +126,15 @@ RSpec.describe "Lint with Herb/Lint cop", type: :feature do
   context "when herb-lint is not available" do
     let(:rubocop_config) do
       config = RuboCop::Herb::Configuration.to_rubocop_config
-      config.merge("Herb/Lint" => config["Herb/Lint"].merge("NodeCommand" => node_command))
+      config.merge("Herb/Linting" => config["Herb/Linting"].merge("NodeCommand" => node_command))
     end
     let(:source) { "<img src=\"logo.png\">\n" }
     let(:other_path) { File.join(project_root, "app/views/other.html.erb") }
 
     def startup_error(node_command)
       [:error, 1, 0, "<img src=\"logo.png\">",
-       "Herb/Lint: herb-lint is not available: Node.js command not found: #{node_command}. " \
-       "Set up herb-lint (`npm install --save-dev @herb-tools/linter`) or disable Herb/Lint cop."]
+       "Herb/Linting: herb-lint is not available: Node.js command not found: #{node_command}. " \
+       "Set up herb-lint (`npm install --save-dev @herb-tools/linter`) or disable Herb/Linting cop."]
     end
 
     # Each context uses its own command name not to share the client (and its reported state) with others
@@ -133,11 +150,11 @@ RSpec.describe "Lint with Herb/Lint cop", type: :feature do
       end
     end
 
-    context "when Herb/Lint is disabled at the first line of the first file" do
+    context "when Herb/Linting is disabled at the first line of the first file" do
       let(:node_command) { "no-such-node-disabled" }
 
       it "reports the error on the next file" do
-        results = [[path, "<%# rubocop:disable Herb/Lint %>\n#{source}"], [other_path, source]].map do |file, code|
+        results = [[path, "<%# rubocop:disable Herb/Linting %>\n#{source}"], [other_path, source]].map do |file, code|
           runner.run(file, code, {})
           herb_lint_offenses
         end

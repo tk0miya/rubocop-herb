@@ -22,7 +22,7 @@ module RuboCop
 
       def self.to_rubocop_config: () -> Hash[String, untyped]
 
-      # Default configuration of Herb/Lint cop (enabled; it reports an error if herb-lint is not set up)
+      # Default configuration of Herb/Linting cop (enabled; it reports an error if herb-lint is not set up)
       # @rbs globs: Array[String]
       private def self.herb_lint_config: (Array[String] globs) -> Hash[String, untyped]
 

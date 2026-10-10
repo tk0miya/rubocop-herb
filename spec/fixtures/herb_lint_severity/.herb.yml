@@ -1,0 +1,9 @@
+version: 0.11.0
+framework: actionview
+linter:
+  enabled: true
+  rules:
+    html-img-require-alt:
+      severity: info
+    html-attribute-values-require-quotes:
+      severity: hint

@@ -3,7 +3,7 @@
 # The version shipped via rbs_collection does not declare the methods below.
 # RuboCop::Herb::CommentConfig overrides CommentConfig#cop_enabled_at_lines? and
 # calls Cop::Base#cop_name, so declare them here.
-# Herb/Lint cop resolves herb-lint from ConfigFinder.project_root and checks
+# Herb/Linting cop resolves herb-lint from ConfigFinder.project_root and checks
 # CommentConfig#cop_enabled_at_line? before reporting the startup error.
 
 module RuboCop

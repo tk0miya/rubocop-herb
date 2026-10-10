@@ -21,7 +21,7 @@ path: .gem_rbs_collection
 gems:
   # For herb gem
   - name: delegate
-  # For Herb/Lint cop
+  # For Herb/Linting cop
   - name: digest
   - name: open3
   # herb gem ships its own vendored RBS for parallel; ignore the collection copy

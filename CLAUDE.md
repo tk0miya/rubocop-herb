@@ -15,7 +15,7 @@ When using Claude Code on the web (claude.ai/code), the environment is automatic
 ```bash
 # Setup
 bin/setup                    # Install dependencies
-npm ci                       # Install Node.js packages (herb-lint, used by the tests of Herb/Lint cop)
+npm ci                       # Install Node.js packages (herb-lint, used by the tests of Herb/Linting cop)
 
 # Development
 bin/rake                     # Run all checks (tests + linting)
@@ -149,11 +149,11 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **CommentConfig** (`lib/rubocop/herb/comment_config.rb`): RuboCop CommentConfig subclass that disables cops at given line ranges as if `rubocop:disable` comments were written there
 - **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<div><%= x %></div>` in every branch). Works on the Ruby AST, so it applies regardless of `html_visualization`
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes, and renames nodes rendered from HTML uniquely so that cops comparing code (e.g. `Lint/DuplicateBranch`) only compare the Ruby parts
-- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, html_visualization setting, and the default configuration of `Herb/Lint` cop
+- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, html_visualization setting, and the default configuration of `Herb/Linting` cop
 
 #### herb-lint Integration
 
-- **Herb/Lint cop** (`lib/rubocop/cop/herb/lint.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses. Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop
+- **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses. Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
 - **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it
 - **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol)
 
