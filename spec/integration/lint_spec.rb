@@ -392,6 +392,35 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditionals at the end of blocks" do
+      let(:source) do
+        <<~ERB
+          <ul>
+            <% items.each do |item| %>
+              <% if item.visible? %>
+                <li><%= item.a %></li>
+                <li><%= item.b %></li>
+                <li><%= item.c %></li>
+              <% end %>
+            <% end %>
+          </ul>
+          <% others.each do |other|
+               if other.valid?
+                 save(other)
+                 notify(other)
+                 log(other)
+               end
+             end %>
+        ERB
+      end
+
+      it "triggers Style/Next only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/Next", 11]]
+      end
+    end
+
     context "with Lint/DuplicateBranch enabled" do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
@@ -991,6 +1020,35 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Style/RedundantCondition", 9]]
+      end
+    end
+
+    context "when analyzing conditionals at the end of blocks" do
+      let(:source) do
+        <<~ERB
+          <ul>
+            <% items.each do |item| %>
+              <% if item.visible? %>
+                <li><%= item.a %></li>
+                <li><%= item.b %></li>
+                <li><%= item.c %></li>
+              <% end %>
+            <% end %>
+          </ul>
+          <% others.each do |other|
+               if other.valid?
+                 save(other)
+                 notify(other)
+                 log(other)
+               end
+             end %>
+        ERB
+      end
+
+      it "triggers Style/Next only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/Next", 11]]
       end
     end
 
