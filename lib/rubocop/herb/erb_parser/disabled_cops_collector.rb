@@ -156,6 +156,8 @@ module RuboCop
         disable_cop("Style/IfUnlessModifier", node)
         # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
         disable_cop("Style/ConditionalAssignment", node)
+        # Output tags in the branches are rendered as `_ = a` or `a`, so the condition looks redundant (`if a; a; end`)
+        disable_cop("Style/RedundantCondition", node)
         disable_one_line_conditional(node)
       end
 

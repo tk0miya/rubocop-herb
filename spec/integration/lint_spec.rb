@@ -366,6 +366,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditionals whose branches output the condition" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p><%= a %></p>
+          <% else %>
+            <p><%= b %></p>
+          <% end %>
+          <% if c %>
+            <%= c %>
+          <% end %>
+          <%= if d
+                d
+              else
+                e
+              end %>
+        ERB
+      end
+
+      it "triggers Style/RedundantCondition only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/RedundantCondition", 9]]
+      end
+    end
+
     context "with Lint/DuplicateBranch enabled" do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
@@ -939,6 +965,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
                                   ["Lint/DuplicateBranch", 3],
                                   ["Style/IdenticalConditionalBranches", 4]]
         end
+      end
+    end
+
+    context "when analyzing conditionals whose branches output the condition" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p><%= a %></p>
+          <% else %>
+            <p><%= b %></p>
+          <% end %>
+          <% if c %>
+            <%= c %>
+          <% end %>
+          <%= if d
+                d
+              else
+                e
+              end %>
+        ERB
+      end
+
+      it "triggers Style/RedundantCondition only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/RedundantCondition", 9]]
       end
     end
 
