@@ -3,9 +3,19 @@
 # The version shipped via rbs_collection does not declare `#initialize` for
 # Parser::Source::Map or Parser::Source::Map::Send. We use both constructors
 # in RuboCopASTTransformer, so declare them here.
+# CorrectionValidator and CopCorrectionGuard merge and apply corrections with
+# the methods of TreeRewriter below.
 
 module Parser
   module Source
+    class TreeRewriter
+      attr_reader source_buffer: Buffer
+
+      def import!: (TreeRewriter foreign_rewriter, ?offset: Integer) -> self
+      def merge!: (TreeRewriter with) -> self
+      def rewrite: () -> String
+    end
+
     class Map
       def initialize: (Range expression) -> void
     end

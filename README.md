@@ -29,6 +29,13 @@ plugins:
   - rubocop-herb
 ```
 
+### Autocorrection
+
+`rubocop -a` / `rubocop -A` correct the Ruby code in ERB tags.
+Corrections that would break the template (e.g. moving HTML into ERB tags or dropping it
+when swapping `if`/`else` branches) are discarded, and the offenses are reported as not autocorrectable.
+`--disable-uncorrectable` does not insert `# rubocop:todo` comments into ERB files.
+
 ### Running herb-lint together (Herb/Lint cop)
 
 The `Herb/Lint` cop (enabled by default) runs [herb-lint](https://herb-tools.dev/projects/linter)

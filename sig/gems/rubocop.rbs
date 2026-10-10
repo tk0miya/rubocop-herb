@@ -5,6 +5,7 @@
 # calls Cop::Base#cop_name, so declare them here.
 # Herb/Lint cop resolves herb-lint from ConfigFinder.project_root and checks
 # CommentConfig#cop_enabled_at_line? before reporting the startup error.
+# CorrectionValidator and CopCorrectionGuard create Corrector objects.
 
 module RuboCop
   module ConfigFinder
@@ -19,6 +20,10 @@ module RuboCop
   module Cop
     class Base
       def cop_name: () -> String
+    end
+
+    class Corrector
+      def initialize: (Parser::Source::Buffer | AST::ProcessedSource | Base source) -> void
     end
   end
 end

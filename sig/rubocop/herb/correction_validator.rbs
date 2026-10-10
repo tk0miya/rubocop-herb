@@ -1,0 +1,45 @@
+# Generated from lib/rubocop/herb/correction_validator.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Validates an autocorrection made on the Ruby code converted from an ERB file.
+    #
+    # Cops correct the converted Ruby code, so a correction spanning multiple ERB tags may
+    # move or drop the HTML and ERB delimiters between them (e.g. swapping if/else branches).
+    # A correction is accepted only if applying it to the original ERB source keeps
+    # the HTML parts as they are and does not introduce new parse errors.
+    class CorrectionValidator
+      ERB_TOKEN_TYPES: Array[String]
+
+      attr_reader parse_result: ParseResult
+
+      @html_segments: Array[String]?
+
+      # @rbs parse_result: ParseResult
+      def initialize: (ParseResult parse_result) -> void
+
+      # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
+      def valid?: (::RuboCop::Cop::Corrector corrector) -> bool
+
+      private
+
+      # Apply the corrector to the original ERB source
+      # The converted Ruby code keeps the character positions of the ERB source,
+      # so the correction can be imported as is.
+      # @rbs corrector: ::RuboCop::Cop::Corrector
+      def apply: (::RuboCop::Cop::Corrector corrector) -> String
+
+      def html_segments: () -> Array[String]
+
+      # Split the source into the HTML parts between ERB tags
+      # Leading and trailing whitespace of each part is ignored as it is the layout of
+      # the adjacent ERB tags.  This allows corrections removing ERB tags (e.g. merging
+      # `else` and `if` into `elsif`) along with their indentation and newlines.
+      # @rbs code: String
+      def html_segments_of: (String code) -> Array[String]
+
+      # @rbs token: ::Herb::Token
+      def erb_token?: (::Herb::Token token) -> bool
+    end
+  end
+end
