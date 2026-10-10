@@ -219,10 +219,11 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       context "with HTML element on a single line" do
         let(:code) { "<div class=\"a\"><%= x %></div>" }
 
-        it "disables the cops for the braces at the line" do
+        it "disables the cops for the braces and Style/SingleLineDoEndBlock at the line" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
-                                  "Layout/SpaceInsideBlockBraces" => [1..1]
+                                  "Layout/SpaceInsideBlockBraces" => [1..1],
+                                  "Style/SingleLineDoEndBlock" => [1..1]
                                 })
         end
       end

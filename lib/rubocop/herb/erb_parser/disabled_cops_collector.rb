@@ -105,6 +105,9 @@ module RuboCop
         disable_line("Layout/SpaceBeforeBlockBraces", open_tag_line)
         disable_line("Layout/SpaceInsideBlockBraces", open_tag_line)
         disable_line("Layout/SpaceInsideBlockBraces", close_tag_line) if close_tag_line != open_tag_line
+
+        # The braces are restored to the HTML tags, so the cop regards a single-line block as a do...end block
+        disable_line("Style/SingleLineDoEndBlock", open_tag_line) if close_tag_line == open_tag_line
       end
 
       # @rbs cop_name: String
