@@ -1,0 +1,43 @@
+# Generated from lib/rubocop/herb/trailing_whitespace_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Collects the lines where Layout/TrailingWhitespace should be disabled.
+    # ERB tag delimiters and HTML at the end of lines are rendered as whitespace
+    # (e.g. `<%= x %>` becomes `_ = x;  `), so the cop reports them as trailing whitespace.
+    # Such whitespace is found from the lines and the original source: trailing whitespace written by users
+    # is whitespace in the original source and in an ERB tag (e.g. a line in a multi-line ERB tag).
+    class TrailingWhitespaceCollector
+      COP_NAME: String
+
+      # Collect the disabled lines from a processed source
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def self.collect: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader processed_source: ::RuboCop::AST::ProcessedSource
+
+      attr_reader code: String
+
+      attr_reader erb_tag_ranges: Array[CharRange]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> void
+
+      def collect: () -> Hash[String, Array[Range[Integer]]]
+
+      private
+
+      # Check if the line has trailing whitespace rendered by the conversion
+      # @rbs line: String
+      # @rbs lineno: Integer
+      def rendered_trailing_whitespace?: (String line, Integer lineno) -> bool
+
+      # Check if the whitespace in the range is written in an ERB tag of the original source
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def written_in_erb_tag?: (Integer from, Integer to) -> bool
+    end
+  end
+end
