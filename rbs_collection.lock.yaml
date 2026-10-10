@@ -45,6 +45,14 @@ gems:
     revision: 33602f9e883980d74ae05833ce76d818a8269f09
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
+- name: digest
+  version: '0'
+  source:
+    type: stdlib
+- name: erb
+  version: '0'
+  source:
+    type: stdlib
 - name: ffi
   version: 1.17.4
   source:
@@ -105,6 +113,10 @@ gems:
   version: 1.0.0
   source:
     type: rubygems
+- name: open3
+  version: '0'
+  source:
+    type: stdlib
 - name: optparse
   version: '0'
   source:

@@ -1,0 +1,56 @@
+# Generated from lib/rubocop/cop/herb/lint.rb with RBS::Inline
+
+module RuboCop
+  module Cop
+    module Herb
+      # Runs herb-lint (@herb-tools/linter) on HTML+ERB files and reports its offenses.
+      #
+      # This cop requires Node.js and @herb-tools/linter installed in the project
+      # (`npm install --save-dev @herb-tools/linter`).
+      # If herb-lint is not available, an offense asking to set it up or disable this cop is reported
+      # (reported once, not for every file).
+      # herb-lint is configured by `.herb.yml` in the project root as usual.
+      #
+      # @example
+      #   # bad
+      #   <img src="logo.png">
+      #
+      #   # good
+      #   <img src="logo.png" alt="Logo">
+      class Lint < Base
+        SEVERITIES: Hash[String, Symbol]
+
+        # Files affecting the result of herb-lint other than the linted file itself
+        CONFIG_FILES: Array[String]
+
+        def on_new_investigation: () -> void
+
+        # Invalidates the result cache when Node.js, herb-lint, its configuration, or custom rules change
+        def external_dependency_checksum: () -> String
+
+        private
+
+        # @rbs source: ::RuboCop::Herb::ProcessedSource
+        # @rbs path: String -- absolute path of the file
+        def lint: (::RuboCop::Herb::ProcessedSource source, String path) -> void
+
+        def client: () -> ::RuboCop::Herb::HerbLintClient
+
+        def node_command: () -> String
+
+        # The path of the Node.js executable; nil if not installed
+        def node_path: () -> String?
+
+        def project_root: () -> String
+
+        # @rbs offense: ::RuboCop::Herb::HerbLintClient::Offense
+        def offense_range: (::RuboCop::Herb::HerbLintClient::Offense offense) -> Parser::Source::Range
+
+        # @rbs buffer: Parser::Source::Buffer
+        # @rbs line: Integer -- 1-based line number
+        # @rbs column: Integer -- 0-based column number
+        def position: (Parser::Source::Buffer buffer, Integer line, Integer column) -> Integer
+      end
+    end
+  end
+end

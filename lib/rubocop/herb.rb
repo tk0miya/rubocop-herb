@@ -10,6 +10,7 @@ require_relative "herb/converter"
 require_relative "herb/erb_location"
 require_relative "herb/erb_parser"
 require_relative "herb/extractor"
+require_relative "herb/herb_lint_client"
 require_relative "herb/immovable_expression_collector"
 require_relative "herb/node_range"
 require_relative "herb/parse_result"
@@ -20,6 +21,8 @@ require_relative "herb/ruby_renderer"
 require_relative "herb/source"
 require_relative "herb/tag"
 require_relative "herb/version"
+
+require_relative "cop/herb/lint"
 
 module RuboCop
   module Herb

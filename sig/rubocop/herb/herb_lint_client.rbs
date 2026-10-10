@@ -1,0 +1,127 @@
+# Generated from lib/rubocop/herb/herb_lint_client.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Client of the herb-lint server (herb_lint_server.cjs).
+    #
+    # Spawning Node.js and loading herb-lint takes a few hundred milliseconds,
+    # so a server process is spawned once and reused for all files.
+    # The server is spawned lazily on the first request in each process;
+    # forked processes (`rubocop --parallel`) spawn their own one.
+    class HerbLintClient
+      class Error < StandardError
+      end
+
+      # Raised when the server has exited or returned an invalid response
+      class BrokenServer < Error
+      end
+
+      # Raised when herb-lint is not available (e.g. Node.js or @herb-tools/linter is not installed)
+      class StartupError < Error
+      end
+
+      # An offense reported by herb-lint.
+      # Lines are 1-based and columns are 0-based character offsets.
+      class Offense < Data
+        attr_reader rule(): String
+
+        attr_reader message(): String
+
+        attr_reader severity(): String
+
+        attr_reader start_line(): Integer
+
+        attr_reader start_column(): Integer
+
+        attr_reader end_line(): Integer
+
+        attr_reader end_column(): Integer
+
+        def self.new: (String rule, String message, String severity, Integer start_line, Integer start_column, Integer end_line, Integer end_column) -> instance
+                    | (rule: String, message: String, severity: String, start_line: Integer, start_column: Integer, end_line: Integer, end_column: Integer) -> instance
+
+        def self.members: () -> [ :rule, :message, :severity, :start_line, :start_column, :end_line, :end_column ]
+
+        def members: () -> [ :rule, :message, :severity, :start_line, :start_column, :end_line, :end_column ]
+      end
+
+      # A running herb-lint server process and the pipes connected to it
+      class Server < Data
+        attr_reader stdin(): IO
+
+        attr_reader stdout(): IO
+
+        attr_reader wait_thread(): Process::Waiter
+
+        def self.new: (IO stdin, IO stdout, Process::Waiter wait_thread) -> instance
+                    | (stdin: IO, stdout: IO, wait_thread: Process::Waiter) -> instance
+
+        def self.members: () -> [ :stdin, :stdout, :wait_thread ]
+
+        def members: () -> [ :stdin, :stdout, :wait_thread ]
+      end
+
+      # The script of the herb-lint server
+      SERVER_SCRIPT: String
+
+      # Returns the client shared in the current process
+      # @rbs node_command: String
+      # @rbs project_root: String
+      # @rbs checksum: String -- digest of the configuration; the server is respawned when it changes
+      def self.for: (node_command: String, project_root: String, checksum: String) -> HerbLintClient
+
+      private def self.reset_clients: () -> void
+
+      private attr_reader self.clients: Hash[[ String, String ], HerbLintClient]
+
+      private attr_reader self.pid: Integer?
+
+      attr_reader node_command: String
+
+      attr_reader project_root: String
+
+      attr_reader checksum: String?
+
+      # @rbs node_command: String -- the Node.js executable
+      # @rbs project_root: String -- the directory to resolve herb-lint packages and .herb.yml from
+      # @rbs checksum: String? -- digest of the configuration the server is started with
+      def initialize: (node_command: String, project_root: String, ?checksum: String?) -> void
+
+      # Returns whether the startup error should be reported on the file.
+      # It is true only for the first file asked so that the error is reported only once, not for every file.
+      # The first file is answered true again because long-running processes (e.g. rubocop --server and
+      # rubocop --lsp) inspect it again; otherwise the error would disappear from it.
+      # @rbs path: String -- absolute path of the file to report the error on
+      def report_startup_error_on?: (String path) -> bool
+
+      # Raises StartupError if the server fails to start.
+      # The failure is remembered, so the server is not respawned for the following calls.
+      # @rbs path: String -- absolute path of the file
+      # @rbs source: String -- content of the file
+      def lint: (String path, String source) -> Array[Offense]
+
+      def close: () -> void
+
+      private
+
+      attr_reader server: Server?
+
+      attr_reader startup_error: StartupError?
+
+      attr_reader startup_error_report_path: String?
+
+      # @rbs message: Hash[Symbol, untyped]
+      def request: (Hash[Symbol, untyped] message) -> Hash[String, untyped]
+
+      def start: () -> Server
+
+      def spawn_server: () -> Server
+
+      # @rbs stdout: IO
+      def read_response: (IO stdout) -> Hash[String, untyped]
+
+      # @rbs offense: Hash[String, untyped]
+      def build_offense: (Hash[String, untyped] offense) -> Offense
+    end
+  end
+end

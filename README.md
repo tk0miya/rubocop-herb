@@ -22,7 +22,47 @@ gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
 
 ## Usage
 
-TODO: Write usage instructions here
+Add rubocop-herb to the plugins in `.rubocop.yml`:
+
+```yaml
+plugins:
+  - rubocop-herb
+```
+
+### Running herb-lint together (Herb/Lint cop)
+
+The `Herb/Lint` cop (enabled by default) runs [herb-lint](https://herb-tools.dev/projects/linter)
+on HTML+ERB files and reports its offenses together with RuboCop's ones.
+It requires Node.js and `@herb-tools/linter` installed in the project:
+
+```bash
+npm install --save-dev @herb-tools/linter
+```
+
+If herb-lint is not available, the cop reports an error asking to set it up
+(reported once, not for every file).
+To use rubocop-herb without herb-lint, disable the cop in `.rubocop.yml`:
+
+```yaml
+Herb/Lint:
+  Enabled: false
+  # NodeCommand: node  # The Node.js executable (default: node)
+```
+
+herb-lint is configured with `.herb.yml` in the project root as usual
+(rules, `linter.exclude`, custom rules in `.herb/rules/`, and `<%# herb:disable %>` comments work as in herb-lint).
+`<%# rubocop:disable Herb/Lint %>` also disables the cop.
+
+A Node.js process is spawned once per RuboCop process and reused for all files,
+so the startup cost of Node.js (a few hundred milliseconds) is paid only once.
+With `rubocop --parallel`, each worker process spawns its own one.
+
+Limitations:
+
+- Autocorrection of herb-lint is not supported. Run `herb-lint --fix` instead.
+- herb-lint does not run on files where the Ruby code has syntax errors.
+- Rules that analyze other templates (e.g. partials and their callers) run without the project-wide analysis,
+  so that RuboCop's result cache stays valid per file.
 
 ## Development
 
