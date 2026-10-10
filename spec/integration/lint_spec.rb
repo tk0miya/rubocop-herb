@@ -444,6 +444,42 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing control flows whose branches output values followed by HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case b %>
+          <% when 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case c %>
+          <% in 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% begin %>
+            <%= x %>
+          <% ensure %>
+            <%= y %>
+          <% end %>
+          <p>z</p>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
     context "with Lint/DuplicateBranch enabled" do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
@@ -827,6 +863,42 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing control flows whose branches output values followed by HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case b %>
+          <% when 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case c %>
+          <% in 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% begin %>
+            <%= x %>
+          <% ensure %>
+            <%= y %>
+          <% end %>
+          <p>z</p>
+        ERB
+      end
+
+      it "does not trigger Lint/Void" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
     context "with Lint/DuplicateBranch enabled" do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
@@ -938,8 +1010,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         it "triggers Style/IdenticalConditionalBranches only for the Ruby code" do
           runner.run(path, source, {})
           offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.location.source] }
-          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 3, "x"],
-                                  ["Style/IdenticalConditionalBranches", 6, "x"]]
+          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 3, "<%= x"],
+                                  ["Style/IdenticalConditionalBranches", 6, "<%= x"]]
         end
       end
 

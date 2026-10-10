@@ -5,7 +5,8 @@ require "herb"
 module RuboCop
   module Herb
     # Visitor that collects the lines where cops should be disabled.
-    # Some cops report false positives because HTML parts are removed from the Ruby code.
+    # Some cops report false positives caused by the conversion
+    # (e.g. HTML parts are removed, output tags are rendered as `_ = expr`).
     # This collector finds such lines from the ERB structure.
     class DisabledCopsCollector < ::Herb::Visitor
       # Collect the disabled lines for each cop from a parse result
@@ -171,7 +172,8 @@ module RuboCop
         disable_cop("Style/IfUnlessModifier", node)
         # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
         disable_cop("Style/ConditionalAssignment", node)
-        # Output tags in the branches are rendered as `_ = a` or `a`, so the condition looks redundant (`if a; a; end`)
+        # Output tags in the branches are rendered as `_ = a`, so the condition looks redundant
+        # (`if a; _ = a; else; _ = b; end`)
         disable_cop("Style/RedundantCondition", node)
         # Converting them to `next` breaks the template (e.g. it leaves the closing of the end tag)
         disable_cop("Style/Next", node)

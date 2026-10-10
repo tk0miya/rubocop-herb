@@ -31,10 +31,9 @@ module RuboCop
       #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
       #   def byteslice: (::Herb::Range) -> String
-      #   def tail_expression?: (::Herb::AST::Node) -> bool
 
       def_delegators :parse_result, :source, :erb_locations, :erb_max_columns, :erb_comment_nodes,
-                     :byteslice, :tail_expression?
+                     :byteslice
 
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
@@ -143,7 +142,7 @@ module RuboCop
         ruby_code[range.from, code.length] = code
 
         render_semicolon(node, code, range)
-        render_output_marker(node) if output_node?(node) && needs_output_marker?(node)
+        render_output_marker(node) if output_node?(node)
       end
 
       # Render a semicolon after the code to terminate the statement
@@ -160,16 +159,9 @@ module RuboCop
         ruby_code[semicolon_pos] = ";" if semicolon_pos < ruby_code.size
       end
 
-      # Check if output node needs _ = marker
-      # When html_visualization is disabled, always add marker to avoid Lint/Void false positives
-      # When enabled, only add marker if not a tail expression
-      # @rbs node: ::Herb::AST::Node
-      def needs_output_marker?(node) #: bool
-        return true unless html_visualization
-
-        !tail_expression?(node)
-      end
-
+      # Render `_ =` marker over the output tag opening (`<%=`) to avoid Lint/Void false positives
+      # The marker is rendered for every output tag, including the last statement of a conditional,
+      # because the HTML following the conditional puts it in void context
       # @rbs node: erb_node
       def render_output_marker(node) #: void
         pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
