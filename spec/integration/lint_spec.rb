@@ -516,6 +516,19 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing trailing whitespace rendered by the conversion" do
+      # Written in a string literal not to put trailing whitespace in this file
+      let(:source) do
+        "<div>\n  <%= @a %>\n</div>\n<%\n  @e = 1  \n  @f = 2\n%>\n<p>x</p>  \n<%= @b %>  \n"
+      end
+
+      it "triggers Layout/TrailingWhitespace only for the trailing whitespace written in an ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/TrailingWhitespace", 5]]
+      end
+    end
+
     context "when analyzing control flows whose branches output values followed by HTML" do
       let(:source) do
         <<~ERB
@@ -1340,6 +1353,19 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/IndentationWidth", 33]]
+      end
+    end
+
+    context "when analyzing trailing whitespace rendered by the conversion" do
+      # Written in a string literal not to put trailing whitespace in this file
+      let(:source) do
+        "<div>\n  <%= @a %>\n</div>\n<%\n  @e = 1  \n  @f = 2\n%>\n<p>x</p>  \n<%= @b %>  \n"
+      end
+
+      it "triggers Layout/TrailingWhitespace only for the trailing whitespace written in an ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/TrailingWhitespace", 5]]
       end
     end
 

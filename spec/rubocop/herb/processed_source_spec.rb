@@ -97,7 +97,10 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
 
     it "returns a CommentConfig with the disabled cops of the parse result" do
       expect(subject).to be_a(RuboCop::Herb::CommentConfig)
-      expect(subject.disabled_cops).to eq({ "Style/StringLiterals" => [1..1] })
+      expect(subject.disabled_cops).to eq({
+                                            "Style/StringLiterals" => [1..1],
+                                            "Layout/TrailingWhitespace" => [1..1]
+                                          })
     end
   end
 end
