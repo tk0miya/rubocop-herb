@@ -176,6 +176,8 @@ module RuboCop
 
       # Render HTML open tag or close tag as Ruby code: "tag; "
       # The tag name and "; " always fit in the tag ("<tag>" or "</tag>")
+      # When the tag name is followed by a newline (e.g. `<div\n  class="a">`), the space is dropped ("tag;")
+      # so as not to overwrite the newline and shift the following lines
       # @rbs node: ::Herb::AST::Node?
       def render_tag_node(node) #: void
         return unless node.is_a?(::Herb::AST::HTMLOpenTagNode) || node.is_a?(::Herb::AST::HTMLCloseTagNode)
@@ -184,7 +186,13 @@ module RuboCop
         code = "#{tag_name}; "
 
         start_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
+        code = code.rstrip if newline_at?(start_pos + code.length - 1)
         ruby_code[start_pos, code.length] = code
+      end
+
+      # @rbs pos: Integer -- character position in ruby_code
+      def newline_at?(pos) #: bool
+        ruby_code[pos]&.match?(/[\r\n]/) || false
       end
 
       # Render HTML text node by placing "_a;" at first non-whitespace position
