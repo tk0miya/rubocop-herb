@@ -22,8 +22,9 @@ module RuboCop
       # @rbs parser_engine: Symbol
       def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, parse_result: ParseResult, ?parser_engine: Symbol) -> void
 
-      # Override comment_config to disable cops at the lines specified by the parse result
-      # and the lines of expressions that cannot be moved out of conditionals
+      # Override comment_config to disable cops at the lines specified by the parse result,
+      # the lines of expressions that cannot be moved out of conditionals
+      # and the lines of semicolons rendered by the conversion
       def comment_config: () -> CommentConfig
 
       private

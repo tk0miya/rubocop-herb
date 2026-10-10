@@ -1,0 +1,37 @@
+# Generated from lib/rubocop/herb/semicolon_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Collects the lines where Style/Semicolon should be disabled.
+    # Semicolons are rendered to terminate the code of ERB tags (e.g. `<%= x %>` becomes `_ = x;`)
+    # and HTML visualized as Ruby code (e.g. `div;`), and the cop reports them.
+    # Such semicolons are found from the tokens and the original source, so that semicolons
+    # written in ERB tags are still checked unless a rendered semicolon is on the same line.
+    class SemicolonCollector
+      COP_NAME: String
+
+      # Collect the disabled lines from a processed source
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def self.collect: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader processed_source: ::RuboCop::AST::ProcessedSource
+
+      attr_reader code: String
+
+      attr_reader erb_tag_ranges: Array[CharRange]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> void
+
+      def collect: () -> Hash[String, Array[Range[Integer]]]
+
+      private
+
+      # Check if the semicolon at the position is written in an ERB tag of the original source
+      # @rbs pos: Integer
+      def written_in_erb_tag?: (Integer pos) -> bool
+    end
+  end
+end

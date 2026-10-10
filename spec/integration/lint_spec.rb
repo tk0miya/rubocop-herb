@@ -516,6 +516,27 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing semicolons rendered by the conversion" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <%= @a %> <%= @b %>
+          </div>
+          <% if @a %><p>x</p><% end %>
+          <%
+            @e = 1; @f = 2
+            @g = 3
+          %>
+        ERB
+      end
+
+      it "triggers Style/Semicolon only for the semicolon written in an ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/Semicolon", 6]]
+      end
+    end
+
     context "when analyzing control flows whose branches output values followed by HTML" do
       let(:source) do
         <<~ERB
@@ -1340,6 +1361,27 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/IndentationWidth", 33]]
+      end
+    end
+
+    context "when analyzing semicolons rendered by the conversion" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <%= @a %> <%= @b %>
+          </div>
+          <% if @a %><p>x</p><% end %>
+          <%
+            @e = 1; @f = 2
+            @g = 3
+          %>
+        ERB
+      end
+
+      it "triggers Style/Semicolon only for the semicolon written in an ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/Semicolon", 6]]
       end
     end
 
