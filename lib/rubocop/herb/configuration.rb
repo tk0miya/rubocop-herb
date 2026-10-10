@@ -26,12 +26,6 @@ module RuboCop
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
 
-      # Cops excluded when HTML visualization is disabled.
-      # HTML parts are replaced with whitespace, causing false positives.
-      HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS = [
-        "Layout/EmptyLineAfterGuardClause" # Guard clause may be followed by HTML
-      ].freeze #: Array[String]
-
       class << self
         # @rbs config: Hash[String, untyped]
         def setup(config) #: void
@@ -53,16 +47,10 @@ module RuboCop
           globs = supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
 
           config = { "AllCops" => { "Include" => globs }, "Herb/Lint" => herb_lint_config(globs) }
-          excluded_cops.each do |cop|
+          EXCLUDED_COPS.each do |cop|
             config[cop] = { "Exclude" => globs }
           end
           config
-        end
-
-        def excluded_cops #: Array[String]
-          cops = EXCLUDED_COPS.dup
-          cops.concat(HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS) unless html_visualization?
-          cops
         end
 
         private
