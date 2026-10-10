@@ -23,9 +23,12 @@ module RuboCop
       def initialize: (String ruby_code, Float ruby_version, ?String? path, hybrid_code: String, parse_result: ParseResult, ?parser_engine: Symbol) -> void
 
       # Override comment_config to disable cops at the lines specified by the parse result
+      # and the lines of expressions that cannot be moved out of conditionals
       def comment_config: () -> CommentConfig
 
       private
+
+      def disabled_cops: () -> Hash[String, Array[Range[Integer]]]
 
       # Override parse to transform AST after parsing
       # @rbs ruby_code: String

@@ -65,20 +65,9 @@ module RuboCop
         range.nil? || pos < range.from
       end
 
-      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # Memoized ParseResult#erb_tag_ranges
       def erb_tag_ranges #: Array[CharRange]
-        @erb_tag_ranges ||= parse_result.erb_locations.values.map { erb_tag_range(_1) }.sort_by(&:from)
-      end
-
-      # Character range of an ERB tag
-      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
-      # or closing, so its content is used instead
-      # @rbs loc: ErbLocation
-      def erb_tag_range(loc) #: CharRange
-        node = loc.node #: erb_node
-        from = (node.tag_opening || node.content).not_nil!.range.from
-        to = (node.tag_closing || node.content).not_nil!.range.to
-        NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), parse_result.source)
+        @erb_tag_ranges ||= parse_result.erb_tag_ranges
       end
 
       # Build a new location map with HTML source range

@@ -28,11 +28,17 @@ module RuboCop
       end
 
       # Override comment_config to disable cops at the lines specified by the parse result
+      # and the lines of expressions that cannot be moved out of conditionals
       def comment_config #: CommentConfig
-        @comment_config ||= CommentConfig.new(self, disabled_cops: parse_result.disabled_cops)
+        @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
 
       private
+
+      def disabled_cops #: Hash[String, Array[Range[Integer]]]
+        immovable_expressions = ImmovableExpressionCollector.collect(self, parse_result)
+        parse_result.disabled_cops.merge(immovable_expressions) { |_cop, lines1, lines2| lines1 + lines2 }
+      end
 
       # Override parse to transform AST after parsing
       # @rbs ruby_code: String

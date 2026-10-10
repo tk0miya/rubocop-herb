@@ -367,6 +367,24 @@ RSpec.describe "Lint with RuboCop", type: :feature do
                                   ["Style/IdenticalConditionalBranches", 6]]
         end
       end
+
+      context "when analyzing conditional branches containing the same Ruby code inside different HTML" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <div class="a"><%= x %></div>
+            <% else %>
+              <div class="b"><%= x %></div>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+          expect(offenses).to eq [["Lint/DuplicateBranch", 3]]
+        end
+      end
     end
 
     context "with Lint/EmptyBlock enabled" do
@@ -794,6 +812,62 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.location.source] }
           expect(offenses).to eq [["Style/IdenticalConditionalBranches", 3, "x"],
                                   ["Style/IdenticalConditionalBranches", 6, "x"]]
+        end
+      end
+
+      context "when analyzing conditional branches containing the same Ruby code inside different open tags" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <input type="text" <%= x %>>
+            <% else %>
+              <input type="password" <%= x %>>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
+        end
+      end
+
+      context "when analyzing elsif, in and rescue branches differing only in HTML content" do
+        let(:source) do
+          <<~ERB
+            <% if a %>
+              <p>a</p>
+            <% elsif b %>
+              <p>b</p>
+            <% end %>
+            <% case c %>
+            <% in 1 %>
+              <p>a</p>
+            <% in 2 %>
+              <p>b</p>
+            <% end %>
+            <% begin %>
+              <%= x %>
+            <% rescue A %>
+              <p>a</p>
+            <% rescue B %>
+              <p>b</p>
+            <% end %>
+            <% items.each do |item| %>
+              <%= item %>
+            <% rescue A %>
+              <p>a</p>
+            <% rescue B %>
+              <p>b</p>
+            <% end %>
+          ERB
+        end
+
+        it "does not trigger Lint/DuplicateBranch" do
+          runner.run(path, source, {})
+          offenses = runner.offenses.map(&:cop_name)
+          expect(offenses).to eq []
         end
       end
 

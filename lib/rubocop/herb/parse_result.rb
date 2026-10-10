@@ -47,6 +47,19 @@ module RuboCop
       def tail_expression?(node) #: bool
         tail_expressions.include?(node)
       end
+
+      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      def erb_tag_ranges #: Array[CharRange]
+        ranges = erb_locations.values.map do |loc|
+          node = loc.node #: erb_node
+          from = (node.tag_opening || node.content).not_nil!.range.from
+          to = (node.tag_closing || node.content).not_nil!.range.to
+          NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), source)
+        end
+        ranges.sort_by(&:from)
+      end
     end
   end
 end
