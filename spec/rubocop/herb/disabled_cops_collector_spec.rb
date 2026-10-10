@@ -197,16 +197,33 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       context "with HTML element containing ERB" do
         let(:code) { "<div class=\"a\">\n  <%= x %>\n</div>" }
 
-        it "disables Layout/SpaceBeforeBlockBraces at the open tag" do
-          expect(subject).to eq({ "Layout/SpaceBeforeBlockBraces" => [1..1] })
+        it "disables the cops for the braces at the open tag and the close tag" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3]
+                                })
         end
       end
 
       context "with open tag spanning multiple lines" do
         let(:code) { "<div class=\"a\"\n     id=\"b\">\n  <%= x %>\n</div>" }
 
-        it "disables Layout/SpaceBeforeBlockBraces at the open tag" do
-          expect(subject).to eq({ "Layout/SpaceBeforeBlockBraces" => [1..1] })
+        it "disables the cops for the braces at the first line of the open tag and the close tag" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 4..4]
+                                })
+        end
+      end
+
+      context "with HTML element on a single line" do
+        let(:code) { "<div class=\"a\"><%= x %></div>" }
+
+        it "disables the cops for the braces at the line" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1]
+                                })
         end
       end
 
