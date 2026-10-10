@@ -6,16 +6,12 @@ module RuboCop
     module Configuration
       DEFAULT_EXTENSIONS: Array[String]
 
-      self.@html_visualization: bool
-
       # Cops to exclude from ERB files due to inherent incompatibilities
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS: Array[String]
 
       # @rbs config: Hash[String, untyped]
       def self.setup: (Hash[String, untyped] config) -> void
-
-      def self.html_visualization?: () -> bool
 
       # @rbs path: String
       def self.supported_file?: (String path) -> bool

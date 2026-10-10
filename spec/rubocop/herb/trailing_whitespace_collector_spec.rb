@@ -7,7 +7,7 @@ RSpec.describe RuboCop::Herb::TrailingWhitespaceCollector do
     subject { described_class.collect(processed_source, conversion_result.parse_result) }
 
     let(:conversion_result) do
-      RuboCop::Herb::Converter.new(html_visualization:).convert("test.html.erb", code)
+      RuboCop::Herb::Converter.new.convert("test.html.erb", code)
     end
     let(:processed_source) do
       RuboCop::Herb::ProcessedSource.new(
@@ -17,75 +17,35 @@ RSpec.describe RuboCop::Herb::TrailingWhitespaceCollector do
       )
     end
 
-    context "with HTML converted to whitespace" do
-      let(:html_visualization) { false }
+    context "with ERB tag at the end of a line" do
+      let(:code) { "<%= a %>" }
 
-      context "with ERB tag at the end of a line" do
-        let(:code) { "<%= a %>" }
-
-        it "disables Layout/TrailingWhitespace at the line" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
-        end
-      end
-
-      context "with HTML at the end of a line" do
-        let(:code) { "<% a = 1\n   b = 2 %><p>x</p>" }
-
-        it "disables Layout/TrailingWhitespace at the line" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [2..2] })
-        end
-      end
-
-      context "with trailing whitespace written in an ERB tag" do
-        let(:code) { "<%\n  a = 1  \n  b = 2 %>" }
-
-        it "disables Layout/TrailingWhitespace except for the line in the ERB tag" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1, 3..3] })
-        end
-      end
-
-      context "with trailing whitespace written in HTML" do
-        let(:code) { "<p>x</p>  " }
-
-        it "disables Layout/TrailingWhitespace at the line" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
-        end
+      it "disables Layout/TrailingWhitespace at the line" do
+        expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
       end
     end
 
-    context "with HTML visualized as Ruby code" do
-      let(:html_visualization) { true }
+    context "with trailing whitespace written in an ERB tag" do
+      let(:code) { "<%\n  a = 1  \n  b = 2 %>" }
 
-      context "with ERB tag at the end of a line" do
-        let(:code) { "<%= a %>" }
-
-        it "disables Layout/TrailingWhitespace at the line" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
-        end
+      it "disables Layout/TrailingWhitespace except for the line in the ERB tag" do
+        expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1, 3..3] })
       end
+    end
 
-      context "with trailing whitespace written in an ERB tag" do
-        let(:code) { "<%\n  a = 1  \n  b = 2 %>" }
+    context "with trailing whitespace written in HTML" do
+      let(:code) { "<p>x</p>  " }
 
-        it "disables Layout/TrailingWhitespace except for the line in the ERB tag" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1, 3..3] })
-        end
+      it "disables Layout/TrailingWhitespace at the line" do
+        expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
       end
+    end
 
-      context "with trailing whitespace written in HTML" do
-        let(:code) { "<p>x</p>  " }
+    context "with HTML at the end of a line" do
+      let(:code) { "<% a = 1 %><p>x</p>" }
 
-        it "disables Layout/TrailingWhitespace at the line" do
-          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
-        end
-      end
-
-      context "with HTML at the end of a line" do
-        let(:code) { "<% a = 1 %><p>x</p>" }
-
-        it "disables nothing" do
-          expect(subject).to eq({})
-        end
+      it "disables nothing" do
+        expect(subject).to eq({})
       end
     end
   end

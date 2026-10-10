@@ -5,7 +5,7 @@ module RuboCop
     # Collects the lines where Style/IdenticalConditionalBranches should be disabled.
     # The cop suggests moving an expression shared by all branches out of the conditional,
     # but an expression next to HTML cannot be moved without changing the output
-    # (e.g. `x` in `<div><%= x %></div>` or `<input <%= x %>>`).
+    # (e.g. `x` in `<input <%= x %>>`).
     # Such expressions are found from the Ruby AST and the HTML in the original source.
     class ImmovableExpressionCollector
       COP_NAME: String

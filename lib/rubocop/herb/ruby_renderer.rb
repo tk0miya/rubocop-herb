@@ -19,16 +19,14 @@ module RuboCop
 
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
-      # @rbs html_visualization: bool
-      def self.render(parse_result, html_visualization: false) #: String
-        renderer = new(parse_result, html_visualization:)
+      def self.render(parse_result) #: String
+        renderer = new(parse_result)
         parse_result.ast.visit(renderer)
         renderer.ruby_code
       end
 
       attr_reader :ruby_code #: String
       attr_reader :parse_result #: ParseResult
-      attr_reader :html_visualization #: bool
 
       # @rbs!
       #   def source: () -> Source
@@ -41,11 +39,9 @@ module RuboCop
                      :byteslice
 
       # @rbs parse_result: ParseResult
-      # @rbs html_visualization: bool
-      def initialize(parse_result, html_visualization: false) #: void
+      def initialize(parse_result) #: void
         @parse_result = parse_result
         @ruby_code = bleach_code(parse_result.code)
-        @html_visualization = html_visualization
 
         super()
       end
@@ -100,8 +96,6 @@ module RuboCop
       # (e.g. a local variable assigned in an element is available after the element)
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
-        return super unless html_visualization
-
         render_tag_node(node.open_tag)
         return unless contains_erb?(node)
 
@@ -113,7 +107,7 @@ module RuboCop
       # Renders a marker to indicate content presence
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
-        render_text_node(node) if html_visualization
+        render_text_node(node)
         super
       end
 
@@ -124,10 +118,9 @@ module RuboCop
       def visit_html_comment_node(node) #: void
         if contains_erb?(node)
           super
-        elsif html_visualization
+        else
           render_html_comment_node(node)
         end
-        # When html_visualization is disabled and no ERB, comment is bleached (all spaces)
       end
 
       private

@@ -6,7 +6,7 @@ module RuboCop
   module Herb
     # Visitor that collects the lines where cops should be disabled.
     # Some cops report false positives caused by the conversion
-    # (e.g. HTML parts are removed, output tags are rendered as `_ = expr`).
+    # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
     # This collector finds such lines from the ERB structure.
     class DisabledCopsCollector < ::Herb::Visitor
       # Collect the disabled lines for each cop from a parse result
@@ -25,7 +25,7 @@ module RuboCop
         super
       end
 
-      # Conditional branches containing only HTML become empty in the Ruby code
+      # Conditional branches containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
@@ -36,7 +36,7 @@ module RuboCop
         super
       end
 
-      # Conditional branches containing only HTML become empty in the Ruby code
+      # Conditional branches containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
@@ -97,7 +97,7 @@ module RuboCop
         super
       end
 
-      # Else branches containing only HTML become empty in the Ruby code
+      # Else branches containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
         disable_cop("Style/EmptyElse", node) if html_content?(node.statements)
@@ -105,7 +105,7 @@ module RuboCop
         super
       end
 
-      # When branches containing only HTML become empty in the Ruby code
+      # When branches containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
         disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
@@ -113,7 +113,7 @@ module RuboCop
         super
       end
 
-      # Rescue clauses containing only HTML become empty in the Ruby code
+      # Rescue clauses containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node(node) #: void
         disable_cop("Lint/SuppressedException", node) if html_content?(node.statements)
@@ -121,7 +121,7 @@ module RuboCop
         super
       end
 
-      # Ensure clauses containing only HTML become empty in the Ruby code
+      # Ensure clauses containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node(node) #: void
         disable_cop("Lint/EmptyEnsure", node) if html_content?(node.statements)
@@ -129,7 +129,7 @@ module RuboCop
         super
       end
 
-      # In branches containing only HTML become empty in the Ruby code
+      # In branches containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBInNode
       def visit_erb_in_node(node) #: void
         disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
@@ -137,7 +137,7 @@ module RuboCop
         super
       end
 
-      # Blocks containing only HTML become empty in the Ruby code
+      # Blocks containing only HTML may become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
         disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
@@ -178,7 +178,7 @@ module RuboCop
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
       # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
-      # the first HTML content (html_visualization) or the first ERB tag in it, so the cop is disabled
+      # the first HTML content or the first ERB tag in it, so the cop is disabled
       # from the first content to the first ERB tag. ERB tags without Ruby code (e.g. `<%# note %>` and
       # `<% # note %>`) are skipped as they are not statements. Bodies written within a single ERB tag
       # are still checked.
@@ -293,6 +293,8 @@ module RuboCop
       end
 
       # Check if the nodes contain non-ERB content (except whitespace)
+      # HTML content may be rendered as whitespace (e.g. text too short to place the marker in the line,
+      # see RubyRenderer::TEXT_MARKER_POSITION), so bodies containing only HTML can become empty in the Ruby code
       # @rbs nodes: Array[::Herb::AST::Node]
       def html_content?(nodes) #: bool
         nodes.any? do |node|

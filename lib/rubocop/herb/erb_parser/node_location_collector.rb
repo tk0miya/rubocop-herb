@@ -4,8 +4,7 @@ require "herb"
 
 module RuboCop
   module Herb
-    # Visitor that collects ERB locations in a single AST traversal.
-    # Also collects HTML tags when html_visualization is enabled.
+    # Visitor that collects ERB locations and HTML tags in a single AST traversal.
     class NodeLocationCollector < ::Herb::Visitor
       NODE_TYPE_MAP = { #: Hash[Class, ErbLocation::erb_node_type]
         ::Herb::AST::ERBBlockNode => :block,
@@ -37,9 +36,8 @@ module RuboCop
       # Collect ERB locations and tags from a parse result
       # @rbs source: Source
       # @rbs ast: ::Herb::ParseResult
-      # @rbs html_visualization: bool
-      def self.collect(source, ast, html_visualization: false) #: Result
-        collector = new(source:, html_visualization:)
+      def self.collect(source, ast) #: Result
+        collector = new(source:)
         ast.visit(collector)
 
         erb_tags = collector.erb_locations.transform_values do |loc|
@@ -54,19 +52,16 @@ module RuboCop
       end
 
       attr_reader :source #: Source
-      attr_reader :html_visualization #: bool
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
       attr_reader :tags #: Hash[Integer, Tag]
 
       # @rbs source: Source
-      # @rbs html_visualization: bool
-      def initialize(source:, html_visualization:) #: void
+      def initialize(source:) #: void
         @erb_locations = {}
         @erb_max_columns = {}
         @tags = {}
         @source = source
-        @html_visualization = html_visualization
 
         super()
       end
@@ -80,23 +75,23 @@ module RuboCop
         super
       end
 
-      # Visit HTML element nodes and collect tag info when html_visualization is enabled
+      # Visit HTML element nodes and collect tag info
       # super is called first to traverse children and collect ERB locations,
       # then we check if this element contains ERB to decide which tags to record
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         super
-        record_html_element_tag(node) if html_visualization
+        record_html_element_tag(node)
       end
 
-      # Visit HTML text nodes and collect tag info when html_visualization is enabled
+      # Visit HTML text nodes and collect tag info
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
         super
-        record_text_node_tag(node) if html_visualization
+        record_text_node_tag(node)
       end
 
-      # Visit HTML comment nodes and collect tag info when html_visualization is enabled
+      # Visit HTML comment nodes and collect tag info
       # super is called first to traverse children and collect ERB locations,
       # then we check if this comment contains ERB to decide whether to record tag info.
       # Comments containing ERB are not recorded (they are visited normally to traverse children)
@@ -105,7 +100,7 @@ module RuboCop
         super
         return if contains_erb?(node)
 
-        record_html_comment_tag(node) if html_visualization
+        record_html_comment_tag(node)
       end
 
       private

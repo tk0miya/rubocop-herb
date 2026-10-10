@@ -37,13 +37,9 @@ bin/rake release             # Release to RubyGems
 A development tool that reads ERB from stdin and outputs the converted Ruby code. Useful for debugging the Converter.
 
 ```bash
-# Convert ERB from stdin (with HTML visualization enabled by default)
+# Convert ERB from stdin
 echo '<div><%= @name %></div>' | bin/erb2ruby
 #=> div; _ = @name;  div;
-
-# Convert ERB without HTML visualization
-echo '<div><%= @name %></div>' | bin/erb2ruby --disable-html-visualization
-#=>      _ = @name;
 
 # Convert ERB file
 bin/erb2ruby < app/views/users/show.html.erb
@@ -56,9 +52,6 @@ Use `config/develop/rubocop.yml` to test rubocop-herb on ERB files:
 ```bash
 # Run lint
 echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop.yml --stdin test.html.erb
-
-# Run lint with HTML visualization enabled
-echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop-html-visualization.yml --stdin test.html.erb
 
 # Run autocorrect
 echo '<%= "hello" %>' | bin/rubocop -c config/develop/rubocop.yml -a --stdin test.html.erb
@@ -110,7 +103,7 @@ The original ERB template containing HTML markup and embedded Ruby code.
 
 #### 2. Ruby Code
 
-The input file parsed and converted to valid Ruby code. ERB tags are extracted as-is, and HTML tags are converted to Ruby-like identifiers (when `html_visualization` is enabled). RuboCop parses this Ruby code to build an AST for analysis.
+The input file parsed and converted to valid Ruby code. ERB tags are extracted as-is, and HTML tags are converted to Ruby-like identifiers (e.g., `<div>` → `div;`) to avoid false positives from cops like `Lint/EmptyBlock`. RuboCop parses this Ruby code to build an AST for analysis.
 
 ```ruby
 div;
@@ -134,7 +127,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 
 - **ErbParser** (`lib/rubocop/herb/erb_parser.rb`): Responsible for parsing and analyzing ERB documents. Parses using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects lines to disable cops via `DisabledCopsCollector`, and creates a `Source` object. Returns a `ParseResult`
 - **ParseResult** (`lib/rubocop/herb/parse_result.rb`): Data class holding the `Source`, parsed AST, ERB locations, tags and disabled cops, plus utility methods for slicing and lookups
-- **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Responsible for converting parsed results to Ruby code. Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML visualization
+- **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Responsible for converting parsed results to Ruby code. Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML tags
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
@@ -147,10 +140,10 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **Extractor** (`lib/rubocop/herb/extractor.rb`): RuboCop extractor interface that converts ERB files to Ruby for analysis
 - **ProcessedSource** (`lib/rubocop/herb/processed_source.rb`): RuboCop ProcessedSource subclass that stores hybrid_code and tags, transforms AST after parsing, and provides a CommentConfig built from `ParseResult#disabled_cops`, `ImmovableExpressionCollector` and `TrailingWhitespaceCollector`
 - **CommentConfig** (`lib/rubocop/herb/comment_config.rb`): RuboCop CommentConfig subclass that disables cops at given line ranges as if `rubocop:disable` comments were written there
-- **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<div><%= x %></div>` in every branch). Works on the Ruby AST, so it applies regardless of `html_visualization`
+- **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<input <%= x %>>` in every branch)
 - **TrailingWhitespaceCollector** (`lib/rubocop/herb/trailing_whitespace_collector.rb`): Collects the lines to disable `Layout/TrailingWhitespace` for trailing whitespace rendered by the conversion (e.g., `<%= x %>` becomes `_ = x;  `). Works on the lines and the original source, so trailing whitespace written in ERB tags (e.g., a line in a multi-line ERB tag) is still checked
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes, and renames nodes rendered from HTML uniquely so that cops comparing code (e.g. `Lint/DuplicateBranch`) only compare the Ruby parts
-- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, html_visualization setting, and the default configuration of `Herb/Linting` cop
+- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and the default configuration of `Herb/Linting` cop
 
 #### herb-lint Integration
 
@@ -182,11 +175,8 @@ The plugin supports these configuration options in `.rubocop.yml`:
 plugins:
   - rubocop-herb:
       extensions:
-        - .html.erb           # Default: [".html.erb"]
-      html_visualization: true # Default: false - renders HTML tags as Ruby identifiers
+        - .html.erb # Default: [".html.erb"]
 ```
-
-**HTML Visualization**: When enabled, HTML tags are rendered as Ruby identifiers (e.g., `<div>` → `div;`) to avoid false positives from cops like `Lint/EmptyBlock`. The original HTML is restored in diagnostics via AST transformation.
 
 ## Code Conventions
 
