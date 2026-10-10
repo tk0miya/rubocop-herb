@@ -6,6 +6,7 @@
 # Herb/Linting cop resolves herb-lint from ConfigFinder.project_root and checks
 # CommentConfig#cop_enabled_at_line? before reporting the startup error.
 # Herb/IgnoredCopDirective cop detects rubocop directives with DirectiveComment::DIRECTIVE_COMMENT_REGEXP.
+# CorrectionValidator and CopCorrectionGuard create Corrector objects.
 
 module RuboCop
   module ConfigFinder
@@ -24,6 +25,10 @@ module RuboCop
   module Cop
     class Base
       def cop_name: () -> String
+    end
+
+    class Corrector
+      def initialize: (Parser::Source::Buffer | AST::ProcessedSource | Base source) -> void
     end
   end
 end
