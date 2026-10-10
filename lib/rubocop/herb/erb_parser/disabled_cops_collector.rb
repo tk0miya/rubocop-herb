@@ -97,6 +97,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
         disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
+        disable_single_line_block(node)
         super
       end
 
@@ -120,10 +121,24 @@ module RuboCop
         disable_line("Layout/SpaceInsideBlockBraces", open_tag_line)
         disable_line("Layout/SpaceInsideBlockBraces", close_tag_line) if close_tag_line != open_tag_line
 
-        # The braces are restored to the HTML tags, so the cop regards a single-line block as a do...end block
-        disable_line("Style/SingleLineDoEndBlock", open_tag_line) if close_tag_line == open_tag_line
+        # The braces are restored to the HTML tags, so the cops regard a single-line block as a do...end block
+        if close_tag_line == open_tag_line
+          disable_line("Style/SingleLineDoEndBlock", open_tag_line)
+          disable_line("Style/BlockDelimiters", open_tag_line)
+        end
         # The content following the open tag is the block body on the same line as `{`
         disable_line("Layout/MultilineBlockLayout", open_tag_line) if first_content_line(node.body) == open_tag_line
+      end
+
+      # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
+      # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
+      # (herb-lint's erb-prefer-do-end-blocks). Blocks written within a single ERB tag are still checked.
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def disable_single_line_block(node) #: void
+        first_line = node.location.start.line
+        return unless first_line == node.location.end.line
+
+        disable_line("Style/BlockDelimiters", first_line)
       end
 
       # The line of the first non-whitespace content in the nodes

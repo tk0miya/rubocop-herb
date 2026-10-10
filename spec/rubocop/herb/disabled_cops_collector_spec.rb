@@ -165,6 +165,22 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with block written across ERB tags on a single line" do
+      let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
+
+      it "disables Style/BlockDelimiters at the line" do
+        expect(subject).to eq({ "Style/BlockDelimiters" => [1..1] })
+      end
+    end
+
+    context "with block in a single ERB tag" do
+      let(:code) { "<% items.each do |item| item.save end %>" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
+      end
+    end
+
     context "with rescue clause containing an HTML element" do
       let(:code) { "<% begin %>\n  <p>x</p>\n<% rescue %>\n  <p>error</p>\n<% end %>" }
 
@@ -250,11 +266,12 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       context "with HTML element on a single line" do
         let(:code) { "<div class=\"a\"><%= x %></div>" }
 
-        it "disables the cops for the braces, Style/SingleLineDoEndBlock and Layout/MultilineBlockLayout at the line" do
+        it "disables the cops for the braces, the cops for single-line blocks and Layout/MultilineBlockLayout" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
                                   "Layout/SpaceInsideBlockBraces" => [1..1],
                                   "Style/SingleLineDoEndBlock" => [1..1],
+                                  "Style/BlockDelimiters" => [1..1],
                                   "Layout/MultilineBlockLayout" => [1..1]
                                 })
         end

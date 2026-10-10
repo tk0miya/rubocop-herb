@@ -68,6 +68,12 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLElementNode
       def disable_html_block_cops: (::Herb::AST::HTMLElementNode node) -> void
 
+      # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
+      # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
+      # (herb-lint's erb-prefer-do-end-blocks). Blocks written within a single ERB tag are still checked.
+      # @rbs node: ::Herb::AST::ERBBlockNode
+      def disable_single_line_block: (::Herb::AST::ERBBlockNode node) -> void
+
       # The line of the first non-whitespace content in the nodes
       # @rbs nodes: Array[::Herb::AST::Node]
       def first_content_line: (Array[::Herb::AST::Node] nodes) -> Integer?

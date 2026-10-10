@@ -421,6 +421,29 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing blocks written across ERB tags" do
+      let(:source) do
+        <<~ERB
+          <p class="a"><%= x %></p>
+          <% items.each do |item| %><b><%= item %></b><% end %>
+          <%= form_with do |f| %><%= f.text_field :name %><% end %>
+          <% others.each do |other| %>
+            <%= other %>
+          <% end %>
+          <% foos.each { |foo| %>
+            <%= foo %>
+          <% } %>
+          <% bars.each do |bar| save(bar) end %>
+        ERB
+      end
+
+      it "triggers Style/BlockDelimiters only for the multi-line brace block and the block in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/BlockDelimiters", 7], ["Style/BlockDelimiters", 10]]
+      end
+    end
+
     context "with Lint/DuplicateBranch enabled" do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
@@ -1049,6 +1072,29 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Style/Next", 11]]
+      end
+    end
+
+    context "when analyzing blocks written across ERB tags" do
+      let(:source) do
+        <<~ERB
+          <p class="a"><%= x %></p>
+          <% items.each do |item| %><b><%= item %></b><% end %>
+          <%= form_with do |f| %><%= f.text_field :name %><% end %>
+          <% others.each do |other| %>
+            <%= other %>
+          <% end %>
+          <% foos.each { |foo| %>
+            <%= foo %>
+          <% } %>
+          <% bars.each do |bar| save(bar) end %>
+        ERB
+      end
+
+      it "triggers Style/BlockDelimiters only for the multi-line brace block and the block in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/BlockDelimiters", 7], ["Style/BlockDelimiters", 10]]
       end
     end
 

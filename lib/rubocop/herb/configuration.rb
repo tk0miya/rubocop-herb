@@ -22,7 +22,6 @@ module RuboCop
         "Layout/TrailingEmptyLines", # ERB files may not end with Ruby code
         "Layout/TrailingWhitespace", # Whitespace padding preserves positions but creates trailing spaces
         "Metrics/BlockLength", # ERB blocks often contain substantial HTML content
-        "Style/BlockDelimiters", # ERB blocks often use do/end across multiple tags
         "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
