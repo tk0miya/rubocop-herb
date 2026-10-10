@@ -8,7 +8,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
     # Cops disabled at the if/unless tags of conditionals written across ERB tags
     def conditional_cops(*ranges)
-      { "Style/IfWithSemicolon" => ranges, "Style/IfUnlessModifier" => ranges }
+      { "Style/IfWithSemicolon" => ranges, "Style/IfUnlessModifier" => ranges, "Style/ConditionalAssignment" => ranges }
     end
 
     context "with if branch containing an HTML element" do
@@ -114,16 +114,32 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with when branch containing an HTML element" do
       let(:code) { "<% case a %>\n<% when 1 %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyWhen at the when tag" do
-        expect(subject).to eq({ "Lint/EmptyWhen" => [2..2] })
+      it "disables Lint/EmptyWhen at the when tag and Style/ConditionalAssignment at the case tag" do
+        expect(subject).to eq({ "Lint/EmptyWhen" => [2..2], "Style/ConditionalAssignment" => [1..1] })
       end
     end
 
     context "with when branch split from an ERB tag holding the case" do
       let(:code) { "<% case a when 1 %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyWhen at the ERB tag" do
-        expect(subject).to eq({ "Lint/EmptyWhen" => [1..1] })
+      it "disables Lint/EmptyWhen and Style/ConditionalAssignment at the ERB tag" do
+        expect(subject).to eq({ "Lint/EmptyWhen" => [1..1], "Style/ConditionalAssignment" => [1..1] })
+      end
+    end
+
+    context "with case-in statement written across ERB tags" do
+      let(:code) { "<% case a %>\n<% in 1 %>\n  <%= a %>\n<% in 2 %>\n  <%= b %>\n<% end %>" }
+
+      it "disables Style/ConditionalAssignment at the case tag" do
+        expect(subject).to eq({ "Style/ConditionalAssignment" => [1..1] })
+      end
+    end
+
+    context "with case statement in a single ERB tag" do
+      let(:code) { "<% case a when 1 then b else c end %>" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
       end
     end
 
@@ -189,8 +205,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
           "<% items.each do |item| %>\n  <%= item %>\n<% end %>"
       end
 
-      it "disables nothing" do
-        expect(subject).to eq({})
+      it "disables only Style/ConditionalAssignment at the case tag" do
+        expect(subject).to eq({ "Style/ConditionalAssignment" => [1..1] })
       end
     end
 
