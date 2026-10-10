@@ -882,24 +882,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
-    context "when analyzing HTML element with attributes containing ERB" do
-      let(:source) do
-        <<~ERB
-          <html lang="en">
-            <head>
-              <title><%= title %></title>
-            </head>
-          </html>
-        ERB
-      end
-
-      it "does not trigger Layout/SpaceBeforeBlockBraces" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
     context "when analyzing block with text node inside" do
       let(:source) { "<%= items.each do %>hello<% end %>" }
 
@@ -910,7 +892,7 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
-    context "when analyzing if-else with HTML blocks using brace notation" do
+    context "when analyzing if-else with HTML elements with attributes" do
       let(:source) do
         <<~ERB
           <% if condition %>
@@ -928,7 +910,24 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
-    context "when analyzing if-else with HTML blocks followed by ERB" do
+    context "when analyzing local variable assigned in HTML element and used after it" do
+      let(:source) do
+        <<~ERB
+          <div class="box">
+            <% total = items.sum %>
+          </div>
+          <%= total %>
+        ERB
+      end
+
+      it "does not trigger Lint/UselessAssignment" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map(&:cop_name)
+        expect(offenses).to eq []
+      end
+    end
+
+    context "when analyzing if-else with HTML elements with attributes followed by ERB" do
       let(:source) do
         <<~ERB
           <% if condition %>
@@ -1387,91 +1386,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Style/StringLiterals", 6]]
-      end
-    end
-
-    context "with Layout/SpaceInsideBlockBraces" do
-      let(:source) do
-        <<~ERB
-          <p class="a"><%= x %></p>
-          <div class="a"><%= x %>
-            <%= y %></div>
-          <% items.each {|item| puts item } %>
-        ERB
-      end
-
-      it "triggers Layout/SpaceInsideBlockBraces only for the Ruby block" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Layout/SpaceInsideBlockBraces", 4]]
-      end
-    end
-
-    context "with Layout/SpaceBeforeBlockBraces and Layout/SpaceInsideBlockBraces configured to no_space" do
-      let(:config) do
-        Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          f.write(YAML.dump(rubocop_config.merge("Layout/SpaceBeforeBlockBraces" => { "EnforcedStyle" => "no_space" },
-                                                 "Layout/SpaceInsideBlockBraces" => { "EnforcedStyle" => "no_space" })))
-          f.close
-        end
-      end
-      let(:source) do
-        <<~ERB
-          <p class="a"><%= x %></p>
-          <div class="a"><%= x %>
-            <%= y %></div>
-          <% items.each { |item| puts item } %>
-        ERB
-      end
-
-      it "triggers Layout/SpaceBeforeBlockBraces and Layout/SpaceInsideBlockBraces only for the Ruby block" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Layout/SpaceBeforeBlockBraces", 4], ["Layout/SpaceInsideBlockBraces", 4]]
-      end
-    end
-
-    context "with Style/SingleLineDoEndBlock enabled" do
-      # Style/SingleLineDoEndBlock is a pending cop, so enable it explicitly
-      let(:config) do
-        Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          f.write(YAML.dump(rubocop_config.merge("Style/SingleLineDoEndBlock" => { "Enabled" => true })))
-          f.close
-        end
-      end
-      let(:source) do
-        <<~ERB
-          <ul class="a"><li class="b"><%= x %></li>
-            <li class="b"><%= y %></li>
-          </ul>
-          <% items.each do |item| %><%= item %><% end %>
-        ERB
-      end
-
-      it "triggers Style/SingleLineDoEndBlock only for the Ruby block" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/SingleLineDoEndBlock", 4]]
-      end
-    end
-
-    context "when analyzing blocks whose body starts at the line of the block start" do
-      let(:source) do
-        <<~ERB
-          <div class="a"><%= x %>
-          </div>
-          <p class="a"> text
-            <%= y %>
-          </p>
-          <% items.each do |item| %><%= item %>
-          <% end %>
-        ERB
-      end
-
-      it "triggers Layout/MultilineBlockLayout only for the Ruby block" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Layout/MultilineBlockLayout", 6]]
       end
     end
   end

@@ -9,13 +9,12 @@ module RuboCop
     # Contains the parsed AST, collected ERB locations, and precomputed data
     # needed for rendering. Logic is minimal - mostly data access and simple queries.
     ParseResult = Data.define(
-      :source,                #: Source
-      :ast,                   #: ::Herb::ParseResult
-      :erb_locations,         #: Hash[Integer, ErbLocation]
-      :erb_max_columns,       #: Hash[Integer, Integer]
-      :html_block_positions,  #: Set[::Herb::AST::HTMLElementNode]
-      :tags,                  #: Hash[Integer, Tag]
-      :disabled_cops          #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
+      :source,           #: Source
+      :ast,              #: ::Herb::ParseResult
+      :erb_locations,    #: Hash[Integer, ErbLocation]
+      :erb_max_columns,  #: Hash[Integer, Integer]
+      :tags,             #: Hash[Integer, Tag]
+      :disabled_cops     #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
     )
 
     # Methods are defined by reopening the class (not in a Data.define block)

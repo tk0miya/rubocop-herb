@@ -31,9 +31,8 @@ module RuboCop
           ast:,
           erb_locations: result.erb_locations,
           erb_max_columns: result.erb_max_columns,
-          html_block_positions: result.html_block_positions,
           tags: result.tags,
-          disabled_cops: DisabledCopsCollector.collect(ast, html_block_positions: result.html_block_positions)
+          disabled_cops: DisabledCopsCollector.collect(ast)
         )
       end
     end

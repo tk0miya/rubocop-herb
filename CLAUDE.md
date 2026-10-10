@@ -113,9 +113,9 @@ The original ERB template containing HTML markup and embedded Ruby code.
 The input file parsed and converted to valid Ruby code. ERB tags are extracted as-is, and HTML tags are converted to Ruby-like identifiers (when `html_visualization` is enabled). RuboCop parses this Ruby code to build an AST for analysis.
 
 ```ruby
-div {
+div;
   _ = @user.name;
-};
+div;
 ```
 
 #### 3. Hybrid Code
@@ -137,7 +137,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Responsible for converting parsed results to Ruby code. Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML visualization
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
-- **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML, or HTML elements rendered as `tag { ... }`)
+- **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
 - **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information for byte/position calculations
 - **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
 
