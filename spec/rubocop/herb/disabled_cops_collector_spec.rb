@@ -12,7 +12,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         "Style/IfWithSemicolon" => ranges,
         "Style/IfUnlessModifier" => ranges,
         "Style/ConditionalAssignment" => ranges,
-        "Style/RedundantCondition" => ranges
+        "Style/RedundantCondition" => ranges,
+        "Style/Next" => ranges
       }
     end
 

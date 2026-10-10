@@ -30,8 +30,7 @@ module RuboCop
       # Cops excluded when HTML visualization is disabled.
       # HTML parts are replaced with whitespace, causing false positives.
       HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS = [
-        "Layout/EmptyLineAfterGuardClause", # Guard clause may be followed by HTML
-        "Style/Next" # Loop conditions may guard HTML output, not suitable for next
+        "Layout/EmptyLineAfterGuardClause" # Guard clause may be followed by HTML
       ].freeze #: Array[String]
 
       class << self

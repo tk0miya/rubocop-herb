@@ -158,6 +158,8 @@ module RuboCop
         disable_cop("Style/ConditionalAssignment", node)
         # Output tags in the branches are rendered as `_ = a` or `a`, so the condition looks redundant (`if a; a; end`)
         disable_cop("Style/RedundantCondition", node)
+        # Converting them to `next` breaks the template (e.g. it leaves the closing of the end tag)
+        disable_cop("Style/Next", node)
         disable_one_line_conditional(node)
       end
 
