@@ -896,10 +896,9 @@ RSpec.describe RuboCop::Herb::Converter do
            "  <%= name %>",
            "<% else; end %>"].join("\n")
         end
-        # name is a tail expression of the if statement even though the else and end are split from one tag
         let(:expected) do
           ["   if admin?;  ",
-           "      name;  ",
+           "  _ = name;  ",
            "   else; end;  "].join("\n")
         end
 
@@ -950,7 +949,7 @@ RSpec.describe RuboCop::Herb::Converter do
           ["div; ",
            "     case value;  ",
            "     in Integer => n;  ",
-           "        n;  ",
+           "    _ = n;  ",
            "     in String;  ",
            "    _a; ",
            "     else;  ",
@@ -962,7 +961,7 @@ RSpec.describe RuboCop::Herb::Converter do
           ["<div>",
            "     case value;  ",
            "     in Integer => n;  ",
-           "        n;  ",
+           "    _ = n;  ",
            "     in String;  ",
            "    Text",
            "     else;  ",
@@ -1224,8 +1223,6 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      # HTML block with brace notation inside if-else should not be treated as tail expression
-      # because HTML blocks don't return meaningful values
       describe "with if-else containing HTML block with brace notation" do
         let(:source) do
           ["<% if condition %>",
@@ -1246,39 +1243,6 @@ RSpec.describe RuboCop::Herb::Converter do
            '  <div class="foo">_ = @name;  </div>',
            "   else;  ",
            '  <div class="bar">_ = @other;  </div>',
-           "   end;  "].join("\n")
-        end
-
-        it_behaves_like "a Ruby code extractor for ERB"
-      end
-
-      # When ERB nodes follow HTML blocks, those trailing ERB nodes should be tail expressions
-      describe "with if-else containing HTML block followed by ERB" do
-        let(:source) do
-          ["<% if condition %>",
-           '  <div class="foo"><%= @name %></div>',
-           "  <%= @extra %>",
-           "<% else %>",
-           '  <div class="bar"><%= @other %></div>',
-           "  <%= @extra2 %>",
-           "<% end %>"].join("\n")
-        end
-        let(:expected) do
-          ["   if condition;  ",
-           "  div {            _ = @name;  };    ",
-           "      @extra;  ",
-           "   else;  ",
-           "  div {            _ = @other;  };    ",
-           "      @extra2;  ",
-           "   end;  "].join("\n")
-        end
-        let(:expected_hybrid) do
-          ["   if condition;  ",
-           '  <div class="foo">_ = @name;  </div>',
-           "      @extra;  ",
-           "   else;  ",
-           '  <div class="bar">_ = @other;  </div>',
-           "      @extra2;  ",
            "   end;  "].join("\n")
         end
 

@@ -29,8 +29,6 @@ module RuboCop
 
       def byteslice: (::Herb::Range) -> String
 
-      def tail_expression?: (::Herb::AST::Node) -> bool
-
       # @rbs parse_result: ParseResult
       # @rbs html_visualization: bool
       def initialize: (ParseResult parse_result, ?html_visualization: bool) -> void
@@ -109,12 +107,9 @@ module RuboCop
       # @rbs range: CharRange
       def render_semicolon: (erb_node node, String code, CharRange range) -> void
 
-      # Check if output node needs _ = marker
-      # When html_visualization is disabled, always add marker to avoid Lint/Void false positives
-      # When enabled, only add marker if not a tail expression
-      # @rbs node: ::Herb::AST::Node
-      def needs_output_marker?: (::Herb::AST::Node node) -> bool
-
+      # Render `_ =` marker over the output tag opening (`<%=`) to avoid Lint/Void false positives
+      # The marker is rendered for every output tag, including the last statement of a conditional,
+      # because the HTML following the conditional puts it in void context
       # @rbs node: erb_node
       def render_output_marker: (erb_node node) -> void
 

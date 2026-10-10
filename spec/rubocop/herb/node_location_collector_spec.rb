@@ -139,8 +139,6 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
 
       context "when html_visualization is disabled" do
         # html_block_positions is always empty when html_visualization is disabled
-        # This allows TailExpressionCollector to correctly identify tail expressions
-        # in ERB control flow, regardless of surrounding HTML elements
         let(:code) { "<div class=\"x\"><%= hello %></div>" }
 
         it "does not collect positions" do

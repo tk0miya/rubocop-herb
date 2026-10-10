@@ -3,7 +3,6 @@
 require "herb"
 require_relative "erb_parser/disabled_cops_collector"
 require_relative "erb_parser/node_location_collector"
-require_relative "erb_parser/tail_expression_collector"
 
 module RuboCop
   module Herb
@@ -26,8 +25,6 @@ module RuboCop
         source = Source.new(path:, code:)
         ast = ::Herb.parse(code)
         result = NodeLocationCollector.collect(source, ast, html_visualization:)
-        tail_expressions = TailExpressionCollector.collect(ast, result.html_block_positions,
-                                                           html_visualization:)
 
         ParseResult.new(
           source:,
@@ -35,7 +32,6 @@ module RuboCop
           erb_locations: result.erb_locations,
           erb_max_columns: result.erb_max_columns,
           html_block_positions: result.html_block_positions,
-          tail_expressions:,
           tags: result.tags,
           disabled_cops: DisabledCopsCollector.collect(ast, html_block_positions: result.html_block_positions)
         )
