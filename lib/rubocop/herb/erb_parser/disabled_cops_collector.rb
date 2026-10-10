@@ -34,6 +34,8 @@ module RuboCop
       def visit_erb_if_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
         disable_conditional_cops(node)
+        end_node = node.end_node
+        disable_end_alignment(end_node) if end_node # elsif nodes have no end tag
         super
       end
 
@@ -42,6 +44,8 @@ module RuboCop
       def visit_erb_unless_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
         disable_conditional_cops(node)
+        end_node = node.end_node
+        disable_end_alignment(end_node) if end_node
         super
       end
 
@@ -49,6 +53,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBCaseNode
       def visit_erb_case_node(node) #: void
         disable_cop("Style/ConditionalAssignment", node)
+        end_node = node.end_node
+        disable_end_alignment(end_node) if end_node
         super
       end
 
@@ -56,6 +62,24 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBCaseMatchNode
       def visit_erb_case_match_node(node) #: void
         disable_cop("Style/ConditionalAssignment", node)
+        end_node = node.end_node
+        disable_end_alignment(end_node) if end_node
+        super
+      end
+
+      # The end tag of loops follows the HTML structure
+      # @rbs node: ::Herb::AST::ERBWhileNode
+      def visit_erb_while_node(node) #: void
+        end_node = node.end_node
+        disable_end_alignment(end_node) if end_node
+        super
+      end
+
+      # The end tag of loops follows the HTML structure
+      # @rbs node: ::Herb::AST::ERBUntilNode
+      def visit_erb_until_node(node) #: void
+        end_node = node.end_node
+        disable_end_alignment(end_node) if end_node
         super
       end
 
@@ -140,6 +164,13 @@ module RuboCop
         return unless first_line == node.location.end.line
 
         disable_line("Style/BlockDelimiters", first_line)
+      end
+
+      # The column of the end tag follows the HTML structure (e.g. `<p>x</p><% end %>`),
+      # not the opening tag. Conditionals and loops written within a single ERB tag are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode
+      def disable_end_alignment(end_node) #: void
+        disable_cop("Layout/EndAlignment", end_node)
       end
 
       # The line of the first non-whitespace content in the nodes

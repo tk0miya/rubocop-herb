@@ -35,6 +35,14 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBCaseMatchNode
       def visit_erb_case_match_node: (::Herb::AST::ERBCaseMatchNode node) -> void
 
+      # The end tag of loops follows the HTML structure
+      # @rbs node: ::Herb::AST::ERBWhileNode
+      def visit_erb_while_node: (::Herb::AST::ERBWhileNode node) -> void
+
+      # The end tag of loops follows the HTML structure
+      # @rbs node: ::Herb::AST::ERBUntilNode
+      def visit_erb_until_node: (::Herb::AST::ERBUntilNode node) -> void
+
       # Else branches containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node: (::Herb::AST::ERBElseNode node) -> void
@@ -74,6 +82,11 @@ module RuboCop
       # (herb-lint's erb-prefer-do-end-blocks). Blocks written within a single ERB tag are still checked.
       # @rbs node: ::Herb::AST::ERBBlockNode
       def disable_single_line_block: (::Herb::AST::ERBBlockNode node) -> void
+
+      # The column of the end tag follows the HTML structure (e.g. `<p>x</p><% end %>`),
+      # not the opening tag. Conditionals and loops written within a single ERB tag are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode
+      def disable_end_alignment: (::Herb::AST::ERBEndNode end_node) -> void
 
       # The line of the first non-whitespace content in the nodes
       # @rbs nodes: Array[::Herb::AST::Node]
