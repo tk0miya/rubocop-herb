@@ -231,6 +231,23 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing an empty if branch followed by an elsif branch containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+          <% elsif b %>
+            <p>b</p>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Lint/EmptyConditionalBody only for the empty if branch" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1]]
+      end
+    end
+
     context "when analyzing rescue and ensure clauses containing only HTML" do
       let(:source) do
         <<~ERB
