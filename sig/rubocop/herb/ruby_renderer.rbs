@@ -83,7 +83,7 @@ module RuboCop
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
       # Visit HTML text nodes (plain text content between tags)
-      # Renders underscore at first non-whitespace position to indicate content presence
+      # Renders "_a;" marker to indicate content presence
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
@@ -128,9 +128,9 @@ module RuboCop
       # @rbs pos: Integer -- character position in ruby_code
       def newline_at?: (Integer pos) -> bool
 
-      # Render HTML text node by placing "_a;" at first non-whitespace position
+      # Render HTML text node by placing "_a;" at the first non-whitespace position where it fits in the line
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
-      # Requires at least 4 characters from the first non-whitespace position to end
+      # Requires 3 characters in the line for the marker, followed by at least 1 character (space or newline)
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
