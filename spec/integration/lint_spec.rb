@@ -444,6 +444,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditionals and loops whose end tags follow HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p><% end %>
+          <% case b %>
+          <% when 1 %>
+            <p>b</p><% end %>
+          <% while c %>
+            <p>c</p>
+            <p>c</p><% end %>
+          <% @d = if d
+                    1
+                  else
+                    2
+               end %>
+        ERB
+      end
+
+      it "triggers Layout/EndAlignment only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/EndAlignment", 13]]
+      end
+    end
+
     context "when analyzing control flows whose branches output values followed by HTML" do
       let(:source) do
         <<~ERB
@@ -1167,6 +1193,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Style/BlockDelimiters", 7], ["Style/BlockDelimiters", 10]]
+      end
+    end
+
+    context "when analyzing conditionals and loops whose end tags follow HTML" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p><% end %>
+          <% case b %>
+          <% when 1 %>
+            <p>b</p><% end %>
+          <% while c %>
+            <p>c</p>
+            <p>c</p><% end %>
+          <% @d = if d
+                    1
+                  else
+                    2
+               end %>
+        ERB
+      end
+
+      it "triggers Layout/EndAlignment only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/EndAlignment", 13]]
       end
     end
 
