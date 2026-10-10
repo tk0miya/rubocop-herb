@@ -25,7 +25,6 @@ module RuboCop
         "Style/BlockDelimiters", # ERB blocks often use do/end across multiple tags
         "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
         "Style/IfUnlessModifier", # Single-line ERB conditionals cannot be converted to modifier form
-        "Style/IfWithSemicolon", # Semicolons are inserted between ERB tags on the same line
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
 

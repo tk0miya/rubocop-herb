@@ -314,6 +314,28 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditionals written across ERB tags and in a single ERB tag" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <p>b</p>
+          <% end %>
+          <% unless c %>
+            <%= c %>
+          <% end %>
+          <% if d; foo; end %>
+        ERB
+      end
+
+      it "triggers Style/IfWithSemicolon only for the conditional in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/IfWithSemicolon", 9]]
+      end
+    end
+
     context "with Lint/DuplicateBranch enabled" do
       # Lint/DuplicateBranch is a pending cop, so enable it explicitly
       let(:config) do
