@@ -9,15 +9,11 @@ module RuboCop
     class DisabledCopsCollector < ::Herb::Visitor
       # Collect the disabled lines for each cop from a parse result
       # @rbs ast: ::Herb::ParseResult
-      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode] -- HTML elements rendered as `tag { ... }`
-      def self.collect: (::Herb::ParseResult ast, ?html_block_positions: Set[::Herb::AST::HTMLElementNode]) -> Hash[String, Array[Range[Integer]]]
+      def self.collect: (::Herb::ParseResult ast) -> Hash[String, Array[Range[Integer]]]
 
       attr_reader disabled_cops: Hash[String, Array[Range[Integer]]]
 
-      attr_reader html_block_positions: Set[::Herb::AST::HTMLElementNode]
-
-      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
-      def initialize: (Set[::Herb::AST::HTMLElementNode] html_block_positions) -> void
+      def initialize: () -> void
 
       # Conditional branches containing only HTML become empty in the Ruby code
       # @rbs node: ::Herb::AST::ERBIfNode
@@ -75,15 +71,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
-      # HTML elements rendered as `tag { ... }` (html_visualization) are not blocks written by users
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
-
       private
-
-      # Disable the cops reporting the braces of an HTML element rendered as `tag { ... }`
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def disable_html_block_cops: (::Herb::AST::HTMLElementNode node) -> void
 
       # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
       # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
@@ -102,7 +90,7 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode
       def disable_block_alignment: (::Herb::AST::ERBEndNode end_node) -> void
 
-      # The bodies of conditionals, loops and blocks written across ERB tags (and HTML blocks) are indented
+      # The bodies of conditionals, loops and blocks written across ERB tags are indented
       # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
       # the first HTML content (html_visualization) or the first ERB tag in it, so the cop is disabled
       # from the first content to the first ERB tag. ERB tags without Ruby code (e.g. `<%# note %>` and

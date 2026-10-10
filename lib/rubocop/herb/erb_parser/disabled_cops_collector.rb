@@ -11,22 +11,18 @@ module RuboCop
     class DisabledCopsCollector < ::Herb::Visitor
       # Collect the disabled lines for each cop from a parse result
       # @rbs ast: ::Herb::ParseResult
-      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode] -- HTML elements rendered as `tag { ... }`
-      def self.collect(ast, html_block_positions: Set.new) #: Hash[String, Array[Range[Integer]]]
-        collector = new(html_block_positions)
+      def self.collect(ast) #: Hash[String, Array[Range[Integer]]]
+        collector = new
         ast.visit(collector)
         collector.disabled_cops
       end
 
       attr_reader :disabled_cops #: Hash[String, Array[Range[Integer]]]
-      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
 
-      # @rbs html_block_positions: Set[::Herb::AST::HTMLElementNode]
-      def initialize(html_block_positions) #: void
+      def initialize #: void
         @disabled_cops = {}
-        @html_block_positions = html_block_positions
 
-        super()
+        super
       end
 
       # Conditional branches containing only HTML become empty in the Ruby code
@@ -152,40 +148,7 @@ module RuboCop
         super
       end
 
-      # HTML elements rendered as `tag { ... }` (html_visualization) are not blocks written by users
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node(node) #: void
-        if html_block_positions.include?(node)
-          disable_html_block_cops(node)
-          disable_body_indentation(node.body)
-        end
-        super
-      end
-
       private
-
-      # Disable the cops reporting the braces of an HTML element rendered as `tag { ... }`
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def disable_html_block_cops(node) #: void
-        open_tag_line = node.open_tag.not_nil!.location.start.line
-        close_tag_line = node.close_tag.not_nil!.location.start.line
-
-        # `{` is rendered right after the tag name, and `}` at the start of the close tag
-        disable_line("Layout/SpaceBeforeBlockBraces", open_tag_line)
-        disable_line("Layout/SpaceInsideBlockBraces", open_tag_line)
-
-        if close_tag_line == open_tag_line
-          # The braces are restored to the HTML tags, so the cops regard a single-line block as a do...end block
-          disable_line("Style/SingleLineDoEndBlock", open_tag_line)
-          disable_line("Style/BlockDelimiters", open_tag_line)
-        else
-          disable_line("Layout/SpaceInsideBlockBraces", close_tag_line)
-          # The alignment of the close tag is a matter of HTML, not Ruby
-          disable_line("Layout/BlockAlignment", close_tag_line)
-        end
-        # The content following the open tag is the block body on the same line as `{`
-        disable_line("Layout/MultilineBlockLayout", open_tag_line) if first_content_line(node.body) == open_tag_line
-      end
 
       # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
       # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
@@ -213,7 +176,7 @@ module RuboCop
         disable_cop("Layout/BlockAlignment", end_node)
       end
 
-      # The bodies of conditionals, loops and blocks written across ERB tags (and HTML blocks) are indented
+      # The bodies of conditionals, loops and blocks written across ERB tags are indented
       # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
       # the first HTML content (html_visualization) or the first ERB tag in it, so the cop is disabled
       # from the first content to the first ERB tag. ERB tags without Ruby code (e.g. `<%# note %>` and

@@ -75,8 +75,10 @@ module RuboCop
       def visit_erb_content_node: (::Herb::AST::ERBContentNode node) -> void
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag with semicolon/brace and processes children
+      # If the element contains ERB nodes, renders open tag and close tag as "tag; " and processes children
       # If the element contains no ERB nodes, renders only the open tag name with full element range
+      # HTML elements are not rendered as Ruby blocks because ERB does not create a scope for them
+      # (e.g. a local variable assigned in an element is available after the element)
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
@@ -116,19 +118,10 @@ module RuboCop
       # @rbs node: erb_node
       def render_output_marker: (erb_node node) -> void
 
-      # Render HTML open tag as Ruby code
-      # When as_brace is true, uses brace notation: "div { "
-      # Otherwise, uses semicolon notation: "div; "
+      # Render HTML open tag or close tag as Ruby code: "tag; "
+      # The tag name and "; " always fit in the tag ("<tag>" or "</tag>")
       # @rbs node: ::Herb::AST::Node?
-      # @rbs as_brace: bool
-      def render_open_tag_node: (::Herb::AST::Node? node, as_brace: bool) -> void
-
-      # Render HTML close tag as Ruby code
-      # When as_brace is true, renders "};" to ensure valid Ruby after block
-      # Otherwise, renders "tag; "
-      # @rbs node: ::Herb::AST::Node?
-      # @rbs as_brace: bool
-      def render_close_tag_node: (::Herb::AST::Node? node, as_brace: bool) -> void
+      def render_tag_node: (::Herb::AST::Node? node) -> void
 
       # Render HTML text node by placing "_a;" at first non-whitespace position
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops

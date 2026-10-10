@@ -4,8 +4,7 @@ require "herb"
 
 module RuboCop
   module Herb
-    # Visitor that collects both ERB locations and HTML block positions in a single AST traversal.
-    # Combines the functionality of ErbLocationCollector and HtmlBlockCollector.
+    # Visitor that collects ERB locations in a single AST traversal.
     # Also collects HTML tags when html_visualization is enabled.
     class NodeLocationCollector < ::Herb::Visitor
       NODE_TYPE_MAP = { #: Hash[Class, ErbLocation::erb_node_type]
@@ -30,13 +29,12 @@ module RuboCop
 
       # Result of collecting node locations
       Result = Data.define(
-        :erb_locations,         #: Hash[Integer, ErbLocation]
-        :erb_max_columns,       #: Hash[Integer, Integer] -- line => max column (character-based, from Herb)
-        :html_block_positions,  #: Set[::Herb::AST::HTMLElementNode]
-        :tags                   #: Hash[Integer, Tag]
+        :erb_locations,    #: Hash[Integer, ErbLocation]
+        :erb_max_columns,  #: Hash[Integer, Integer] -- line => max column (character-based, from Herb)
+        :tags              #: Hash[Integer, Tag]
       )
 
-      # Collect ERB locations, HTML block positions, and tags from a parse result
+      # Collect ERB locations and tags from a parse result
       # @rbs source: Source
       # @rbs ast: ::Herb::ParseResult
       # @rbs html_visualization: bool
@@ -51,7 +49,6 @@ module RuboCop
         Result.new(
           erb_locations: collector.erb_locations,
           erb_max_columns: collector.erb_max_columns,
-          html_block_positions: collector.html_block_positions,
           tags: erb_tags.merge(collector.tags)
         )
       end
@@ -60,7 +57,6 @@ module RuboCop
       attr_reader :html_visualization #: bool
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
-      attr_reader :html_block_positions #: Set[::Herb::AST::HTMLElementNode]
       attr_reader :tags #: Hash[Integer, Tag]
 
       # @rbs source: Source
@@ -68,7 +64,6 @@ module RuboCop
       def initialize(source:, html_visualization:) #: void
         @erb_locations = {}
         @erb_max_columns = {}
-        @html_block_positions = Set.new
         @tags = {}
         @source = source
         @html_visualization = html_visualization
@@ -85,19 +80,13 @@ module RuboCop
         super
       end
 
-      # Visit HTML element nodes and determine if they can be rendered as blocks.
-      # Also collects tag info when html_visualization is enabled.
+      # Visit HTML element nodes and collect tag info when html_visualization is enabled
       # super is called first to traverse children and collect ERB locations,
-      # then we check if this element qualifies as a block element.
-      # Block positions are only collected when html_visualization is enabled
-      # because HTML elements are rendered as blocks only in that mode
+      # then we check if this element contains ERB to decide which tags to record
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         super
-        return unless html_visualization
-
-        html_block_positions.add(node) if block_html_element?(node)
-        record_html_element_tag(node)
+        record_html_element_tag(node) if html_visualization
       end
 
       # Visit HTML text nodes and collect tag info when html_visualization is enabled
@@ -158,32 +147,11 @@ module RuboCop
         end
       end
 
-      # Check if this HTML element can be rendered as a Ruby block
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def block_html_element?(node) #: bool
-        return false unless node.close_tag
-        return false unless contains_erb?(node)
-
-        fits_block_notation?(node.open_tag)
-      end
-
       # Check if a node contains ERB nodes (within its byte range)
       # @rbs node: ::Herb::AST::Node
       def contains_erb?(node) #: bool
         range = NodeRange.compute_char_range(node, source)
         erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
-      end
-
-      # Check if block notation fits within the open tag space
-      # Block notation requires at least 3 bytes beyond tag name for " { "
-      # @rbs node: ::Herb::AST::Node?
-      def fits_block_notation?(node) #: bool
-        return false unless node.is_a?(::Herb::AST::HTMLOpenTagNode)
-
-        tag_name = node.tag_name.not_nil!.value
-        tag_length = node.tag_closing.not_nil!.range.to - node.tag_opening.not_nil!.range.from
-        required_tag_length = tag_name.bytesize + 3 # "tag { " needs tag + " { "
-        tag_length >= required_tag_length
       end
 
       # Record tag info for HTML elements

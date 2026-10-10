@@ -1125,14 +1125,13 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with open tag with attributes" do
         let(:source) { "<div class=\"foo\" id=\"bar\"><%= x %></div>" }
-        let(:expected) { "div {                     _ = x;  };    " }
+        let(:expected) { "div;                      _ = x;  div;  " }
         let(:expected_hybrid) { "<div class=\"foo\" id=\"bar\">_ = x;  </div>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
       # HTML tags without ERB nodes should render tag name only and skip processing children
-      # Even with attributes (enough space for brace), use semicolon notation to avoid syntax errors
       describe "with HTML tag without ERB nodes" do
         let(:source) { "<div>text</div>" }
         let(:expected) { "div;           " }
@@ -1165,11 +1164,9 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      # Nested inline elements where child uses brace notation but parent doesn't
-      # The closing brace needs semicolon before parent's closing tag identifier
-      describe "with nested inline elements where child has brace notation" do
+      describe "with nested inline elements" do
         let(:source) { '<p><code id="x"><%= y %></code></p>' }
-        let(:expected) { "p; code {       _ = y;  };     p;  " }
+        let(:expected) { "p; code;        _ = y;  code;  p;  " }
         let(:expected_hybrid) { "<p><code id=\"x\">_ = y;  </code></p>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
@@ -1219,9 +1216,9 @@ RSpec.describe RuboCop::Herb::Converter do
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      describe "with yield ERB tag inside HTML element with brace notation" do
+      describe "with yield ERB tag inside HTML element" do
         let(:source) { '<div class="a"><%= yield %></div>' }
-        let(:expected) { "div {          _ = yield;  };    " }
+        let(:expected) { "div;           _ = yield;  div;  " }
         let(:expected_hybrid) { '<div class="a">_ = yield;  </div>' }
         let(:skip_valid_ruby_check) { true }
 
@@ -1230,14 +1227,14 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with yield ERB tag with conditional inside HTML element" do
         let(:source) { '<div class="form-body"><%= yield if block_given? %></div>' }
-        let(:expected) { "div {                  _ = yield if block_given?;  };    " }
+        let(:expected) { "div;                   _ = yield if block_given?;  div;  " }
         let(:expected_hybrid) { '<div class="form-body">_ = yield if block_given?;  </div>' }
         let(:skip_valid_ruby_check) { true }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      describe "with if-else containing HTML block with brace notation" do
+      describe "with if-else containing HTML elements with attributes and ERB" do
         let(:source) do
           ["<% if condition %>",
            '  <div class="foo"><%= @name %></div>',
@@ -1247,9 +1244,9 @@ RSpec.describe RuboCop::Herb::Converter do
         end
         let(:expected) do
           ["   if condition;  ",
-           "  div {            _ = @name;  };    ",
+           "  div;             _ = @name;  div;  ",
            "   else;  ",
-           "  div {            _ = @other;  };    ",
+           "  div;             _ = @other;  div;  ",
            "   end;  "].join("\n")
         end
         let(:expected_hybrid) do
@@ -1265,16 +1262,14 @@ RSpec.describe RuboCop::Herb::Converter do
 
       describe "with open tag containing ERB in attributes" do
         let(:source) { '<th class="<%= class_name %>"><%= content %></th>' }
-        let(:expected) { "th {       _ = class_name;    _ = content;  };   " }
+        let(:expected) { "th;        _ = class_name;    _ = content;  th;  " }
         # Open tag is NOT restored because it contains ERB (would cause Layout/SpaceAroundOperators false positive)
-        let(:expected_hybrid) { "th {       _ = class_name;    _ = content;  </th>" }
+        let(:expected_hybrid) { "th;        _ = class_name;    _ = content;  </th>" }
 
         it_behaves_like "a Ruby code extractor for ERB"
       end
 
-      # Void elements (no close tag) should use semicolon notation, not brace notation
-      # Even with enough space for braces, using braces would cause Lint/Syntax error
-      # because there's no close tag to render the closing brace
+      # Void elements (no close tag) render only the open tag
       describe "with void element containing ERB in attributes" do
         let(:source) { '<meta content="<%= x %>">' }
         let(:expected) { "meta;          _ = x;    " }
