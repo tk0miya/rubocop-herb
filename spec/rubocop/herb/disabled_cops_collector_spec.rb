@@ -219,11 +219,58 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       context "with HTML element on a single line" do
         let(:code) { "<div class=\"a\"><%= x %></div>" }
 
-        it "disables the cops for the braces and Style/SingleLineDoEndBlock at the line" do
+        it "disables the cops for the braces, Style/SingleLineDoEndBlock and Layout/MultilineBlockLayout at the line" do
           expect(subject).to eq({
                                   "Layout/SpaceBeforeBlockBraces" => [1..1],
                                   "Layout/SpaceInsideBlockBraces" => [1..1],
-                                  "Style/SingleLineDoEndBlock" => [1..1]
+                                  "Style/SingleLineDoEndBlock" => [1..1],
+                                  "Layout/MultilineBlockLayout" => [1..1]
+                                })
+        end
+      end
+
+      context "with HTML element whose content starts at the line of the open tag" do
+        let(:code) { "<div class=\"a\"><%= x %>\n</div>" }
+
+        it "disables the cops for the braces and Layout/MultilineBlockLayout" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 2..2],
+                                  "Layout/MultilineBlockLayout" => [1..1]
+                                })
+        end
+      end
+
+      context "with open tag spanning multiple lines and content following it" do
+        let(:code) { "<div class=\"a\"\n     id=\"b\"><%= x %>\n</div>" }
+
+        it "disables the cops for the braces" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3]
+                                })
+        end
+      end
+
+      context "with HTML element whose text content starts at the line of the open tag" do
+        let(:code) { "<div class=\"a\"> text\n  <%= x %>\n</div>" }
+
+        it "disables the cops for the braces and Layout/MultilineBlockLayout" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 3..3],
+                                  "Layout/MultilineBlockLayout" => [1..1]
+                                })
+        end
+      end
+
+      context "with HTML element whose text content starts at the next line of the open tag" do
+        let(:code) { "<div class=\"a\">\n  text\n  <%= x %>\n</div>" }
+
+        it "disables the cops for the braces" do
+          expect(subject).to eq({
+                                  "Layout/SpaceBeforeBlockBraces" => [1..1],
+                                  "Layout/SpaceInsideBlockBraces" => [1..1, 4..4]
                                 })
         end
       end

@@ -38,12 +38,6 @@ module RuboCop
         "Style/RedundantCondition" # Condition may appear redundant when HTML is removed
       ].freeze #: Array[String]
 
-      # Cops excluded when HTML visualization is enabled.
-      # HTML tags rendered as Ruby identifiers cause false positives.
-      HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS = [
-        "Layout/MultilineBlockLayout" # HTML rendered as `tag { }` triggers block layout warnings
-      ].freeze #: Array[String]
-
       class << self
         # @rbs config: Hash[String, untyped]
         def setup(config) #: void
@@ -73,11 +67,7 @@ module RuboCop
 
         def excluded_cops #: Array[String]
           cops = EXCLUDED_COPS.dup
-          if html_visualization?
-            cops.concat(HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS)
-          else
-            cops.concat(HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS)
-          end
+          cops.concat(HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS) unless html_visualization?
           cops
         end
 

@@ -16,10 +16,6 @@ module RuboCop
       # HTML parts are replaced with whitespace, causing false positives.
       HTML_VISUALIZATION_DISABLED_EXCLUDED_COPS: Array[String]
 
-      # Cops excluded when HTML visualization is enabled.
-      # HTML tags rendered as Ruby identifiers cause false positives.
-      HTML_VISUALIZATION_ENABLED_EXCLUDED_COPS: Array[String]
-
       # @rbs config: Hash[String, untyped]
       def self.setup: (Hash[String, untyped] config) -> void
 

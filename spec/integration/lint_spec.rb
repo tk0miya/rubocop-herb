@@ -991,5 +991,25 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         expect(offenses).to eq [["Style/SingleLineDoEndBlock", 4]]
       end
     end
+
+    context "when analyzing blocks whose body starts at the line of the block start" do
+      let(:source) do
+        <<~ERB
+          <div class="a"><%= x %>
+          </div>
+          <p class="a"> text
+            <%= y %>
+          </p>
+          <% items.each do |item| %><%= item %>
+          <% end %>
+        ERB
+      end
+
+      it "triggers Layout/MultilineBlockLayout only for the Ruby block" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/MultilineBlockLayout", 6]]
+      end
+    end
   end
 end
