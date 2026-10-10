@@ -329,10 +329,10 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         ERB
       end
 
-      it "triggers Style/IfWithSemicolon only for the conditional in a single ERB tag" do
+      it "triggers Style/IfWithSemicolon and Style/IfUnlessModifier only for the conditional in a single ERB tag" do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/IfWithSemicolon", 9]]
+        expect(offenses).to eq [["Style/IfUnlessModifier", 9], ["Style/IfWithSemicolon", 9]]
       end
     end
 

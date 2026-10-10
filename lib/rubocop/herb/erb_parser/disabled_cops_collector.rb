@@ -138,6 +138,8 @@ module RuboCop
 
         # A semicolon is rendered at the closing of the if tag (`if a;`)
         disable_cop("Style/IfWithSemicolon", node)
+        # Converting them to modifier form breaks the template (e.g. it drops HTML)
+        disable_cop("Style/IfUnlessModifier", node)
         disable_one_line_conditional(node)
       end
 
