@@ -1,0 +1,37 @@
+# Generated from lib/rubocop/herb/indentation_consistency_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Collects the lines where Layout/IndentationConsistency should be disabled.
+    # The cop compares the column of each statement in a body with the first statement of the body,
+    # but statements written in different ERB tags (and HTML rendered with html_visualization) are
+    # indented by the HTML structure (e.g. `<% a = 1 %>` and `<p><% b = 2 %></p>` on the next lines).
+    # Such statements are found from the Ruby AST and the ERB tags in the original source,
+    # so that statements written in the same ERB tag as the first statement are still checked.
+    class IndentationConsistencyCollector
+      COP_NAME: String
+
+      # Collect the disabled lines from a processed source
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def self.collect: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader ast: ::RuboCop::AST::Node?
+
+      attr_reader erb_tag_ranges: Array[CharRange]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> void
+
+      # The cop reports a statement at its first line, so only the first line of each statement is disabled
+      def collect: () -> Hash[String, Array[Range[Integer]]]
+
+      private
+
+      # The range of the ERB tag containing the start of the node (nil for HTML rendered with html_visualization)
+      # @rbs node: ::RuboCop::AST::Node
+      def erb_tag_range: (::RuboCop::AST::Node node) -> CharRange?
+    end
+  end
+end

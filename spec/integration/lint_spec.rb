@@ -516,6 +516,33 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing statements indented by the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <% @a = 1 %>
+              <% @b = 2 %>
+            <p><%= @a %></p>
+          </div>
+          <% items.each do |item| %>
+            <p><%= item %></p>
+                <%= item.name %>
+          <% end %>
+          <% others.each do |other|
+               x = other.name
+                 y = other.size
+               foo(x, y)
+             end %>
+        ERB
+      end
+
+      it "triggers Layout/IndentationConsistency only for the statements in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/IndentationConsistency", 12]]
+      end
+    end
+
     context "when analyzing control flows whose branches output values followed by HTML" do
       let(:source) do
         <<~ERB
@@ -1340,6 +1367,33 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map { [_1.cop_name, _1.line] }
         expect(offenses).to eq [["Layout/IndentationWidth", 33]]
+      end
+    end
+
+    context "when analyzing statements indented by the HTML structure" do
+      let(:source) do
+        <<~ERB
+          <div>
+            <% @a = 1 %>
+              <% @b = 2 %>
+            <p><%= @a %></p>
+          </div>
+          <% items.each do |item| %>
+            <p><%= item %></p>
+                <%= item.name %>
+          <% end %>
+          <% others.each do |other|
+               x = other.name
+                 y = other.size
+               foo(x, y)
+             end %>
+        ERB
+      end
+
+      it "triggers Layout/IndentationConsistency only for the statements in a single ERB tag" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Layout/IndentationConsistency", 12]]
       end
     end
 

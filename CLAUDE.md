@@ -145,9 +145,10 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 
 - **Plugin** (`lib/rubocop/herb/plugin.rb`): LintRoller plugin entry point, registers the Extractor with RuboCop
 - **Extractor** (`lib/rubocop/herb/extractor.rb`): RuboCop extractor interface that converts ERB files to Ruby for analysis
-- **ProcessedSource** (`lib/rubocop/herb/processed_source.rb`): RuboCop ProcessedSource subclass that stores hybrid_code and tags, transforms AST after parsing, and provides a CommentConfig built from `ParseResult#disabled_cops` and `ImmovableExpressionCollector`
+- **ProcessedSource** (`lib/rubocop/herb/processed_source.rb`): RuboCop ProcessedSource subclass that stores hybrid_code and tags, transforms AST after parsing, and provides a CommentConfig built from `ParseResult#disabled_cops`, `ImmovableExpressionCollector` and `IndentationConsistencyCollector`
 - **CommentConfig** (`lib/rubocop/herb/comment_config.rb`): RuboCop CommentConfig subclass that disables cops at given line ranges as if `rubocop:disable` comments were written there
 - **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<div><%= x %></div>` in every branch). Works on the Ruby AST, so it applies regardless of `html_visualization`
+- **IndentationConsistencyCollector** (`lib/rubocop/herb/indentation_consistency_collector.rb`): Collects the lines to disable `Layout/IndentationConsistency` for statements not in the same ERB tag as the first statement of their body, because they are indented by the HTML structure (e.g., `<% a = 1 %>` followed by `<p><% b = 2 %></p>`). Works on the Ruby AST and the ERB tag ranges
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes, and renames nodes rendered from HTML uniquely so that cops comparing code (e.g. `Lint/DuplicateBranch`) only compare the Ruby parts
 - **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, html_visualization setting, and the default configuration of `Herb/Linting` cop
 
