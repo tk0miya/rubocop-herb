@@ -596,6 +596,27 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing a block with HTML content on a single line" do
+      let(:cop_class) { RuboCop::Cop::Style::SingleLineDoEndBlock }
+
+      it "does not trigger Style/SingleLineDoEndBlock" do
+        expect_no_offenses(<<~ERB)
+          <%= link_to root_path do %><span>Home</span><% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing a single-line block in a single ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Style::SingleLineDoEndBlock }
+
+      it "triggers Style/SingleLineDoEndBlock" do
+        expect_offense(<<~ERB)
+          <% items.each do |i| foo(i) end %>
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer multiline `do`...`end` block.
+        ERB
+      end
+    end
+
     context "when analyzing conditionals and loops whose end tags follow HTML" do
       let(:cop_class) { RuboCop::Cop::Layout::EndAlignment }
 
@@ -1045,16 +1066,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     after do
       config.unlink
       RuboCop::Lsp::StdinRunner.ruby_extractors.shift
-    end
-
-    context "when analyzing block with HTML content on single line" do
-      let(:source) { "<%= link_to root_path do %><span>Home</span><% end %>" }
-
-      it "does not trigger Style/SingleLineDoEndBlock" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
     end
 
     context "when analyzing an simple ERB file" do
