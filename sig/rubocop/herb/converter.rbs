@@ -30,6 +30,12 @@ module RuboCop
       # @rbs ruby_code: String
       # @rbs parse_result: ParseResult
       def generate_hybrid_code: (String ruby_code, ParseResult parse_result) -> String
+
+      # Character ranges of the tags with restore_source: true in ascending order
+      # Tags can be nested (e.g. an element restored as a whole contains its child elements and text),
+      # so only the outermost ones are returned
+      # @rbs parse_result: ParseResult
+      def restorable_ranges: (ParseResult parse_result) -> Array[CharRange]
     end
   end
 end

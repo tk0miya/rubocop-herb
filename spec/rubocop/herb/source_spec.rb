@@ -5,6 +5,22 @@ require "spec_helper"
 RSpec.describe RuboCop::Herb::Source do
   let(:source) { described_class.new(path: "test.html.erb", code:) }
 
+  describe "#slice" do
+    subject { source.slice(RuboCop::Herb::CharRange.new(from: 2, to: 5)) }
+
+    context "with ASCII only" do
+      let(:code) { "hello\nworld" }
+
+      it { is_expected.to eq "llo" }
+    end
+
+    context "with multibyte characters" do
+      let(:code) { "あいう\nえお" }
+
+      it { is_expected.to eq "う\nえ" }
+    end
+  end
+
   describe "#byte_to_char_pos" do
     subject { source.byte_to_char_pos(byte_pos) }
 
@@ -114,6 +130,54 @@ RSpec.describe RuboCop::Herb::Source do
         let(:byte_pos) { 8 }
 
         it { is_expected.to eq 4 }
+      end
+    end
+  end
+
+  describe "#char_to_byte_pos" do
+    subject { source.char_to_byte_pos(char_pos) }
+
+    context "with ASCII only" do
+      let(:code) { "hello\nworld\n" }
+      let(:char_pos) { 8 }
+
+      it { is_expected.to eq 8 }
+    end
+
+    context "with multibyte characters" do
+      let(:code) { "あいう\nえお\n" }
+
+      # "あいう\n" = 10 bytes, 4 chars
+      # "えお\n" = 7 bytes, 3 chars
+
+      context "when at start of file" do
+        let(:char_pos) { 0 }
+
+        it { is_expected.to eq 0 }
+      end
+
+      context "when after first character (あ)" do
+        let(:char_pos) { 1 }
+
+        it { is_expected.to eq 3 }
+      end
+
+      context "when at start of second line" do
+        let(:char_pos) { 4 }
+
+        it { is_expected.to eq 10 }
+      end
+
+      context "when after first character of second line (え)" do
+        let(:char_pos) { 5 }
+
+        it { is_expected.to eq 13 }
+      end
+
+      context "when at end of file" do
+        let(:char_pos) { 7 }
+
+        it { is_expected.to eq 17 }
       end
     end
   end

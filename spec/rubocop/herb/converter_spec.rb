@@ -155,6 +155,14 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with multi-byte characters in an HTML attribute and an ERB tag" do
+      let(:source) { '<div title="あ"><%= "い" %></div>' }
+      let(:expected) { 'div;           _ = "い";  div;  ' }
+      let(:expected_hybrid) { '<div title="あ">_ = "い";  </div>' }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with execution tag without output" do
       let(:source) { "<div><% @counter += 1 %></div>" }
       let(:expected) { "div;    @counter += 1;  div;  " }
