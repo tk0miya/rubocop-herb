@@ -685,6 +685,339 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         ERB
       end
     end
+
+    context "when analyzing conditional branches differing only in HTML content" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <p>a</p>
+          <% else %>
+            <p>b</p>
+          <% end %>
+          <% case b %>
+          <% when 1 %>
+            <p>a</p>
+          <% else %>
+            <p>b</p>
+          <% end %>
+          <% if c %>
+            <p class="<%= klass %>">a</p>
+          <% else %>
+            <p class="<%= klass %>">b</p>
+          <% end %>
+        ERB
+      end
+
+      context "with Lint/DuplicateBranch" do
+        let(:cop_class) { RuboCop::Cop::Lint::DuplicateBranch }
+
+        it "does not trigger Lint/DuplicateBranch" do
+          expect_no_offenses(source)
+        end
+      end
+
+      context "with Style/IdenticalConditionalBranches" do
+        let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+        it "does not trigger Style/IdenticalConditionalBranches" do
+          expect_no_offenses(source)
+        end
+      end
+    end
+
+    context "when analyzing conditional branches differing only in text content" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            hello
+          <% else %>
+            world
+          <% end %>
+          <% if b %>
+            こんにちは
+          <% else %>
+            さようなら
+          <% end %>
+        ERB
+      end
+
+      context "with Lint/DuplicateBranch" do
+        let(:cop_class) { RuboCop::Cop::Lint::DuplicateBranch }
+
+        it "does not trigger Lint/DuplicateBranch" do
+          expect_no_offenses(source)
+        end
+      end
+
+      context "with Style/IdenticalConditionalBranches" do
+        let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+        it "does not trigger Style/IdenticalConditionalBranches" do
+          expect_no_offenses(source)
+        end
+      end
+    end
+
+    context "when analyzing conditional branches differing only in HTML not rendered in the Ruby code" do
+      let(:cop_class) { RuboCop::Cop::Lint::DuplicateBranch }
+
+      it "does not trigger Lint/DuplicateBranch" do
+        expect_no_offenses(<<~ERB)
+          <% if a %>
+            <%= x %>a
+          <% else %>
+            <%= x %>b
+          <% end %>
+          <p class="<% if b %>abc<%= x %><% elsif c %>def<%= x %><% end %>"></p>
+        ERB
+      end
+    end
+
+    context "when analyzing conditionals on a single line having the same Ruby code in all branches" do
+      let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+      it "does not trigger Style/IdenticalConditionalBranches, which crashes on them" do
+        expect_no_offenses(<<~ERB)
+          <% if a %><%= x %><% else %><%= x %><% end %>
+          <% if b %><%= y %><% elsif c %><%= y %><% else %><%= y %><% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing conditional branches containing the same HTML and different Ruby code" do
+      let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+      it "does not trigger Style/IdenticalConditionalBranches" do
+        expect_no_offenses(<<~ERB)
+          <% if a %>
+            <p><%= x %></p>
+          <% else %>
+            <p><%= y %></p>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing conditional branches containing different HTML and the same Ruby code" do
+      let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+      it "triggers Style/IdenticalConditionalBranches only for the Ruby code" do
+        expect_offense(<<~ERB)
+          <% if a %>
+            <p>a</p>
+            <%= x %>
+            ^^^^^ Move `_ = x` out of the conditional.
+          <% else %>
+            <p>b</p>
+            <%= x %>
+            ^^^^^ Move `_ = x` out of the conditional.
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing conditional branches containing the same Ruby code inside different open tags" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <input type="text" <%= x %>>
+          <% else %>
+            <input type="password" <%= x %>>
+          <% end %>
+        ERB
+      end
+
+      context "with Lint/DuplicateBranch" do
+        let(:cop_class) { RuboCop::Cop::Lint::DuplicateBranch }
+
+        it "does not trigger Lint/DuplicateBranch" do
+          expect_no_offenses(source)
+        end
+      end
+
+      context "with Style/IdenticalConditionalBranches" do
+        let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+        it "does not trigger Style/IdenticalConditionalBranches" do
+          expect_no_offenses(source)
+        end
+      end
+    end
+
+    context "when analyzing elsif, in and rescue branches differing only in HTML content" do
+      let(:cop_class) { RuboCop::Cop::Lint::DuplicateBranch }
+
+      it "does not trigger Lint/DuplicateBranch" do
+        expect_no_offenses(<<~ERB)
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <p>b</p>
+          <% end %>
+          <% case c %>
+          <% in 1 %>
+            <p>a</p>
+          <% in 2 %>
+            <p>b</p>
+          <% end %>
+          <% begin %>
+            <%= x %>
+          <% rescue A %>
+            <p>a</p>
+          <% rescue B %>
+            <p>b</p>
+          <% end %>
+          <% items.each do |item| %>
+            <%= item %>
+          <% rescue A %>
+            <p>a</p>
+          <% rescue B %>
+            <p>b</p>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing conditional branches containing only the same Ruby code" do
+      context "with Lint/DuplicateBranch" do
+        let(:cop_class) { RuboCop::Cop::Lint::DuplicateBranch }
+
+        it "triggers Lint/DuplicateBranch" do
+          expect_offense(<<~ERB)
+            <% if a %>
+              <%= x %>
+            <% else %>
+               ^^^^ Duplicate branch body detected.
+              <%= x %>
+            <% end %>
+          ERB
+        end
+      end
+
+      context "with Style/IdenticalConditionalBranches" do
+        let(:cop_class) { RuboCop::Cop::Style::IdenticalConditionalBranches }
+
+        it "triggers Style/IdenticalConditionalBranches" do
+          expect_offense(<<~ERB)
+            <% if a %>
+              <%= x %>
+              ^^^^^ Move `_ = x` out of the conditional.
+            <% else %>
+              <%= x %>
+              ^^^^^ Move `_ = x` out of the conditional.
+            <% end %>
+          ERB
+        end
+      end
+    end
+
+    context "when analyzing else branches, when branches and blocks containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% case a %>
+          <% when 1 %>
+            a
+          <% else %>
+            b
+          <% end %>
+          <% items.each do %>
+            i
+          <% end %>
+          <%= form_with do %>
+            f
+          <% end %>
+        ERB
+      end
+
+      context "with Style/EmptyElse" do
+        let(:cop_class) { RuboCop::Cop::Style::EmptyElse }
+
+        it "does not trigger Style/EmptyElse" do
+          expect_no_offenses(source)
+        end
+      end
+
+      context "with Lint/EmptyWhen" do
+        let(:cop_class) { RuboCop::Cop::Lint::EmptyWhen }
+
+        it "does not trigger Lint/EmptyWhen" do
+          expect_no_offenses(source)
+        end
+      end
+
+      context "with Lint/EmptyBlock" do
+        let(:cop_class) { RuboCop::Cop::Lint::EmptyBlock }
+
+        it "does not trigger Lint/EmptyBlock" do
+          expect_no_offenses(source)
+        end
+      end
+    end
+
+    context "when analyzing else branches, when branches and blocks without any content" do
+      context "with Style/EmptyElse" do
+        let(:cop_class) { RuboCop::Cop::Style::EmptyElse }
+
+        it "triggers Style/EmptyElse" do
+          expect_offense(<<~ERB)
+            <% case a %>
+            <% when 1 %>
+            <% else %>
+               ^^^^ Redundant `else`-clause.
+            <% end %>
+            <% items.each do |item| %>
+            <% end %>
+          ERB
+        end
+      end
+
+      context "with Lint/EmptyWhen" do
+        let(:cop_class) { RuboCop::Cop::Lint::EmptyWhen }
+
+        it "triggers Lint/EmptyWhen" do
+          expect_offense(<<~ERB)
+            <% case a %>
+            <% when 1 %>
+               ^^^^^^ Avoid `when` branches without a body.
+            <% else %>
+            <% end %>
+            <% items.each do |item| %>
+            <% end %>
+          ERB
+        end
+      end
+
+      context "with Lint/EmptyBlock" do
+        let(:cop_class) { RuboCop::Cop::Lint::EmptyBlock }
+
+        it "triggers Lint/EmptyBlock" do
+          expect_offense(<<~ERB)
+            <% case a %>
+            <% when 1 %>
+            <% else %>
+            <% end %>
+            <% items.each do |item| %>
+               ^^^^^^^^^^^^^^^^^^^^^^^ Empty block detected.
+            <% end %>
+          ERB
+        end
+      end
+    end
+
+    context "when analyzing in branches containing only HTML" do
+      let(:cop_class) { RuboCop::Cop::Lint::EmptyInPattern }
+
+      it "triggers Lint/EmptyInPattern only for in branches without any content" do
+        expect_offense(<<~ERB)
+          <% case a %>
+          <% in 1 %>
+            a
+          <% in 2 %>
+             ^^^^ Avoid `in` branches without a body.
+          <% end %>
+        ERB
+      end
+    end
   end
 
   context "with the whole run of RuboCop" do
@@ -721,302 +1054,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
-      end
-    end
-
-    context "with Lint/DuplicateBranch enabled" do
-      # Lint/DuplicateBranch is a pending cop, so enable it explicitly
-      let(:config) do
-        Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          f.write(YAML.dump(rubocop_config.merge("Lint/DuplicateBranch" => { "Enabled" => true })))
-          f.close
-        end
-      end
-
-      context "when analyzing conditional branches differing only in HTML content" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <p>a</p>
-            <% else %>
-              <p>b</p>
-            <% end %>
-            <% case b %>
-            <% when 1 %>
-              <p>a</p>
-            <% else %>
-              <p>b</p>
-            <% end %>
-            <% if c %>
-              <p class="<%= klass %>">a</p>
-            <% else %>
-              <p class="<%= klass %>">b</p>
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map(&:cop_name)
-          expect(offenses).to eq []
-        end
-      end
-
-      context "when analyzing conditional branches differing only in text content" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              hello
-            <% else %>
-              world
-            <% end %>
-            <% if b %>
-              こんにちは
-            <% else %>
-              さようなら
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map(&:cop_name)
-          expect(offenses).to eq []
-        end
-      end
-
-      context "when analyzing conditional branches differing only in HTML not rendered in the Ruby code" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <%= x %>a
-            <% else %>
-              <%= x %>b
-            <% end %>
-            <p class="<% if b %>abc<%= x %><% elsif c %>def<%= x %><% end %>"></p>
-          ERB
-        end
-
-        it "does not trigger Lint/DuplicateBranch" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 2],
-                                  ["Style/IdenticalConditionalBranches", 4]]
-        end
-      end
-
-      context "when analyzing conditionals on a single line having the same Ruby code in all branches" do
-        let(:source) do
-          <<~ERB
-            <% if a %><%= x %><% else %><%= x %><% end %>
-            <% if b %><%= y %><% elsif c %><%= y %><% else %><%= y %><% end %>
-          ERB
-        end
-
-        it "does not trigger Style/IdenticalConditionalBranches, which crashes on them" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-          expect(offenses).to eq [["Lint/DuplicateBranch", 1],
-                                  ["Lint/DuplicateBranch", 2],
-                                  ["Lint/DuplicateBranch", 2]]
-        end
-      end
-
-      context "when analyzing conditional branches containing the same HTML and different Ruby code" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <p><%= x %></p>
-            <% else %>
-              <p><%= y %></p>
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Style/IdenticalConditionalBranches" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map(&:cop_name)
-          expect(offenses).to eq []
-        end
-      end
-
-      context "when analyzing conditional branches containing different HTML and the same Ruby code" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <p>a</p>
-              <%= x %>
-            <% else %>
-              <p>b</p>
-              <%= x %>
-            <% end %>
-          ERB
-        end
-
-        it "triggers Style/IdenticalConditionalBranches only for the Ruby code" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.location.source] }
-          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 3, "<%= x"],
-                                  ["Style/IdenticalConditionalBranches", 6, "<%= x"]]
-        end
-      end
-
-      context "when analyzing conditional branches containing the same Ruby code inside different open tags" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <input type="text" <%= x %>>
-            <% else %>
-              <input type="password" <%= x %>>
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map(&:cop_name)
-          expect(offenses).to eq []
-        end
-      end
-
-      context "when analyzing elsif, in and rescue branches differing only in HTML content" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <p>a</p>
-            <% elsif b %>
-              <p>b</p>
-            <% end %>
-            <% case c %>
-            <% in 1 %>
-              <p>a</p>
-            <% in 2 %>
-              <p>b</p>
-            <% end %>
-            <% begin %>
-              <%= x %>
-            <% rescue A %>
-              <p>a</p>
-            <% rescue B %>
-              <p>b</p>
-            <% end %>
-            <% items.each do |item| %>
-              <%= item %>
-            <% rescue A %>
-              <p>a</p>
-            <% rescue B %>
-              <p>b</p>
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Lint/DuplicateBranch" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map(&:cop_name)
-          expect(offenses).to eq []
-        end
-      end
-
-      context "when analyzing conditional branches containing only the same Ruby code" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <%= x %>
-            <% else %>
-              <%= x %>
-            <% end %>
-          ERB
-        end
-
-        it "triggers Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-          expect(offenses).to eq [["Style/IdenticalConditionalBranches", 2],
-                                  ["Lint/DuplicateBranch", 3],
-                                  ["Style/IdenticalConditionalBranches", 4]]
-        end
-      end
-    end
-
-    context "with Lint/EmptyBlock enabled" do
-      # Lint/EmptyBlock is a pending cop, so enable it explicitly
-      let(:config) do
-        Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyBlock" => { "Enabled" => true })))
-          f.close
-        end
-      end
-
-      context "when analyzing else branches, when branches and blocks containing only HTML" do
-        let(:source) do
-          <<~ERB
-            <% case a %>
-            <% when 1 %>
-              a
-            <% else %>
-              b
-            <% end %>
-            <% items.each do %>
-              i
-            <% end %>
-            <%= form_with do %>
-              f
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map(&:cop_name)
-          expect(offenses).to eq []
-        end
-      end
-
-      context "when analyzing else branches, when branches and blocks without any content" do
-        let(:source) do
-          <<~ERB
-            <% case a %>
-            <% when 1 %>
-            <% else %>
-            <% end %>
-            <% items.each do |item| %>
-            <% end %>
-          ERB
-        end
-
-        it "triggers Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-          expect(offenses).to eq [["Lint/EmptyWhen", 2], ["Style/EmptyElse", 3], ["Lint/EmptyBlock", 5]]
-        end
-      end
-    end
-
-    context "with Lint/EmptyInPattern enabled" do
-      # Lint/EmptyInPattern is a pending cop, so enable it explicitly
-      let(:config) do
-        Tempfile.new([".rubocop", ".yml"]).tap do |f|
-          f.write(YAML.dump(rubocop_config.merge("Lint/EmptyInPattern" => { "Enabled" => true })))
-          f.close
-        end
-      end
-
-      context "when analyzing in branches containing only HTML" do
-        let(:source) do
-          <<~ERB
-            <% case a %>
-            <% in 1 %>
-              a
-            <% in 2 %>
-            <% end %>
-          ERB
-        end
-
-        it "triggers Lint/EmptyInPattern only for in branches without any content" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-          expect(offenses).to eq [["Lint/EmptyInPattern", 4]]
-        end
       end
     end
 
