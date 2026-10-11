@@ -9,6 +9,8 @@ module RuboCop
     # but an expression next to HTML cannot be moved without changing the output
     # (e.g. `x` in `<input <%= x %>>` or `(<%= x %>)`).
     # Such expressions are found from the Ruby AST and the HTML in the original source.
+    # Expressions on the first or the last line of the conditional (e.g. conditionals written on a single line)
+    # are also collected because the cop crashes on them.
     class ImmovableExpressionCollector
       COP_NAME = "Style/IdenticalConditionalBranches" #: String
 
@@ -42,12 +44,38 @@ module RuboCop
         lines = [] #: Array[Range[Integer]]
         ast&.each_node(:if, :case, :case_match) do |node|
           branches = branches(node)
-          lines.concat(immovable_expressions(branches).map { _1.first_line.._1.first_line }) if branches.any?
+          next if branches.empty?
+
+          expressions = immovable_expressions(branches) + expressions_on_conditional_lines(node, branches)
+          lines.concat(expressions.uniq(&:object_id).map { _1.first_line.._1.first_line })
         end
         lines.empty? ? {} : { COP_NAME => lines }
       end
 
       private
+
+      # Identical tails (or heads) of the branches sharing a line with the first or the last line of the conditional
+      # (e.g. `<% if a %><%= x %><% else %><%= x %><% end %>` becomes `if a; _ = x; else; _ = x; end`)
+      # The autocorrection of the cop removes the whole lines of the expressions and inserts one of them
+      # before (or after) the conditional, so the cop crashes on them (Parser::ClobberingError)
+      # @rbs node: ::RuboCop::AST::Node
+      # @rbs branches: Array[::RuboCop::AST::Node]
+      def expressions_on_conditional_lines(node, branches) #: Array[::RuboCop::AST::Node]
+        return [] unless autocorrected?(node)
+
+        [tails(branches), heads(branches)].flat_map do |expressions|
+          next [] unless expressions.uniq.one?
+
+          on_line = expressions.any? { _1.first_line == node.first_line || _1.last_line == node.last_line }
+          on_line ? expressions : []
+        end
+      end
+
+      # Ternaries and if with `then` are not autocorrected by the cop, so they are still checked
+      # @rbs node: ::RuboCop::AST::Node
+      def autocorrected?(node) #: bool
+        !(node.is_a?(::RuboCop::AST::IfNode) && (node.ternary? || node.then?))
+      end
 
       # Identical tails (or heads) of the branches that cannot be moved after (or before) the conditional
       # An expression that is both a tail and a head (a branch having a single expression) is immovable
