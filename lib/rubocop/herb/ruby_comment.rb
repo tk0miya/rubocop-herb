@@ -42,8 +42,9 @@ module RuboCop
         comment = trailing_comment(content.value)
         return unless comment
 
-        from = source.byte_to_char_pos(content.range.from)
-        CharRange.new(from + comment.start_character_offset, from + comment.end_character_offset)
+        # Prism's location of a comment includes the spaces after it
+        from = source.byte_to_char_pos(content.range.from) + comment.start_character_offset
+        CharRange.new(from, from + comment.slice.rstrip.length)
       end
 
       # Location of the Ruby comment at the end of the code, followed only by spaces on the same line
