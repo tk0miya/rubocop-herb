@@ -5,7 +5,7 @@ require "herb"
 module RuboCop
   module Herb
     # Encapsulates source code and line offset information.
-    # Provides methods for byteslice and location-to-range conversion
+    # Provides methods for byteslice and conversions to character positions
     # that are shared between ParseResult and NodeLocationCollector.
     class Source
       attr_reader :path #: String
@@ -59,26 +59,14 @@ module RuboCop
         line_char_start + chars_in_line
       end
 
-      # Convert a Herb::Location to a Herb::Range
-      # @rbs location: ::Herb::Location
-      def location_to_range(location) #: ::Herb::Range
-        start_pos = byte_offset(location.start.line, location.start.column)
-        end_pos = byte_offset(location.end.line, location.end.column)
-        ::Herb::Range.new(start_pos, end_pos)
+      # Convert a line and a column of Herb::Location to a character position
+      # @rbs line: Integer -- 1-indexed line number
+      # @rbs column: Integer -- 0-indexed character-based column
+      def char_pos(line, column) #: Integer
+        line_char_offsets.fetch(line - 1) + column
       end
 
       private
-
-      # Convert line and column to byte offset
-      # Handles multi-byte characters correctly by converting character column to byte offset
-      # @rbs line: Integer -- 1-indexed line number
-      # @rbs column: Integer -- 0-indexed character-based column (not byte-based)
-      def byte_offset(line, column) #: Integer
-        line_start = line_byte_offsets.fetch(line - 1)
-        next_line_start = line_byte_offsets[line] || code.bytesize
-        line_content = code.byteslice(line_start, next_line_start - line_start).not_nil!
-        line_start + line_content[0, column].not_nil!.bytesize
-      end
 
       # Compute line offsets (both byte and character) for the source code
       # @rbs code: String

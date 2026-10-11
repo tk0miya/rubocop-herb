@@ -121,6 +121,21 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 </div>
 ```
 
+### Positions and Newlines
+
+The libraries count positions and newlines differently, so convert positions explicitly and never mix them:
+
+| Library | Position | Unit | Newlines |
+|---|---|---|---|
+| Herb | `Herb::Range` (e.g. `token.range`) | Bytes | - |
+| Herb | `Herb::Location` (e.g. `node.location`): line and column | Characters (codepoints) | `\n`, `\r\n` and a lone `\r` each start a new line |
+| Parser / RuboCop | `Parser::Source::Range`, `begin_pos`, `column` | Characters | `Parser::Source::Buffer` normalizes `\r\n` to `\n`; a lone `\r` does not start a new line |
+| rubocop-herb | `CharRange`, tag positions, `ruby_code` / `hybrid_code` | Characters | Line offsets in `Source` are computed with `String#each_line` (`\n` only) |
+
+- Convert a `Herb::Range` with `Source#byte_to_char_pos` (or `NodeRange.byte_range_to_char_range`), and a `Herb::Location` with `Source#char_pos` (or `NodeRange.compute_char_range`)
+- Test changes involving positions with multi-byte characters (e.g. Japanese text and emoji), as positions in bytes and characters only differ there
+- The Extractor converts the source normalized by `Parser::Source::Buffer` (`\r\n` → `\n`) so that positions match RuboCop. A lone `\r` is a newline for Herb but not for `Source`, so the line numbers of Herb locations do not match
+
 ### Key Components
 
 #### Core Processing
@@ -131,7 +146,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
-- **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information for byte/position calculations
+- **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information, and converts Herb positions (bytes and line/column) to character positions
 - **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
 
 #### RuboCop Integration
