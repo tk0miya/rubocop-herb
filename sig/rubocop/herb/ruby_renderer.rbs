@@ -25,7 +25,7 @@ module RuboCop
 
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
 
-      def followed_by_erb?: (erb_node node) -> bool
+      def followed_by_content?: (erb_node node) -> bool
 
       def byteslice: (::Herb::Range) -> String
 
@@ -113,7 +113,7 @@ module RuboCop
 
       # Terminate the statement of the code
       # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered.
-      # But if ERB nodes follow the tag on the same line, the comment would comment them out,
+      # But if ERB tags or HTML follow the tag on the same line, the comment would comment them out,
       # so it is replaced with spaces and a semicolon is rendered after the code before it
       # @rbs node: erb_node
       # @rbs code: String
@@ -158,8 +158,8 @@ module RuboCop
       def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
       # Render collected comments that can be safely converted to Ruby comments
-      # A comment followed by ERB nodes on the same line is not rendered,
-      # because Ruby's # comment extends to end of line and would comment out the code
+      # A comment followed by ERB tags or HTML on the same line is not rendered,
+      # because Ruby's # comment extends to end of line and would comment them out
       def render_comments: () -> void
 
       # @rbs node: ::Herb::AST::ERBCommentNode

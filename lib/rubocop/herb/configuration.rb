@@ -64,7 +64,7 @@ module RuboCop
         def ignored_cop_directive_config(globs) #: Hash[String, untyped]
           {
             "Description" => "Checks for rubocop directives ignored by rubocop-herb " \
-                             "because ERB tags follow them on the same line.",
+                             "because ERB tags or HTML follow them on the same line.",
             "Enabled" => true,
             "Include" => globs
           }

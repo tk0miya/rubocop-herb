@@ -48,9 +48,9 @@ RSpec.describe RuboCop::Herb::Converter do
     end
 
     describe "with a comment ERB tag" do
-      let(:source) { "<div><%# user.name %></div>" }
-      let(:expected) { "div;   # user.name   div;  " }
-      let(:expected_hybrid) { "<div>  # user.name   </div>" }
+      let(:source) { "<div><%# user.name %>\n</div>" }
+      let(:expected) { "div;   # user.name   \ndiv;  " }
+      let(:expected_hybrid) { "<div>  # user.name   \n</div>" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -739,6 +739,14 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with a trailing Ruby comment in an ERB tag followed by HTML on the same line" do
+      let(:source) { "<% x = 1 # comment %><div></div>" }
+      let(:expected) { "   x = 1;            div;       " }
+      let(:expected_hybrid) { "   x = 1;            <div></div>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with a trailing Ruby comment in an ERB tag followed by a newline" do
       let(:source) do
         ["<% x = 1 # comment",
@@ -803,6 +811,43 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["   if :cond;    # comment   ",
          "   end;  "].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a comment ERB tag followed by HTML on the same line" do
+      let(:source) { "<%# comment %><p>x</p>" }
+      let(:expected) { "              p;      " }
+      let(:expected_hybrid) { "              <p>x</p>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a comment ERB tag with multi-byte characters followed by HTML on the same line" do
+      # Shorter HTML than the difference between bytes and characters fails if byte positions are used as characters
+      let(:source) { "<%# 日本語 %><br>" }
+      let(:expected) { "          br; " }
+      let(:expected_hybrid) { "          <br>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a comment ERB tag followed by another comment ERB tag only on the same line" do
+      let(:source) { "<%# a %><%# b %>" }
+      let(:expected) { "  # a     # b   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a comment ERB tag followed by a multiline comment ERB tag on the same line" do
+      let(:source) do
+        ["<%# a %><%# b",
+         "c %>"].join("\n")
+      end
+      let(:expected) do
+        ["  # a     # b",
+         "#   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"

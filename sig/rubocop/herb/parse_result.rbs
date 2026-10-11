@@ -33,6 +33,9 @@ module RuboCop
     class ParseResult
       extend Forwardable
 
+      # An ERB comment tag, or the first line of one continuing to the next line
+      ERB_COMMENT_TAG: Regexp
+
       def code: () -> String
 
       def byteslice: (::Herb::Range) -> String
@@ -46,13 +49,10 @@ module RuboCop
       # Get all ERB comment nodes
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
 
-      # Whether ERB nodes (except comments) follow the ERB tag of the node on the line where the tag ends
+      # Whether anything (ERB tags except comments, HTML or text) follows the ERB tag of the node
+      # on the line where the tag ends
       # @rbs node: erb_node
-      def followed_by_erb?: (erb_node node) -> bool
-
-      # Get the ERB location at the index of erb_positions
-      # @rbs index: Integer
-      def erb_location_at: (Integer index) -> ErbLocation?
+      def followed_by_content?: (erb_node node) -> bool
     end
   end
 end
