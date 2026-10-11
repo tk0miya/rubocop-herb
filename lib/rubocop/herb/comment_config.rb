@@ -15,11 +15,14 @@ module RuboCop
     class CommentConfig < ::RuboCop::CommentConfig
       attr_reader :disabled_cops #: Hash[String, Array[Range[Integer]]]
 
+      # @rbs @disabled_lines: Hash[String, Set[Integer]]
+
       # @rbs processed_source: ::RuboCop::AST::ProcessedSource
       # @rbs disabled_cops: Hash[String, Array[Range[Integer]]] -- line ranges (1-based) where each cop is disabled
       def initialize(processed_source, disabled_cops: {}) #: void
         super(processed_source)
         @disabled_cops = disabled_cops
+        @disabled_lines = {}
       end
 
       # Check only the first line: an offense range may span into a disabled line of another branch
@@ -29,10 +32,20 @@ module RuboCop
       # @rbs last_line: Integer
       def cop_enabled_at_lines?(cop, first_line, last_line) #: bool
         cop_name = cop.is_a?(String) ? cop : cop.cop_name
-        disabled_ranges = disabled_cops.fetch(cop_name, [])
-        return false if disabled_ranges.any? { _1.cover?(first_line) }
+        return false if disabled_lines(cop_name).include?(first_line)
 
         super
+      end
+
+      private
+
+      # The lines where the cop is disabled
+      # Converted from the line ranges once, as the cop is checked for each offense
+      # @rbs cop_name: String
+      def disabled_lines(cop_name) #: Set[Integer]
+        @disabled_lines[cop_name] ||= disabled_cops.fetch(cop_name, []).each_with_object(Set.new) do |range, lines|
+          lines.merge(range)
+        end
       end
     end
   end

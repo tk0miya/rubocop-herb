@@ -86,48 +86,42 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       end
     end
 
-    describe "erb_max_columns" do
-      subject(:erb_max_columns) { result.erb_max_columns }
+    describe "erb_positions" do
+      subject(:erb_positions) { result.erb_positions }
 
-      context "with single ERB tag" do
-        let(:code) { "  <%= hello %>" }
+      context "with ERB tags inside and outside of an element" do
+        let(:code) { "<%= a %><div><%= b %></div><%= c %>" }
 
-        it "records the column of the ERB tag" do
-          expect(erb_max_columns[1]).to eq(2)
+        it "collects the start positions of the ERB tags in ascending order" do
+          expect(erb_positions).to eq [0, 13, 27]
         end
       end
 
-      context "with multiple ERB tags on different lines" do
-        let(:code) { "<%= a %>\n    <%= b %>\n  <%= c %>" }
+      context "with an open tag containing ERB visited twice (open and close tags in separate conditionals)" do
+        let(:code) { "<% if a %><a href=\"<%= u %>\"><% end %>x<% if a %></a><% end %>" }
 
-        it "records the column for each line" do
-          expect(erb_max_columns[1]).to eq(0)
-          expect(erb_max_columns[2]).to eq(4)
-          expect(erb_max_columns[3]).to eq(2)
+        it "collects each start position only once" do
+          expect(erb_positions).to eq [0, 19, 29, 39, 53]
+        end
+      end
+    end
+
+    describe "erb_tag_ranges" do
+      subject(:erb_tag_ranges) { result.erb_tag_ranges.map { [_1.from, _1.to] } }
+
+      context "with ERB tags inside and outside of an element" do
+        let(:code) { "<div><%= a %></div><% b %>" }
+
+        it "collects the character ranges of the ERB tags in ascending order" do
+          expect(erb_tag_ranges).to eq [[5, 13], [19, 26]]
         end
       end
 
-      context "with multiple ERB tags on the same line" do
-        let(:code) { "<%= a %>  <%= b %>" }
+      context "with multi-byte characters" do
+        let(:code) { "あいう<%= a %>" }
 
-        it "records the maximum column" do
-          expect(erb_max_columns[1]).to eq(10)
-        end
-      end
-
-      context "with comment ERB tag" do
-        let(:code) { "<%# comment %>" }
-
-        it "does not record comment tags" do
-          expect(erb_max_columns).to be_empty
-        end
-      end
-
-      context "with mixed ERB tags including comment" do
-        let(:code) { "<%= a %><%# comment %>" }
-
-        it "only records non-comment tags" do
-          expect(erb_max_columns[1]).to eq(0)
+        it "collects the ranges in characters" do
+          expect(erb_tag_ranges).to eq [[3, 11]]
         end
       end
     end
@@ -220,6 +214,35 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
 
         it "does not collect HTML comment tag" do
           expect(tags).to be_empty
+        end
+      end
+
+      context "with an open tag without the close tag" do
+        let(:code) { "<div class=\"a\">\n  <%= x %>" }
+
+        it "collects the open tag" do
+          # open tag at 0, ERB at 18
+          expect(tags.transform_values(&:restore_source)).to eq({ 0 => true, 18 => false })
+        end
+      end
+
+      context "with an open tag containing ERB without the close tag" do
+        let(:code) { "<b <%= x %>>" }
+
+        it "does not collect the open tag" do
+          # Only ERB at 3 is recorded
+          expect(tags.transform_values(&:restore_source)).to eq({ 3 => false })
+        end
+      end
+
+      context "with open and close tags in separate conditionals" do
+        let(:code) { "<% if a %><a href=\"/\"><% end %>link<% if a %></a><% end %>" }
+
+        it "collects the open tag and the close tag" do
+          # open tag at 10, text at 31, close tag at 45 and ERB tags
+          expect(tags.transform_values(&:restore_source)).to eq(
+            { 0 => false, 22 => false, 35 => false, 49 => false, 10 => true, 31 => true, 45 => true }
+          )
         end
       end
     end

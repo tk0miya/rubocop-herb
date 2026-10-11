@@ -17,7 +17,7 @@ module RuboCop
 
       attr_reader processed_source: ::RuboCop::AST::ProcessedSource
 
-      attr_reader code: String
+      attr_reader source: Source
 
       attr_reader erb_tag_ranges: Array[CharRange]
 

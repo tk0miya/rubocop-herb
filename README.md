@@ -67,6 +67,43 @@ Limitations:
 - Rules that analyze other templates (e.g. partials and their callers) run without the project-wide analysis,
   so that RuboCop's result cache stays valid per file.
 
+### Herb/IgnoredCopDirective cop
+
+rubocop-herb converts an ERB comment to a Ruby comment so that RuboCop processes it
+(including `<%# rubocop:disable %>` directives).
+But rubocop-herb cannot convert an ERB comment followed by ERB tags on the same line,
+because the Ruby comment would comment out the following code; rubocop-herb ignores such a comment.
+The same applies to a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`).
+This is harmless for ordinary comments, but rubocop directives in such a comment have no effect.
+The `Herb/IgnoredCopDirective` cop (enabled by default) reports rubocop directives
+ignored by rubocop-herb because ERB tags follow them on the same line:
+
+```erb
+<%# bad: rubocop-herb ignores this directive %>
+<%# rubocop:disable Lint/Void %><%= user.name %>
+
+<%# good %>
+<%# rubocop:disable Lint/Void %>
+<%= user.name %>
+
+<%# bad: rubocop-herb ignores this directive %>
+<% name = user.name # rubocop:disable Lint/UselessAssignment %><%= user.email %>
+
+<%# good %>
+<% name = user.name # rubocop:disable Lint/UselessAssignment %>
+<%= user.email %>
+```
+
+To disable the cop, configure it in `.rubocop.yml`:
+
+```yaml
+Herb/IgnoredCopDirective:
+  Enabled: false
+```
+
+It does not support autocorrection, because inserting a line break may change the rendered whitespace
+and the indentation of the following code depends on the surrounding HTML.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

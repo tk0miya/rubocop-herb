@@ -121,6 +121,22 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 </div>
 ```
 
+### Positions and Newlines
+
+The libraries count positions and newlines differently, so convert positions explicitly and never mix them:
+
+| Library | Position | Unit | Newlines |
+|---|---|---|---|
+| Herb | `Herb::Range` (e.g. `token.range`) | Bytes | - |
+| Herb | `Herb::Location` (e.g. `node.location`): line and column | Characters (codepoints) | `\n`, `\r\n` and a lone `\r` each start a new line |
+| Parser / RuboCop | `Parser::Source::Range`, `begin_pos`, `column` | Characters | `Parser::Source::Buffer` normalizes `\r\n` to `\n`; a lone `\r` does not start a new line |
+| rubocop-herb | `CharRange`, tag positions, `ruby_code` / `hybrid_code` | Characters | Line offsets in `Source` are computed with `String#each_line` (`\n` only) |
+
+- Convert a `Herb::Range` with `Source#byte_to_char_pos` (or `NodeRange.byte_range_to_char_range`), and a `Herb::Location` with `Source#char_pos` (or `NodeRange.compute_char_range`)
+- Test changes involving positions with multi-byte characters (e.g. Japanese text and emoji), as positions in bytes and characters only differ there
+- The Extractor converts the source normalized by `Parser::Source::Buffer` (`\r\n` → `\n`) so that positions match RuboCop
+- A lone `\r` is a newline for Herb but a space for Ruby and RuboCop, so `ErbParser` replaces it with a space before parsing with Herb to keep the lines of Herb locations in line with the source
+
 ### Key Components
 
 #### Core Processing
@@ -132,8 +148,9 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
 - **Branches** (`lib/rubocop/herb/erb_parser/branches.rb`): Utilities for the branches of conditionals and rescue written across ERB tags, including the check for HTML not rendered in the Ruby code (e.g., text too short to place the marker, attributes), used to disable `Lint/DuplicateBranch` for branches differing only in such HTML
-- **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information for byte/position calculations
+- **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information, and converts Herb positions (bytes and line/column) to character positions
 - **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
+- **RubyComment** (`lib/rubocop/herb/ruby_comment.rb`): Utility module for Ruby comments in ERB. Renders an ERB comment as a Ruby comment (shared by `RubyRenderer` and `Herb/IgnoredCopDirective` cop so that the cop detects directives as RuboCop sees them), and finds the Ruby comment at the end of the code in an ERB tag with Prism
 
 #### RuboCop Integration
 
@@ -144,13 +161,17 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<input <%= x %>>` or `(<%= x %>)` in every branch), and for expressions on the first or last line of the conditional (e.g., conditionals written on a single line), on which the cop's autocorrection crashes
 - **TrailingWhitespaceCollector** (`lib/rubocop/herb/trailing_whitespace_collector.rb`): Collects the lines to disable `Layout/TrailingWhitespace` for trailing whitespace rendered by the conversion (e.g., `<%= x %>` becomes `_ = x;  `). Works on the lines and the original source, so trailing whitespace written in ERB tags (e.g., a line in a multi-line ERB tag) is still checked
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes, and renames nodes rendered from HTML uniquely so that cops comparing code (e.g. `Lint/DuplicateBranch`) only compare the Ruby parts
-- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and the default configuration of `Herb/Linting` cop
+- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and the default configuration of the Herb cops
 
 #### herb-lint Integration
 
 - **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses. Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
 - **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it
 - **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol)
+
+#### Other Cops
+
+- **Herb/IgnoredCopDirective cop** (`lib/rubocop/cop/herb/ignored_cop_directive.rb`): Reports rubocop directives (e.g. `rubocop:disable`) in ERB comments, or in Ruby comments at the end of the code in ERB tags, followed by ERB tags on the same line. rubocop-herb ignores such a comment because it would comment out the following code, so the directive has no effect. Ordinary comments are not reported because ignoring them is harmless. No autocorrection because inserting a line break may change the rendered whitespace
 
 #### Utilities
 
@@ -166,6 +187,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
     Do not add an upper bound.
 - `lint_roller` (>= 1.1.0): RuboCop plugin framework for registering extractors
 - `not_nilable`: Provides `#not_nil!` for unwrapping nilable values with type narrowing
+- `prism`: Ruby parser used to find Ruby comments at the end of the code in ERB tags
 - `rubocop` (>= 1.90.0): The linter itself; 1.90.0 is required because `CommentConfig` overrides `cop_enabled_at_lines?`, introduced in that version
 
 ### Configuration Options

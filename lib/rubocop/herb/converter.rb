@@ -26,15 +26,30 @@ module RuboCop
       # @rbs ruby_code: String
       # @rbs parse_result: ParseResult
       def generate_hybrid_code(ruby_code, parse_result) #: String
-        restorable_tags = parse_result.tags.select { |_, tag| tag.restore_source }
-        return ruby_code if restorable_tags.empty?
+        ranges = restorable_ranges(parse_result)
+        return ruby_code if ranges.empty?
 
-        hybrid_code = ruby_code.dup
-        restorable_tags.each do |char_pos, tag|
-          original_html = parse_result.slice(tag.range)
-          hybrid_code[char_pos, original_html.length] = original_html
+        # Concatenate the Ruby code and the original HTML of the tags from the beginning
+        ruby_source = Source.new(path: parse_result.source.path, code: ruby_code)
+        hybrid_code = +""
+        pos = 0
+        ranges.each do |range|
+          hybrid_code << ruby_source.slice(CharRange.new(pos, range.from)) << parse_result.slice(range)
+          pos = range.to
         end
-        hybrid_code
+        hybrid_code << ruby_source.slice(CharRange.new(pos, ruby_code.length))
+      end
+
+      # Character ranges of the tags with restore_source: true in ascending order
+      # Tags can be nested (e.g. an element restored as a whole contains its child elements and text),
+      # so only the outermost ones are returned
+      # @rbs parse_result: ParseResult
+      def restorable_ranges(parse_result) #: Array[CharRange]
+        ranges = parse_result.tags.values.select(&:restore_source).map(&:range)
+        ranges.sort_by { [_1.from, -_1.to] }.each_with_object([]) do |range, outermost|
+          last = outermost.last
+          outermost << range unless last && range.from < last.to
+        end
       end
     end
   end

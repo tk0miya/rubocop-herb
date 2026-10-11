@@ -28,9 +28,10 @@ module RuboCop
 
       # Result of collecting node locations
       Result = Data.define(
-        :erb_locations,    #: Hash[Integer, ErbLocation]
-        :erb_max_columns,  #: Hash[Integer, Integer] -- line => max column (character-based, from Herb)
-        :tags              #: Hash[Integer, Tag]
+        :erb_locations,   #: Hash[Integer, ErbLocation]
+        :erb_positions,   #: Array[Integer] -- start positions of the ERB locations in ascending order
+        :erb_tag_ranges,  #: Array[CharRange] -- character ranges of ERB tags (from "<%" to "%>") sorted by position
+        :tags             #: Hash[Integer, Tag]
       )
 
       # Collect ERB locations and tags from a parse result
@@ -46,24 +47,40 @@ module RuboCop
 
         Result.new(
           erb_locations: collector.erb_locations,
-          erb_max_columns: collector.erb_max_columns,
+          erb_positions: collector.erb_positions,
+          erb_tag_ranges: collector.erb_tag_ranges,
           tags: erb_tags.merge(collector.tags)
         )
       end
 
       attr_reader :source #: Source
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
-      attr_reader :erb_max_columns #: Hash[Integer, Integer]
+      attr_reader :erb_positions #: Array[Integer] -- start positions of the ERB locations in ascending order
       attr_reader :tags #: Hash[Integer, Tag]
+      attr_reader :element_tags #: Set[::Herb::AST::Node?] -- open and close tags wrapped by elements
 
       # @rbs source: Source
       def initialize(source:) #: void
         @erb_locations = {}
-        @erb_max_columns = {}
+        @erb_positions = []
         @tags = {}
+        @element_tags = Set.new.compare_by_identity
         @source = source
 
         super()
+      end
+
+      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      def erb_tag_ranges #: Array[CharRange]
+        ranges = erb_locations.values.map do |loc|
+          node = loc.node #: erb_node
+          from = (node.tag_opening || node.content).not_nil!.range.from
+          to = (node.tag_closing || node.content).not_nil!.range.to
+          NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), source)
+        end
+        ranges.sort_by(&:from)
       end
 
       # @rbs node: ::Herb::AST::Node
@@ -80,8 +97,27 @@ module RuboCop
       # then we check if this element contains ERB to decide which tags to record
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
+        element_tags << node.open_tag << node.close_tag
         super
         record_html_element_tag(node)
+      end
+
+      # Visit HTML open tag nodes not wrapped by an element and collect tag info
+      # (e.g. an open tag without the close tag, or open tags in the branches of a conditional)
+      # Tags of an element are recorded by visit_html_element_node
+      # Open tags containing ERB are not recorded for the same reason as in record_html_element_tag
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        super
+        record_tag(node) unless element_tags.include?(node) || contains_erb?(node)
+      end
+
+      # Visit HTML close tag nodes not wrapped by an element and collect tag info
+      # (e.g. a close tag in the branches of a conditional)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node(node) #: void
+        super
+        record_tag(node) unless element_tags.include?(node)
       end
 
       # Visit HTML text nodes and collect tag info
@@ -118,17 +154,16 @@ module RuboCop
         line = node.location.start.line
         column = node.location.start.column
 
+        record_erb_position(range.from) unless erb_locations.key?(range.from)
         erb_locations[range.from] = ErbLocation.new(type:, node:, range:, line:, column:)
-        update_erb_max_columns(type, line, column)
       end
 
-      # @rbs type: ErbLocation::erb_node_type
-      # @rbs line: Integer
-      # @rbs column: Integer
-      def update_erb_max_columns(type, line, column) #: void
-        return if type == :comment
-
-        erb_max_columns[line] = [erb_max_columns[line] || 0, column].max.not_nil!
+      # Insert the position keeping erb_positions sorted
+      # ERB nodes are usually visited in the order of their positions, so the position is appended in most cases
+      # @rbs pos: Integer
+      def record_erb_position(pos) #: void
+        index = erb_positions.bsearch_index { _1 > pos } || erb_positions.size
+        erb_positions.insert(index, pos)
       end
 
       # Determine the type of an ERB node
@@ -146,7 +181,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def contains_erb?(node) #: bool
         range = NodeRange.compute_char_range(node, source)
-        erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
+        pos = erb_positions.bsearch { _1 >= range.from }
+        !pos.nil? && pos < range.to
       end
 
       # Record tag info for HTML elements

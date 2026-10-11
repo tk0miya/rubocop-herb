@@ -21,14 +21,17 @@ module RuboCop
       # @rbs code: String
       def parse(path, code) #: ParseResult
         source = Source.new(path:, code:)
-        ast = ::Herb.parse(code)
+        # Herb treats a lone `\r` as a newline, but Ruby and RuboCop treat it as a space.
+        # Replace it with a space (same size) so that the lines of Herb locations match the source.
+        ast = ::Herb.parse(code.gsub(/\r(?!\n)/, " "))
         result = NodeLocationCollector.collect(source, ast)
 
         ParseResult.new(
           source:,
           ast:,
           erb_locations: result.erb_locations,
-          erb_max_columns: result.erb_max_columns,
+          erb_positions: result.erb_positions,
+          erb_tag_ranges: result.erb_tag_ranges,
           tags: result.tags,
           disabled_cops: DisabledCopsCollector.collect(ast)
         )

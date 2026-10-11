@@ -31,12 +31,12 @@ module RuboCop
       # @rbs!
       #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
-      #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
+      #   def followed_by_erb?: (erb_node node) -> bool
       #   def byteslice: (::Herb::Range) -> String
 
-      def_delegators :parse_result, :source, :erb_locations, :erb_max_columns, :erb_comment_nodes,
-                     :byteslice
+      def_delegators :parse_result, :source, :erb_locations, :erb_comment_nodes,
+                     :followed_by_erb?, :byteslice
 
       # @rbs parse_result: ParseResult
       def initialize(parse_result) #: void
@@ -90,17 +90,32 @@ module RuboCop
       end
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag and close tag as "tag; " and processes children
+      # If the element contains ERB nodes, its children are processed (the tags are rendered by the visitors below)
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # HTML elements are not rendered as Ruby blocks because ERB does not create a scope for them
       # (e.g. a local variable assigned in an element is available after the element)
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
-        render_tag_node(node.open_tag)
-        return unless contains_erb?(node)
+        return super if contains_erb?(node)
 
+        render_tag_node(node.open_tag)
+      end
+
+      # Visit HTML open tag nodes and render them as "tag; "
+      # This also renders open tags not wrapped by an element
+      # (e.g. an open tag without the close tag, or open tags in the branches of a conditional)
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        render_tag_node(node)
         super
-        render_tag_node(node.close_tag)
+      end
+
+      # Visit HTML close tag nodes and render them as "tag; "
+      # This also renders close tags not wrapped by an element (e.g. a close tag in a conditional)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node(node) #: void
+        render_tag_node(node)
+        super
       end
 
       # Visit HTML text nodes (plain text content between tags)
@@ -138,8 +153,30 @@ module RuboCop
         range = NodeRange.byte_range_to_char_range(node.content.not_nil!.range, source)
         ruby_code[range.from, code.length] = code
 
-        render_semicolon(node, code, range)
+        render_statement_end(node, code, range)
         render_output_marker(node) if output_node?(node)
+      end
+
+      # Terminate the statement of the code
+      # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered.
+      # But if ERB nodes follow the tag on the same line, the comment would comment them out,
+      # so it is replaced with spaces and a semicolon is rendered after the code before it
+      # @rbs node: erb_node
+      # @rbs code: String
+      # @rbs range: CharRange -- character range of the code
+      def render_statement_end(node, code, range) #: void
+        comment = RubyComment.trailing_range(node, source)
+        return render_semicolon(node, code, range) unless comment
+        return unless followed_by_erb?(node)
+
+        render_whitespace(comment)
+        render_semicolon(node, code[0...(comment.from - range.from)].to_s, CharRange.new(range.from, comment.from))
+      end
+
+      # Render spaces over the range of ruby_code
+      # @rbs range: CharRange
+      def render_whitespace(range) #: void
+        ruby_code[range.from, range.to - range.from] = " " * (range.to - range.from)
       end
 
       # Render a semicolon after the code to terminate the statement
@@ -212,34 +249,19 @@ module RuboCop
       end
 
       # Render collected comments that can be safely converted to Ruby comments
+      # A comment followed by ERB nodes on the same line is not rendered,
+      # because Ruby's # comment extends to end of line and would comment out the code
       def render_comments #: void
         erb_comment_nodes.each do |node|
-          render_erb_comment_node(node) if renderable_comment?(node)
+          render_erb_comment_node(node) unless followed_by_erb?(node)
         end
       end
 
-      # Check if this comment can be rendered as a Ruby comment without breaking code
-      # Comments are not renderable when there's code to the right on the same line,
-      # because Ruby's # comment extends to end of line and would comment out the code
       # @rbs node: ::Herb::AST::ERBCommentNode
-      def renderable_comment?(node) #: bool
-        line = node.location.end.line
-        return true unless erb_max_columns.key?(line)
-
-        node.location.start.column >= erb_max_columns[line].not_nil!
-      end
-
-      # @rbs node: ::Herb::AST::ERBCommentNode
-      def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def render_erb_comment_node(node) #: void
         hash_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to - 1)
-        ruby_code[hash_pos] = "#"
-
-        code = extract_ruby_code(node)
-        range = node.content.not_nil!.range
-        hash_column = node.tag_opening.not_nil!.location.start.column + 2
-        formatted_code = format_multiline_comment(code, hash_column)
-        char_from = byte_to_char_pos(range.from)
-        ruby_code[char_from, formatted_code.length] = formatted_code
+        comment = RubyComment.render(node)
+        ruby_code[hash_pos, comment.length] = comment
       end
 
       # Render HTML comment as "_a;" at the start of the comment to indicate content presence (like text nodes)
@@ -253,20 +275,6 @@ module RuboCop
       # @rbs pos: Integer -- character position in ruby_code
       def render_tag_marker(pos) #: void
         ruby_code[pos, 3] = "_a;"
-      end
-
-      # @rbs code: String
-      # @rbs hash_column: Integer
-      def format_multiline_comment(code, hash_column) #: String
-        result = code.gsub(/(?<=\n)( +)/) do |match|
-          if match.length > hash_column + 1
-            "#{match[0...hash_column]}##{match[(hash_column + 1)..]}"
-          else
-            "##{match[1..]}"
-          end
-        end
-
-        result.gsub(/(?<=\n)([^ \n#])/, "#")
       end
 
       # @rbs code: String

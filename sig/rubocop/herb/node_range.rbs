@@ -2,7 +2,7 @@
 
 module RuboCop
   module Herb
-    # Utility module for computing byte ranges of Herb AST nodes
+    # Utility module for computing character ranges (`CharRange`) of Herb AST nodes
     module NodeRange
       # Compute the character range of an AST node
       # @rbs node: ::Herb::AST::Node

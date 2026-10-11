@@ -1,0 +1,28 @@
+# Generated from lib/rubocop/herb/ruby_comment.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Utility module for Ruby comments in ERB: rendering ERB comments as Ruby comments,
+    # and finding Ruby comments in the code of ERB tags
+    module RubyComment
+      # Render an ERB comment to a Ruby comment (from "#" of "<%#" to the end of the content)
+      # Each line of a multiline comment is commented out with "#"
+      # @rbs node: ::Herb::AST::ERBCommentNode
+      def self.render: (::Herb::AST::ERBCommentNode node) -> String
+
+      # @rbs code: String
+      # @rbs hash_column: Integer
+      def self.format_multiline_comment: (String code, Integer hash_column) -> String
+
+      # Character range of the Ruby comment at the end of the code in the ERB tag (e.g. `<% x # comment %>`)
+      # A comment followed by a newline (e.g. `%>` on its own line) is not a trailing comment
+      # @rbs node: erb_node
+      # @rbs source: Source
+      def self.trailing_range: (erb_node node, Source source) -> CharRange?
+
+      # Location of the Ruby comment at the end of the code, followed only by spaces on the same line
+      # @rbs code: String
+      def self.trailing_comment: (String code) -> Prism::Location?
+    end
+  end
+end

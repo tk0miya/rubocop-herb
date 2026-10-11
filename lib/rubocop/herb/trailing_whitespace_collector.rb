@@ -20,14 +20,14 @@ module RuboCop
       end
 
       attr_reader :processed_source #: ::RuboCop::AST::ProcessedSource
-      attr_reader :code #: String
+      attr_reader :source #: Source
       attr_reader :erb_tag_ranges #: Array[CharRange]
 
       # @rbs processed_source: ::RuboCop::AST::ProcessedSource
       # @rbs parse_result: ParseResult
       def initialize(processed_source, parse_result) #: void
         @processed_source = processed_source
-        @code = parse_result.code
+        @source = parse_result.source
         @erb_tag_ranges = parse_result.erb_tag_ranges
       end
 
@@ -56,7 +56,7 @@ module RuboCop
       # @rbs from: Integer
       # @rbs to: Integer
       def written_in_erb_tag?(from, to) #: bool
-        return false unless code[from...to].to_s.match?(/\A[[:blank:]]*\z/)
+        return false unless source.slice(CharRange.new(from, to)).match?(/\A[[:blank:]]*\z/)
 
         range = erb_tag_ranges.bsearch { _1.to > from }
         !range.nil? && range.from <= from && to <= range.to
