@@ -131,6 +131,7 @@ The Ruby code with HTML parts written back as HTML tags. Used by RuboCop during 
 - **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`, `hybrid_code`, and `tags` mapping
 - **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB and HTML node locations for determining element positions
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
+- **Branches** (`lib/rubocop/herb/erb_parser/branches.rb`): Utilities for the branches of conditionals and rescue written across ERB tags, including the check for HTML not rendered in the Ruby code (e.g., text too short to place the marker, attributes), used to disable `Lint/DuplicateBranch` for branches differing only in such HTML
 - **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information for byte/position calculations
 - **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
 

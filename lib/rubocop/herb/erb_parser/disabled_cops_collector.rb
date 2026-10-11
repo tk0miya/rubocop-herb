@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "herb"
+require_relative "branches"
 
 module RuboCop
   module Herb
@@ -32,6 +33,7 @@ module RuboCop
         disable_conditional_cops(node)
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node # elsif nodes have no end tag
+        disable_duplicate_branch(Branches.of_if(node)) if end_node # elsif nodes are a part of the outer if node
         disable_body_indentation(node.statements)
         super
       end
@@ -43,6 +45,7 @@ module RuboCop
         disable_conditional_cops(node)
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node
+        disable_duplicate_branch([node, node.else_clause].compact)
         disable_body_indentation(node.statements)
         super
       end
@@ -51,6 +54,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBCaseNode
       def visit_erb_case_node(node) #: void
         disable_cop("Style/ConditionalAssignment", node)
+        disable_duplicate_branch([*node.conditions, node.else_clause].compact)
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node
         super
@@ -60,6 +64,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBCaseMatchNode
       def visit_erb_case_match_node(node) #: void
         disable_cop("Style/ConditionalAssignment", node)
+        disable_duplicate_branch([*node.conditions, node.else_clause].compact)
         end_node = node.end_node
         disable_end_alignment(end_node) if end_node
         super
@@ -94,6 +99,7 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBBeginNode
       def visit_erb_begin_node(node) #: void
         disable_body_indentation(node.statements)
+        disable_duplicate_branch(Branches.of_rescue(node))
         super
       end
 
@@ -145,10 +151,23 @@ module RuboCop
         end_node = node.end_node
         disable_block_alignment(end_node) if end_node
         disable_body_indentation(node.body)
+        disable_duplicate_branch(Branches.of_rescue(node))
         super
       end
 
       private
+
+      # Lint/DuplicateBranch compares the branches in the Ruby code, but some HTML is not rendered there
+      # (see Branches.unrendered_html?), so branches differing only in such HTML look identical
+      # (e.g. `<% if a %>x<%= y %><% else %>z<%= y %><% end %>`).
+      # The cop is disabled at the branches if any of them contains such HTML.
+      # The first branch is skipped because the cop never reports it.
+      # @rbs branches: Array[branch_node]
+      def disable_duplicate_branch(branches) #: void
+        return unless branches.any? { Branches.unrendered_html?(_1.statements) }
+
+        branches.drop(1).each { disable_cop("Lint/DuplicateBranch", _1) }
+      end
 
       # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
       # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged

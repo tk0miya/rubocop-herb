@@ -1,0 +1,27 @@
+# Generated from lib/rubocop/herb/erb_parser/branches.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Utilities for the branches of conditionals and rescue written across ERB tags
+    module Branches
+      # The if branch, the elsif branches and the else branch
+      # @rbs node: ::Herb::AST::ERBIfNode
+      def self?.of_if: (::Herb::AST::ERBIfNode node) -> Array[branch_node]
+
+      # The rescue clauses and the else clause, which are the branches of rescue in the Ruby code
+      # @rbs node: ::Herb::AST::ERBBeginNode | ::Herb::AST::ERBBlockNode
+      def self?.of_rescue: (::Herb::AST::ERBBeginNode | ::Herb::AST::ERBBlockNode node) -> Array[branch_node]
+
+      # Check if the nodes contain HTML not rendered in the Ruby code (except whitespace):
+      # text too short to place the marker (see RubyRenderer::TEXT_MARKER_POSITION),
+      # HTML in open tags (e.g. attributes and their values) and HTML comments containing ERB
+      # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
+      # the branch. HTML elements are not because they are rendered and make the branch unique.
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def self?.unrendered_html?: (Array[::Herb::AST::Node] nodes) -> bool
+
+      # @rbs node: ::Herb::AST::Node
+      def self?.unrendered_html_node?: (::Herb::AST::Node node) -> bool
+    end
+  end
+end

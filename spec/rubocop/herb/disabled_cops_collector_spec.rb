@@ -124,9 +124,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if and elsif tags on a single line" do
       let(:code) { "<% if a %>a<% elsif b %><% end %>" }
 
-      it "disables the conditional cops and Style/OneLineConditional at the line" do
+      it "disables the conditional cops, Style/OneLineConditional and Lint/DuplicateBranch at the line" do
         expect(subject).to eq({
                                 "Lint/EmptyConditionalBody" => [1..1],
+                                "Lint/DuplicateBranch" => [1..1],
                                 "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
                                 **end_alignment(1..1),
@@ -396,6 +397,135 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 **end_alignment(6..6),
                                 "Layout/BlockAlignment" => [9..9],
                                 **indentation_width(3..3, 5..5, 8..8)
+                              })
+      end
+    end
+
+    context "with if branches containing text too short to place the marker" do
+      let(:code) { "<% if a %>\n  <%= x %>a\n<% elsif b %>\n  <%= x %>b\n<% else %>\n  <%= x %>c\n<% end %>" }
+
+      it "disables Lint/DuplicateBranch at the elsif and else tags" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1, 3..3],
+                                "Lint/DuplicateBranch" => [3..3, 5..5],
+                                "Style/EmptyElse" => [5..5],
+                                **conditional_cops(1..1),
+                                **end_alignment(7..7),
+                                **indentation_width(2..2, 4..4, 6..6)
+                              })
+      end
+    end
+
+    context "with if branches containing text long enough to place the marker" do
+      let(:code) { "<% if a %>\n  <%= x %>abc\n<% else %>\n  <%= x %>def\n<% end %>" }
+
+      it "does not disable Lint/DuplicateBranch" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                "Style/EmptyElse" => [3..3],
+                                **conditional_cops(1..1),
+                                **end_alignment(5..5),
+                                **indentation_width(2..2, 4..4)
+                              })
+      end
+    end
+
+    context "with if branches containing text in an attribute value" do
+      let(:code) { "<div class=\"<% if a %>abc<%= x %><% else %>def<%= x %><% end %>\"></div>" }
+
+      it "disables Lint/DuplicateBranch at the line" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                "Lint/DuplicateBranch" => [1..1],
+                                "Style/EmptyElse" => [1..1],
+                                "Style/OneLineConditional" => [1..1],
+                                **conditional_cops(1..1),
+                                **end_alignment(1..1),
+                                **indentation_width(1..1, 1..1)
+                              })
+      end
+    end
+
+    context "with unless branches containing attributes" do
+      let(:code) { "<input <% unless a %>disabled<%= x %><% else %>readonly<%= x %><% end %>>" }
+
+      it "disables Lint/DuplicateBranch at the line" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                "Lint/DuplicateBranch" => [1..1],
+                                "Style/EmptyElse" => [1..1],
+                                "Style/OneLineConditional" => [1..1],
+                                **conditional_cops(1..1),
+                                **end_alignment(1..1),
+                                **indentation_width(1..1, 1..1)
+                              })
+      end
+    end
+
+    context "with when and in branches containing text too short to place the marker" do
+      let(:code) do
+        "<% case a %>\n<% when 1 %>\n  <%= x %>a\n<% else %>\n  <%= x %>b\n<% end %>\n" \
+          "<% case a %>\n<% in 1 %>\n  <%= x %>a\n<% in 2 %>\n  <%= x %>b\n<% end %>"
+      end
+
+      it "disables Lint/DuplicateBranch at the else and in tags except the first branches" do
+        expect(subject).to eq({
+                                "Style/ConditionalAssignment" => [1..1, 7..7],
+                                "Lint/DuplicateBranch" => [4..4, 10..10],
+                                "Lint/EmptyWhen" => [2..2],
+                                "Lint/EmptyInPattern" => [8..8, 10..10],
+                                "Style/EmptyElse" => [4..4],
+                                **end_alignment(6..6, 12..12),
+                                **indentation_width(3..3, 5..5, 9..9, 11..11)
+                              })
+      end
+    end
+
+    context "with rescue clauses containing text too short to place the marker" do
+      let(:code) do
+        "<% begin %>\n  <%= y %>\n<% rescue A %>\n  <%= x %>a\n<% rescue B %>\n  <%= x %>b\n<% end %>\n" \
+          "<% items.each do %>\n  <%= y %>\n<% rescue A %>\n  <%= x %>a\n<% else %>\n  <%= x %>b\n<% end %>"
+      end
+
+      it "disables Lint/DuplicateBranch at the rescue and else tags except the first branches" do
+        expect(subject).to eq({
+                                "Lint/DuplicateBranch" => [5..5, 12..12],
+                                "Lint/SuppressedException" => [3..3, 5..5, 10..10],
+                                "Style/EmptyElse" => [12..12],
+                                "Layout/BlockAlignment" => [14..14],
+                                **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11, 13..13)
+                              })
+      end
+    end
+
+    context "with if branches containing nested conditionals with text too short to place the marker" do
+      let(:code) do
+        "<% if a %>\n  <% if b %>\n    <%= x %>a\n  <% end %>\n" \
+          "<% else %>\n  <% if b %>\n    <%= x %>b\n  <% end %>\n<% end %>"
+      end
+
+      it "disables Lint/DuplicateBranch at the else tag of the outer conditional" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [2..2, 6..6],
+                                "Lint/DuplicateBranch" => [5..5],
+                                **conditional_cops(1..1, 2..2, 6..6),
+                                **end_alignment(9..9, 4..4, 8..8),
+                                **indentation_width(2..2, 3..3, 6..6, 7..7)
+                              })
+      end
+    end
+
+    context "with if branches containing HTML comments with ERB" do
+      let(:code) { "<% if a %>\n  <!-- a<%= x %> -->\n<% else %>\n  <!-- b<%= x %> -->\n<% end %>" }
+
+      it "disables Lint/DuplicateBranch at the else tag" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                "Lint/DuplicateBranch" => [3..3],
+                                "Style/EmptyElse" => [3..3],
+                                **conditional_cops(1..1),
+                                **end_alignment(5..5),
+                                **indentation_width(2..2, 4..4)
                               })
       end
     end
