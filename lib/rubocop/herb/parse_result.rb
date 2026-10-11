@@ -9,12 +9,13 @@ module RuboCop
     # Contains the parsed AST, collected ERB locations, and precomputed data
     # needed for rendering. Logic is minimal - mostly data access and simple queries.
     ParseResult = Data.define(
-      :source,         #: Source
-      :ast,            #: ::Herb::ParseResult
-      :erb_locations,  #: Hash[Integer, ErbLocation]
-      :erb_positions,  #: Array[Integer] -- start positions of the ERB locations in ascending order
-      :tags,           #: Hash[Integer, Tag]
-      :disabled_cops   #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
+      :source,          #: Source
+      :ast,             #: ::Herb::ParseResult
+      :erb_locations,   #: Hash[Integer, ErbLocation]
+      :erb_positions,   #: Array[Integer] -- start positions of the ERB locations in ascending order
+      :erb_tag_ranges,  #: Array[CharRange] -- character ranges of ERB tags (from "<%" to "%>") sorted by position
+      :tags,            #: Hash[Integer, Tag]
+      :disabled_cops    #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
     )
 
     # Methods are defined by reopening the class (not in a Data.define block)
@@ -63,19 +64,6 @@ module RuboCop
       def erb_location_at(index) #: ErbLocation?
         pos = erb_positions[index]
         pos && erb_locations[pos]
-      end
-
-      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
-      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
-      # or closing, so its content is used instead
-      def erb_tag_ranges #: Array[CharRange]
-        ranges = erb_locations.values.map do |loc|
-          node = loc.node #: erb_node
-          from = (node.tag_opening || node.content).not_nil!.range.from
-          to = (node.tag_closing || node.content).not_nil!.range.to
-          NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), source)
-        end
-        ranges.sort_by(&:from)
       end
     end
   end

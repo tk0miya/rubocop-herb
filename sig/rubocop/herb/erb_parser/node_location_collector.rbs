@@ -12,14 +12,16 @@ module RuboCop
 
         attr_reader erb_positions(): Array[Integer]
 
+        attr_reader erb_tag_ranges(): Array[CharRange]
+
         attr_reader tags(): Hash[Integer, Tag]
 
-        def self.new: (Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Hash[Integer, Tag] tags) -> instance
-                    | (erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], tags: Hash[Integer, Tag]) -> instance
+        def self.new: (Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Array[CharRange] erb_tag_ranges, Hash[Integer, Tag] tags) -> instance
+                    | (erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_tag_ranges: Array[CharRange], tags: Hash[Integer, Tag]) -> instance
 
-        def self.members: () -> [ :erb_locations, :erb_positions, :tags ]
+        def self.members: () -> [ :erb_locations, :erb_positions, :erb_tag_ranges, :tags ]
 
-        def members: () -> [ :erb_locations, :erb_positions, :tags ]
+        def members: () -> [ :erb_locations, :erb_positions, :erb_tag_ranges, :tags ]
       end
 
       # Collect ERB locations and tags from a parse result
@@ -39,6 +41,11 @@ module RuboCop
 
       # @rbs source: Source
       def initialize: (source: Source) -> void
+
+      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      def erb_tag_ranges: () -> Array[CharRange]
 
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes: (::Herb::AST::Node node) -> void

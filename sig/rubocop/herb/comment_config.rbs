@@ -13,6 +13,8 @@ module RuboCop
     class CommentConfig < ::RuboCop::CommentConfig
       attr_reader disabled_cops: Hash[String, Array[Range[Integer]]]
 
+      @disabled_lines: Hash[String, Set[Integer]]
+
       # @rbs processed_source: ::RuboCop::AST::ProcessedSource
       # @rbs disabled_cops: Hash[String, Array[Range[Integer]]] -- line ranges (1-based) where each cop is disabled
       def initialize: (::RuboCop::AST::ProcessedSource processed_source, ?disabled_cops: Hash[String, Array[Range[Integer]]]) -> void
@@ -23,6 +25,13 @@ module RuboCop
       # @rbs first_line: Integer
       # @rbs last_line: Integer
       def cop_enabled_at_lines?: (::RuboCop::Cop::Base | String cop, Integer first_line, Integer last_line) -> bool
+
+      private
+
+      # The lines where the cop is disabled
+      # Converted from the line ranges once, as the cop is checked for each offense
+      # @rbs cop_name: String
+      def disabled_lines: (String cop_name) -> Set[Integer]
     end
   end
 end

@@ -28,9 +28,10 @@ module RuboCop
 
       # Result of collecting node locations
       Result = Data.define(
-        :erb_locations,  #: Hash[Integer, ErbLocation]
-        :erb_positions,  #: Array[Integer] -- start positions of the ERB locations in ascending order
-        :tags            #: Hash[Integer, Tag]
+        :erb_locations,   #: Hash[Integer, ErbLocation]
+        :erb_positions,   #: Array[Integer] -- start positions of the ERB locations in ascending order
+        :erb_tag_ranges,  #: Array[CharRange] -- character ranges of ERB tags (from "<%" to "%>") sorted by position
+        :tags             #: Hash[Integer, Tag]
       )
 
       # Collect ERB locations and tags from a parse result
@@ -47,6 +48,7 @@ module RuboCop
         Result.new(
           erb_locations: collector.erb_locations,
           erb_positions: collector.erb_positions,
+          erb_tag_ranges: collector.erb_tag_ranges,
           tags: erb_tags.merge(collector.tags)
         )
       end
@@ -66,6 +68,19 @@ module RuboCop
         @source = source
 
         super()
+      end
+
+      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      def erb_tag_ranges #: Array[CharRange]
+        ranges = erb_locations.values.map do |loc|
+          node = loc.node #: erb_node
+          from = (node.tag_opening || node.content).not_nil!.range.from
+          to = (node.tag_closing || node.content).not_nil!.range.to
+          NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), source)
+        end
+        ranges.sort_by(&:from)
       end
 
       # @rbs node: ::Herb::AST::Node
