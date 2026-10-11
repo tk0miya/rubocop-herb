@@ -12,6 +12,7 @@ module RuboCop
       :source,           #: Source
       :ast,              #: ::Herb::ParseResult
       :erb_locations,    #: Hash[Integer, ErbLocation]
+      :erb_positions,    #: Array[Integer] -- start positions of the ERB locations in ascending order
       :erb_max_columns,  #: Hash[Integer, Integer]
       :tags,             #: Hash[Integer, Tag]
       :disabled_cops     #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
@@ -32,7 +33,8 @@ module RuboCop
       # Check if a range contains any ERB nodes
       # @rbs range: CharRange
       def contains_erb?(range) #: bool
-        erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
+        pos = erb_positions.bsearch { _1 >= range.from }
+        !pos.nil? && pos < range.to
       end
 
       # Get all ERB comment nodes

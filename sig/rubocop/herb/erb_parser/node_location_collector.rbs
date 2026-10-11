@@ -10,16 +10,18 @@ module RuboCop
       class Result < Data
         attr_reader erb_locations(): Hash[Integer, ErbLocation]
 
+        attr_reader erb_positions(): Array[Integer]
+
         attr_reader erb_max_columns(): Hash[Integer, Integer]
 
         attr_reader tags(): Hash[Integer, Tag]
 
-        def self.new: (Hash[Integer, ErbLocation] erb_locations, Hash[Integer, Integer] erb_max_columns, Hash[Integer, Tag] tags) -> instance
-                    | (erb_locations: Hash[Integer, ErbLocation], erb_max_columns: Hash[Integer, Integer], tags: Hash[Integer, Tag]) -> instance
+        def self.new: (Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Hash[Integer, Integer] erb_max_columns, Hash[Integer, Tag] tags) -> instance
+                    | (erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_max_columns: Hash[Integer, Integer], tags: Hash[Integer, Tag]) -> instance
 
-        def self.members: () -> [ :erb_locations, :erb_max_columns, :tags ]
+        def self.members: () -> [ :erb_locations, :erb_positions, :erb_max_columns, :tags ]
 
-        def members: () -> [ :erb_locations, :erb_max_columns, :tags ]
+        def members: () -> [ :erb_locations, :erb_positions, :erb_max_columns, :tags ]
       end
 
       # Collect ERB locations and tags from a parse result
@@ -30,6 +32,8 @@ module RuboCop
       attr_reader source: Source
 
       attr_reader erb_locations: Hash[Integer, ErbLocation]
+
+      attr_reader erb_positions: Array[Integer]
 
       attr_reader erb_max_columns: Hash[Integer, Integer]
 
@@ -80,6 +84,11 @@ module RuboCop
       # Record the location of an ERB node
       # @rbs node: erb_node
       def record_erb_location: (erb_node node) -> void
+
+      # Insert the position keeping erb_positions sorted
+      # ERB nodes are usually visited in the order of their positions, so the position is appended in most cases
+      # @rbs pos: Integer
+      def record_erb_position: (Integer pos) -> void
 
       # @rbs type: ErbLocation::erb_node_type
       # @rbs line: Integer
