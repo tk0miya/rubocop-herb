@@ -38,5 +38,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "herb", ">= 0.11.0"
   spec.add_dependency "lint_roller", ">= 1.1.0"
   spec.add_dependency "not_nilable"
+  spec.add_dependency "prism"
   spec.add_dependency "rubocop", ">= 1.90.0"
 end

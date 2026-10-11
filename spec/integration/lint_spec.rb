@@ -54,6 +54,36 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag" do
+    let(:source) { "<% x = 1 # rubocop:disable Lint/UselessAssignment %>\n" }
+
+    it "applies the directive" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map(&:cop_name)
+      expect(offenses).to eq []
+    end
+  end
+
+  context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
+    let(:source) { "<%= x # comment %><%= y==1 %>\n" }
+
+    it "checks the following ERB tag" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+      expect(offenses).to eq [["Layout/SpaceAroundOperators", 1, 23]]
+    end
+  end
+
+  context "when analyzing a control flow ERB tag with a trailing Ruby comment followed by its end tag" do
+    let(:source) { "<% if x # comment %>a<% end %>\n" }
+
+    it "does not trigger Lint/Syntax" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map(&:cop_name)
+      expect(offenses).to eq []
+    end
+  end
+
   context "when analyzing ERB with mixed line endings" do
     let(:source) { "<div>\n  <%= a %>\r\n</div>\n" }
 
@@ -923,7 +953,7 @@ RSpec.describe "Lint with RuboCop", type: :feature do
             foo(s) %>
         <% end %>
         <% unless t %>
-          <% # note %>
+          <% # comment %>
               <%= t %>
         <% end %>
         <div class="a">

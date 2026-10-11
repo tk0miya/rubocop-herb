@@ -41,12 +41,15 @@ module RuboCop
         erb_locations.values.select(&:comment?).map(&:node) #: Array[::Herb::AST::ERBCommentNode]
       end
 
-      # Whether ERB nodes (except comments) follow the ERB comment on the line where the comment ends
-      # @rbs node: ::Herb::AST::ERBCommentNode
+      # Whether ERB nodes (except comments) follow the ERB tag of the node on the line where the tag ends
+      # @rbs node: erb_node
       def followed_by_erb?(node) #: bool
-        line = node.location.end.line
-        comment_end = NodeRange.compute_char_range(node, source).to
-        index = erb_positions.bsearch_index { _1 >= comment_end } || erb_positions.size
+        tag_closing = node.tag_closing
+        return false unless tag_closing
+
+        line = tag_closing.location.end.line
+        tag_end = NodeRange.byte_range_to_char_range(tag_closing.range, source).to
+        index = erb_positions.bsearch_index { _1 >= tag_end } || erb_positions.size
         while (location = erb_location_at(index)) && location.line == line
           return true unless location.comment?
 
