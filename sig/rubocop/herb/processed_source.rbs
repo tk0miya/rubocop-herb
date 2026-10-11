@@ -39,6 +39,12 @@ module RuboCop
       def parse: (String ruby_code, Float ruby_version, Symbol parser_engine, untyped prism_result) -> void
 
       def transform_ast: () -> void
+
+      # Replace the source of the buffer, which is immutable once populated.
+      # The buffer also keeps a UTF-32 copy of non-ASCII source to slice it (`@slice_source`),
+      # so it is cleared and repopulated in the same way as RuboCop populates the buffer.
+      # @rbs source: String
+      def replace_buffer_source: (String source) -> void
     end
   end
 end
