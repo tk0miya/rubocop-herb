@@ -31,12 +31,12 @@ module RuboCop
       # @rbs!
       #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
-      #   def erb_max_columns: () -> Hash[Integer, Integer]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
+      #   def followed_by_erb?: (::Herb::AST::ERBCommentNode node) -> bool
       #   def byteslice: (::Herb::Range) -> String
 
-      def_delegators :parse_result, :source, :erb_locations, :erb_max_columns, :erb_comment_nodes,
-                     :byteslice
+      def_delegators :parse_result, :source, :erb_locations, :erb_comment_nodes,
+                     :followed_by_erb?, :byteslice
 
       # @rbs parse_result: ParseResult
       def initialize(parse_result) #: void
@@ -227,21 +227,12 @@ module RuboCop
       end
 
       # Render collected comments that can be safely converted to Ruby comments
+      # A comment followed by ERB nodes on the same line is not rendered,
+      # because Ruby's # comment extends to end of line and would comment out the code
       def render_comments #: void
         erb_comment_nodes.each do |node|
-          render_erb_comment_node(node) if renderable_comment?(node)
+          render_erb_comment_node(node) unless followed_by_erb?(node)
         end
-      end
-
-      # Check if this comment can be rendered as a Ruby comment without breaking code
-      # Comments are not renderable when there's code to the right on the same line,
-      # because Ruby's # comment extends to end of line and would comment out the code
-      # @rbs node: ::Herb::AST::ERBCommentNode
-      def renderable_comment?(node) #: bool
-        line = node.location.end.line
-        return true unless erb_max_columns.key?(line)
-
-        node.location.start.column >= erb_max_columns[line].not_nil!
       end
 
       # @rbs node: ::Herb::AST::ERBCommentNode
