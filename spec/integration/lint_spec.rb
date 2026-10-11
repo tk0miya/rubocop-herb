@@ -8,6 +8,685 @@ require "tempfile"
 require "yaml"
 
 RSpec.describe "Lint with RuboCop", type: :feature do
+  context "with a single cop", :config do
+    include_context "with ERB source"
+
+    context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Lint::UselessAssignment }
+
+      it "applies the directive" do
+        expect_no_offenses(<<~ERB)
+          <% x = 1 # rubocop:disable Lint/UselessAssignment %>
+        ERB
+      end
+    end
+
+    context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
+      let(:cop_class) { RuboCop::Cop::Layout::SpaceAroundOperators }
+
+      it "checks the following ERB tag" do
+        expect_offense(<<~ERB)
+          <%= x # comment %><%= y==1 %>
+                                 ^^ Surrounding space missing for operator `==`.
+        ERB
+      end
+    end
+
+    context "when analyzing a block whose body is an ERB comment followed by HTML on the same line" do
+      let(:cop_class) { RuboCop::Cop::Lint::UnusedBlockArgument }
+
+      it "triggers Lint/UnusedBlockArgument as for the body without the comment" do
+        expect_offense(<<~ERB)
+          <% items.each do |item| %>
+                            ^^^^ Unused block argument - `item`. You can omit the argument if you don't care about it.
+            <%# comment %><li>x</li>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing if-else-end with output tags" do
+      let(:cop_class) { RuboCop::Cop::Style::ConditionalAssignment }
+
+      it "does not trigger Style/ConditionalAssignment" do
+        expect_no_offenses(<<~ERB)
+          <% if condition %>
+            <%= value1 %>
+          <% else %>
+            <%= value2 %>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing if-else-end with output tags wrapped in HTML elements" do
+      let(:cop_class) { RuboCop::Cop::Style::ConditionalAssignment }
+
+      it "does not trigger Style/ConditionalAssignment" do
+        expect_no_offenses(<<~ERB)
+          <% if page.current? %>
+            <li class="active"><%= content_tag :a, page %></li>
+          <% else %>
+            <li><%= link_to page, url %></li>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing if block with output tag followed by non-output tag" do
+      let(:cop_class) { RuboCop::Cop::Lint::Void }
+
+      it "does not trigger Lint/Void" do
+        expect_no_offenses(<<~ERB)
+          <% if foo? %>
+            <%= 'close' if bar? %>
+            <% :foo %>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing each block with output tags with HTML close tags" do
+      let(:cop_class) { RuboCop::Cop::Lint::Void }
+
+      it "does not trigger Lint/Void" do
+        expect_no_offenses(<<~ERB)
+          <ul>
+            <% items.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+        ERB
+      end
+    end
+
+    context "when analyzing if block with output tag followed by another output tag" do
+      let(:cop_class) { RuboCop::Cop::Lint::Void }
+
+      it "does not trigger Lint/Void" do
+        expect_no_offenses(<<~ERB)
+          <div>
+            <% if @error %>
+              <div><%= @error %></div>
+            <% end %>
+            <div><%= render 'index' %></div>
+          </div>
+        ERB
+      end
+    end
+
+    context "when analyzing ERB with multi-byte characters in comments" do
+      let(:cop_class) { RuboCop::Cop::Layout::SpaceBeforeFirstArg }
+
+      it "does not trigger Layout/SpaceBeforeFirstArg" do
+        expect_no_offenses(<<~ERB)
+          <div class="form">
+            <%# 日本語コメント %>
+            <div class="inner">
+              <input value="<%= foo.bar %>" />
+              <label><%= baz(qux: @value) %></label>
+            </div>
+          </div>
+        ERB
+      end
+    end
+
+    context "when analyzing conditional branches containing only HTML" do
+      let(:cop_class) { RuboCop::Cop::Lint::EmptyConditionalBody }
+
+      it "does not trigger Lint/EmptyConditionalBody" do
+        expect_no_offenses(<<~ERB)
+          <% if a %>
+            <p>a</p>
+          <% elsif b %>
+            <!-- b -->
+          <% end %>
+          <% unless c %>
+            c
+          <% end %>
+          <% if d %>
+            <a href="/">
+          <% end %>
+          d
+          <% if d %>
+            </a>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing conditional branches without any content" do
+      let(:cop_class) { RuboCop::Cop::Lint::EmptyConditionalBody }
+
+      it "triggers Lint/EmptyConditionalBody" do
+        expect_offense(<<~ERB)
+          <% if a %>
+             ^^^^^^^ Avoid `if` branches without a body.
+          <% elsif b %>
+            <%= b %>
+          <% end %>
+          <% unless c %>
+             ^^^^^^^^^^^ Avoid `unless` branches without a body.
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing an empty if branch followed by an elsif branch containing only HTML" do
+      let(:cop_class) { RuboCop::Cop::Lint::EmptyConditionalBody }
+
+      it "triggers Lint/EmptyConditionalBody only for the empty if branch" do
+        expect_offense(<<~ERB)
+          <% if a %>
+             ^^^^^^^ Avoid `if` branches without a body.
+          <% elsif b %>
+            <p>b</p>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing rescue and ensure clauses containing only HTML" do
+      let(:source) do
+        <<~ERB
+          <% begin %>
+            <p>x</p>
+          <% rescue StandardError %>
+            e
+          <% ensure %>
+            d
+          <% end %>
+        ERB
+      end
+
+      context "with Lint/SuppressedException" do
+        let(:cop_class) { RuboCop::Cop::Lint::SuppressedException }
+
+        it "does not trigger Lint/SuppressedException" do
+          expect_no_offenses(source)
+        end
+      end
+
+      context "with Lint/EmptyEnsure" do
+        let(:cop_class) { RuboCop::Cop::Lint::EmptyEnsure }
+
+        it "does not trigger Lint/EmptyEnsure" do
+          expect_no_offenses(source)
+        end
+      end
+    end
+
+    context "when analyzing rescue and ensure clauses without any content" do
+      context "with Lint/SuppressedException" do
+        let(:cop_class) { RuboCop::Cop::Lint::SuppressedException }
+
+        it "triggers Lint/SuppressedException" do
+          expect_offense(<<~ERB)
+            <% begin %>
+              <p>x</p>
+            <% rescue StandardError %>
+               ^^^^^^^^^^^^^^^^^^^^^ Do not suppress exceptions.
+            <% ensure %>
+            <% end %>
+          ERB
+        end
+      end
+
+      context "with Lint/EmptyEnsure" do
+        let(:cop_class) { RuboCop::Cop::Lint::EmptyEnsure }
+
+        it "triggers Lint/EmptyEnsure" do
+          expect_offense(<<~ERB)
+            <% begin %>
+              <p>x</p>
+            <% rescue StandardError %>
+            <% ensure %>
+               ^^^^^^ Empty `ensure` block detected.
+            <% end %>
+          ERB
+        end
+      end
+    end
+
+    context "when analyzing conditionals written across ERB tags on a single line" do
+      let(:cop_class) { RuboCop::Cop::Style::OneLineConditional }
+
+      it "does not trigger Style/OneLineConditional" do
+        expect_no_offenses(<<~ERB)
+          <% if a %>foo<% elsif b %><% end %>
+          <% if a %><%= x %><% else %><%= y %><% end %>
+          <% unless a %><%= x %><% else %><%= y %><% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing when, in and else tags written across ERB tags" do
+      context "with Style/WhenThen" do
+        let(:cop_class) { RuboCop::Cop::Style::WhenThen }
+
+        it "triggers Style/WhenThen only for the code in a single ERB tag" do
+          expect_offense(<<~ERB)
+            <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
+            <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
+            <% if a %><%= x %>
+            <% else %><%= y %><% end %>
+            <% case a when 1; b end %>
+                            ^ Do not use `when 1;`. Use `when 1 then` instead.
+            <% case a
+               in 1; b
+               end %>
+            <% if a
+                 b
+               else c
+               end %>
+          ERB
+        end
+      end
+
+      context "with Style/InPatternThen" do
+        let(:cop_class) { RuboCop::Cop::Style::InPatternThen }
+
+        it "triggers Style/InPatternThen only for the code in a single ERB tag" do
+          expect_offense(<<~ERB)
+            <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
+            <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
+            <% if a %><%= x %>
+            <% else %><%= y %><% end %>
+            <% case a when 1; b end %>
+            <% case a
+               in 1; b
+                   ^ Do not use `in 1;`. Use `in 1 then` instead.
+               end %>
+            <% if a
+                 b
+               else c
+               end %>
+          ERB
+        end
+      end
+
+      context "with Lint/ElseLayout" do
+        let(:cop_class) { RuboCop::Cop::Lint::ElseLayout }
+
+        it "triggers Lint/ElseLayout only for the code in a single ERB tag" do
+          expect_offense(<<~ERB)
+            <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
+            <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
+            <% if a %><%= x %>
+            <% else %><%= y %><% end %>
+            <% case a when 1; b end %>
+            <% case a
+               in 1; b
+               end %>
+            <% if a
+                 b
+               else c
+                    ^ Odd `else` layout detected. Did you mean to use `elsif`?
+               end %>
+          ERB
+        end
+      end
+    end
+
+    context "when analyzing a conditional written in a single ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Style::OneLineConditional }
+
+      it "triggers Style/OneLineConditional" do
+        expect_offense(<<~ERB)
+          <% if a then b else c end %>
+             ^^^^^^^^^^^^^^^^^^^^^^ Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+        ERB
+      end
+    end
+
+    context "when analyzing conditionals written across ERB tags and in a single ERB tag" do
+      context "with Style/IfWithSemicolon" do
+        let(:cop_class) { RuboCop::Cop::Style::IfWithSemicolon }
+
+        it "triggers Style/IfWithSemicolon only for the conditional in a single ERB tag" do
+          expect_offense(<<~ERB)
+            <% if a %>
+              <p>a</p>
+            <% elsif b %>
+              <p>b</p>
+            <% end %>
+            <% unless c %>
+              <%= c %>
+            <% end %>
+            <% if d; foo; end %>
+               ^^^^^^^^^^^^^^ Do not use `if d;` - use a ternary operator instead.
+          ERB
+        end
+      end
+
+      context "with Style/IfUnlessModifier" do
+        let(:cop_class) { RuboCop::Cop::Style::IfUnlessModifier }
+
+        it "triggers Style/IfUnlessModifier only for the conditional in a single ERB tag" do
+          expect_offense(<<~ERB)
+            <% if a %>
+              <p>a</p>
+            <% elsif b %>
+              <p>b</p>
+            <% end %>
+            <% unless c %>
+              <%= c %>
+            <% end %>
+            <% if d; foo; end %>
+               ^^ Favor modifier `if` usage when having a single-line body. Another good alternative is the usage of control flow `&&`/`||`.
+          ERB
+        end
+      end
+    end
+
+    context "when analyzing case statements with output tags and a conditional assignment in a single ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Style::ConditionalAssignment }
+
+      it "triggers Style/ConditionalAssignment only for the conditional in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <% case a %>
+          <% when 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case b %>
+          <% in 1 %>
+            <%= x %>
+          <% in 2 %>
+            <%= y %>
+          <% end %>
+          <% if c
+             ^^^^ Use the return of the conditional for variable assignment and comparison.
+               @z = 1
+             else
+               @z = 2
+             end %>
+        ERB
+      end
+    end
+
+    context "when analyzing multiple output tags" do
+      let(:cop_class) { RuboCop::Cop::Lint::UnderscorePrefixedVariableName }
+
+      it "does not trigger Lint/UnderscorePrefixedVariableName" do
+        expect_no_offenses(<<~ERB)
+          <%= content_for(:page_title) %>
+          <% items.each do |item| %>
+            <%= item %>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing yield ERB tag inside HTML element" do
+      let(:cop_class) { RuboCop::Cop::Lint::EmptyBlock }
+
+      it "does not trigger Lint/EmptyBlock" do
+        expect_no_offenses(<<~ERB)
+          <div class="portlet-body form">
+            <div class="form-body"><%= yield if block_given? %></div>
+          </div>
+        ERB
+      end
+    end
+
+    context "when analyzing output tag inside HTML attribute" do
+      let(:cop_class) { RuboCop::Cop::Layout::SpaceAroundOperators }
+
+      it "does not trigger Layout/SpaceAroundOperators" do
+        expect_no_offenses(<<~ERB)
+          <th class="<%= class_name %>"><%= content %></th>
+        ERB
+      end
+    end
+
+    context "when analyzing block with text node inside" do
+      let(:cop_class) { RuboCop::Cop::Style::NumberedParameters }
+
+      it "does not trigger Style/NumberedParameters" do
+        expect_no_offenses(<<~ERB)
+          <%= items.each do %>hello<% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing if-else with HTML elements with attributes" do
+      let(:cop_class) { RuboCop::Cop::Style::ConditionalAssignment }
+
+      it "does not trigger Style/ConditionalAssignment" do
+        expect_no_offenses(<<~ERB)
+          <% if condition %>
+            <div class="foo"><%= @name %></div>
+          <% else %>
+            <div class="bar"><%= @other %></div>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing local variable assigned in HTML element and used after it" do
+      let(:cop_class) { RuboCop::Cop::Lint::UselessAssignment }
+
+      it "does not trigger Lint/UselessAssignment" do
+        expect_no_offenses(<<~ERB)
+          <div class="box">
+            <% total = items.sum %>
+          </div>
+          <%= total %>
+        ERB
+      end
+    end
+
+    context "when analyzing if-else with HTML elements with attributes followed by ERB" do
+      let(:cop_class) { RuboCop::Cop::Style::ConditionalAssignment }
+
+      it "does not trigger Style/ConditionalAssignment" do
+        expect_no_offenses(<<~ERB)
+          <% if condition %>
+            <div class="foo"><%= @name %></div>
+            <%= @extra %>
+          <% else %>
+            <div class="bar"><%= @other %></div>
+            <%= @extra2 %>
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing control flows whose branches output values followed by HTML" do
+      let(:cop_class) { RuboCop::Cop::Lint::Void }
+
+      it "does not trigger Lint/Void" do
+        expect_no_offenses(<<~ERB)
+          <% if a %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case b %>
+          <% when 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% case c %>
+          <% in 1 %>
+            <%= x %>
+          <% else %>
+            <%= y %>
+          <% end %>
+          <% begin %>
+            <%= x %>
+          <% ensure %>
+            <%= y %>
+          <% end %>
+          <p>z</p>
+        ERB
+      end
+    end
+
+    context "when analyzing conditionals whose branches output the condition" do
+      let(:cop_class) { RuboCop::Cop::Style::RedundantCondition }
+
+      it "triggers Style/RedundantCondition only for the conditional in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <% if a %>
+            <p><%= a %></p>
+          <% else %>
+            <p><%= b %></p>
+          <% end %>
+          <% if c %>
+            <%= c %>
+          <% end %>
+          <%= if d
+              ^^^^ Use double pipes `||` instead.
+                d
+              else
+                e
+              end %>
+        ERB
+      end
+    end
+
+    context "when analyzing conditionals at the end of blocks" do
+      let(:cop_class) { RuboCop::Cop::Style::Next }
+
+      it "triggers Style/Next only for the conditional in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <ul>
+            <% items.each do |item| %>
+              <% if item.visible? %>
+                <li><%= item.a %></li>
+                <li><%= item.b %></li>
+                <li><%= item.c %></li>
+              <% end %>
+            <% end %>
+          </ul>
+          <% others.each do |other|
+               if other.valid?
+               ^^^^^^^^^^^^^^^ Use `next` to skip iteration.
+                 save(other)
+                 notify(other)
+                 log(other)
+               end
+             end %>
+        ERB
+      end
+    end
+
+    context "when analyzing blocks written across ERB tags" do
+      let(:cop_class) { RuboCop::Cop::Style::BlockDelimiters }
+
+      it "triggers Style/BlockDelimiters only for the multi-line brace block and the block in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <p class="a"><%= x %></p>
+          <% items.each do |item| %><b><%= item %></b><% end %>
+          <%= form_with do |f| %><%= f.text_field :name %><% end %>
+          <% others.each do |other| %>
+            <%= other %>
+          <% end %>
+          <% foos.each { |foo| %>
+                       ^ Avoid using `{...}` for multi-line blocks.
+            <%= foo %>
+          <% } %>
+          <% bars.each do |bar| save(bar) end %>
+                       ^^ Prefer `{...}` over `do...end` for single-line blocks.
+        ERB
+      end
+    end
+
+    context "when analyzing conditionals and loops whose end tags follow HTML" do
+      let(:cop_class) { RuboCop::Cop::Layout::EndAlignment }
+
+      it "triggers Layout/EndAlignment only for the conditional in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <% if a %>
+            <p>a</p><% end %>
+          <% case b %>
+          <% when 1 %>
+            <p>b</p><% end %>
+          <% while c %>
+            <p>c</p>
+            <p>c</p><% end %>
+          <% @d = if d
+                    1
+                  else
+                    2
+               end %>
+               ^^^ `end` at 13, 5 is not aligned with `if` at 9, 8.
+        ERB
+      end
+    end
+
+    context "when analyzing blocks whose end tags follow the HTML structure" do
+      let(:cop_class) { RuboCop::Cop::Layout::BlockAlignment }
+
+      it "triggers Layout/BlockAlignment only for the block in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <%= form_with model: @user do |f| %>
+            <%= f.text_field :name %>
+              <% end %>
+          <div class="a">
+            <%= x %>
+              </div>
+          <% items.each do |item| %>
+            <% item.children.each do |child|
+                 child.save(item)
+            end %>
+            ^^^ `end` at 10, 2 is not aligned with `item.children.each do |child|` at 8, 5.
+          <% end %>
+        ERB
+      end
+    end
+
+    context "when analyzing bodies indented by the HTML structure" do
+      let(:cop_class) { RuboCop::Cop::Layout::IndentationWidth }
+
+      it "triggers Layout/IndentationWidth only for the conditional in a single ERB tag" do
+        expect_offense(<<~ERB)
+          <ul>
+            <% items.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+          <% if a %>
+                <%= a %>
+          <% else %>
+               <p>
+            <%= c %>
+               </p>
+          <% end %>
+          <% while q %>
+           <%# comment %>
+                <%= q %>
+          <% end %>
+          <% until r %>
+           <%# comment %>
+                <p>r</p>
+          <% end %>
+          <% unless s %>
+            <%
+              foo(s) %>
+          <% end %>
+          <% unless t %>
+            <% # comment %>
+                <%= t %>
+          <% end %>
+          <div class="a">
+                <%= v %>
+          </div>
+          <% if z
+                 foo
+             ^^^^ Use 2 (not 4) spaces for indentation.
+             else
+               bar
+             end %>
+        ERB
+      end
+    end
+  end
+
   context "with the whole run of RuboCop" do
     let(:runner) { RuboCop::Lsp::StdinRunner.new(config_store) }
     let(:config_store) do
@@ -35,506 +714,10 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       RuboCop::Lsp::StdinRunner.ruby_extractors.shift
     end
 
-    context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag" do
-      let(:source) { "<% x = 1 # rubocop:disable Lint/UselessAssignment %>\n" }
-
-      it "applies the directive" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
-      let(:source) { "<%= x # comment %><%= y==1 %>\n" }
-
-      it "checks the following ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
-        expect(offenses).to eq [["Layout/SpaceAroundOperators", 1, 23]]
-      end
-    end
-
-    context "when analyzing a block whose body is an ERB comment followed by HTML on the same line" do
-      let(:source) do
-        <<~ERB
-          <% items.each do |item| %>
-            <%# comment %><li>x</li>
-          <% end %>
-        ERB
-      end
-
-      it "triggers Lint/UnusedBlockArgument as for the body without the comment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
-        expect(offenses).to eq [["Lint/UnusedBlockArgument", 1, 18]]
-      end
-    end
-
-    context "when analyzing if-else-end with output tags" do
-      let(:source) do
-        <<~ERB
-          <% if condition %>
-            <%= value1 %>
-          <% else %>
-            <%= value2 %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Style/ConditionalAssignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing if-else-end with output tags wrapped in HTML elements" do
-      let(:source) do
-        <<~ERB
-          <% if page.current? %>
-            <li class="active"><%= content_tag :a, page %></li>
-          <% else %>
-            <li><%= link_to page, url %></li>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Style/ConditionalAssignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing if block with output tag followed by non-output tag" do
-      let(:source) do
-        <<~ERB
-          <% if foo? %>
-            <%= 'close' if bar? %>
-            <% :foo %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Lint/Void" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing each block with output tags with HTML close tags" do
-      let(:source) do
-        <<~ERB
-          <ul>
-            <% items.each do |item| %>
-              <li><%= item %></li>
-            <% end %>
-          </ul>
-        ERB
-      end
-
-      it "does not trigger Lint/Void" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing if block with output tag followed by another output tag" do
-      let(:source) do
-        <<~ERB
-          <div>
-            <% if @error %>
-              <div><%= @error %></div>
-            <% end %>
-            <div><%= render 'index' %></div>
-          </div>
-        ERB
-      end
-
-      it "does not trigger Lint/Void" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing ERB with multi-byte characters in comments" do
-      let(:source) do
-        <<~ERB
-          <div class="form">
-            <%# 日本語コメント %>
-            <div class="inner">
-              <input value="<%= foo.bar %>" />
-              <label><%= baz(qux: @value) %></label>
-            </div>
-          </div>
-        ERB
-      end
-
-      it "does not trigger Layout/SpaceBeforeFirstArg" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing conditional branches containing only HTML" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-            <p>a</p>
-          <% elsif b %>
-            <!-- b -->
-          <% end %>
-          <% unless c %>
-            c
-          <% end %>
-          <% if d %>
-            <a href="/">
-          <% end %>
-          d
-          <% if d %>
-            </a>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Lint/EmptyConditionalBody" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing conditional branches without any content" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-          <% elsif b %>
-            <%= b %>
-          <% end %>
-          <% unless c %>
-          <% end %>
-        ERB
-      end
-
-      it "triggers Lint/EmptyConditionalBody" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1], ["Lint/EmptyConditionalBody", 5]]
-      end
-    end
-
-    context "when analyzing an empty if branch followed by an elsif branch containing only HTML" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-          <% elsif b %>
-            <p>b</p>
-          <% end %>
-        ERB
-      end
-
-      it "triggers Lint/EmptyConditionalBody only for the empty if branch" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Lint/EmptyConditionalBody", 1]]
-      end
-    end
-
-    context "when analyzing rescue and ensure clauses containing only HTML" do
-      let(:source) do
-        <<~ERB
-          <% begin %>
-            <p>x</p>
-          <% rescue StandardError %>
-            e
-          <% ensure %>
-            d
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Lint/SuppressedException and Lint/EmptyEnsure" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing rescue and ensure clauses without any content" do
-      let(:source) do
-        <<~ERB
-          <% begin %>
-            <p>x</p>
-          <% rescue StandardError %>
-          <% ensure %>
-          <% end %>
-        ERB
-      end
-
-      it "triggers Lint/SuppressedException and Lint/EmptyEnsure" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Lint/SuppressedException", 3], ["Lint/EmptyEnsure", 4]]
-      end
-    end
-
-    context "when analyzing conditionals written across ERB tags on a single line" do
-      let(:source) do
-        <<~ERB
-          <% if a %>foo<% elsif b %><% end %>
-          <% if a %><%= x %><% else %><%= y %><% end %>
-          <% unless a %><%= x %><% else %><%= y %><% end %>
-        ERB
-      end
-
-      it "does not trigger Style/OneLineConditional" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/UnlessElse", 3]]
-      end
-    end
-
-    context "when analyzing when, in and else tags written across ERB tags" do
-      let(:rubocop_config) { super().merge("Style/InPatternThen" => { "Enabled" => true }) }
-      let(:source) do
-        <<~ERB
-          <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
-          <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
-          <% if a %><%= x %>
-          <% else %><%= y %><% end %>
-          <% case a when 1; b end %>
-          <% case a
-             in 1; b
-             end %>
-          <% if a
-               b
-             else c
-             end %>
-        ERB
-      end
-
-      it "triggers Style/WhenThen, Style/InPatternThen and Lint/ElseLayout only for the code in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/WhenThen", 5], ["Style/InPatternThen", 7], ["Lint/ElseLayout", 11]]
-      end
-    end
-
-    context "when analyzing a conditional written in a single ERB tag" do
-      let(:source) { "<% if a then b else c end %>\n" }
-
-      it "triggers Style/OneLineConditional" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/OneLineConditional", 1]]
-      end
-    end
-
-    context "when analyzing conditionals written across ERB tags and in a single ERB tag" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-            <p>a</p>
-          <% elsif b %>
-            <p>b</p>
-          <% end %>
-          <% unless c %>
-            <%= c %>
-          <% end %>
-          <% if d; foo; end %>
-        ERB
-      end
-
-      it "triggers Style/IfWithSemicolon and Style/IfUnlessModifier only for the conditional in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/IfUnlessModifier", 9], ["Style/IfWithSemicolon", 9]]
-      end
-    end
-
-    context "when analyzing case statements with output tags and a conditional assignment in a single ERB tag" do
-      let(:source) do
-        <<~ERB
-          <% case a %>
-          <% when 1 %>
-            <%= x %>
-          <% else %>
-            <%= y %>
-          <% end %>
-          <% case b %>
-          <% in 1 %>
-            <%= x %>
-          <% in 2 %>
-            <%= y %>
-          <% end %>
-          <% if c
-               @z = 1
-             else
-               @z = 2
-             end %>
-        ERB
-      end
-
-      it "triggers Style/ConditionalAssignment only for the conditional in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/ConditionalAssignment", 13]]
-      end
-    end
-
     context "when analyzing block with HTML content on single line" do
       let(:source) { "<%= link_to root_path do %><span>Home</span><% end %>" }
 
       it "does not trigger Style/SingleLineDoEndBlock" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing multiple output tags" do
-      let(:source) do
-        <<~ERB
-          <%= content_for(:page_title) %>
-          <% items.each do |item| %>
-            <%= item %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Lint/UnderscorePrefixedVariableName" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing yield ERB tag inside HTML element" do
-      let(:source) do
-        <<~ERB
-          <div class="portlet-body form">
-            <div class="form-body"><%= yield if block_given? %></div>
-          </div>
-        ERB
-      end
-
-      it "does not trigger Lint/EmptyBlock" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing output tag inside HTML attribute" do
-      let(:source) { '<th class="<%= class_name %>"><%= content %></th>' }
-
-      it "does not trigger Layout/SpaceAroundOperators" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing block with text node inside" do
-      let(:source) { "<%= items.each do %>hello<% end %>" }
-
-      it "does not trigger Style/NumberedParameters" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing if-else with HTML elements with attributes" do
-      let(:source) do
-        <<~ERB
-          <% if condition %>
-            <div class="foo"><%= @name %></div>
-          <% else %>
-            <div class="bar"><%= @other %></div>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Style/ConditionalAssignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing local variable assigned in HTML element and used after it" do
-      let(:source) do
-        <<~ERB
-          <div class="box">
-            <% total = items.sum %>
-          </div>
-          <%= total %>
-        ERB
-      end
-
-      it "does not trigger Lint/UselessAssignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing if-else with HTML elements with attributes followed by ERB" do
-      let(:source) do
-        <<~ERB
-          <% if condition %>
-            <div class="foo"><%= @name %></div>
-            <%= @extra %>
-          <% else %>
-            <div class="bar"><%= @other %></div>
-            <%= @extra2 %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Style/ConditionalAssignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing control flows whose branches output values followed by HTML" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-            <%= x %>
-          <% else %>
-            <%= y %>
-          <% end %>
-          <% case b %>
-          <% when 1 %>
-            <%= x %>
-          <% else %>
-            <%= y %>
-          <% end %>
-          <% case c %>
-          <% in 1 %>
-            <%= x %>
-          <% else %>
-            <%= y %>
-          <% end %>
-          <% begin %>
-            <%= x %>
-          <% ensure %>
-            <%= y %>
-          <% end %>
-          <p>z</p>
-        ERB
-      end
-
-      it "does not trigger Lint/Void" do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
@@ -806,185 +989,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           offenses = runner.offenses.map { [_1.cop_name, _1.line] }
           expect(offenses).to eq [["Lint/EmptyWhen", 2], ["Style/EmptyElse", 3], ["Lint/EmptyBlock", 5]]
         end
-      end
-    end
-
-    context "when analyzing conditionals whose branches output the condition" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-            <p><%= a %></p>
-          <% else %>
-            <p><%= b %></p>
-          <% end %>
-          <% if c %>
-            <%= c %>
-          <% end %>
-          <%= if d
-                d
-              else
-                e
-              end %>
-        ERB
-      end
-
-      it "triggers Style/RedundantCondition only for the conditional in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/RedundantCondition", 9]]
-      end
-    end
-
-    context "when analyzing conditionals at the end of blocks" do
-      let(:source) do
-        <<~ERB
-          <ul>
-            <% items.each do |item| %>
-              <% if item.visible? %>
-                <li><%= item.a %></li>
-                <li><%= item.b %></li>
-                <li><%= item.c %></li>
-              <% end %>
-            <% end %>
-          </ul>
-          <% others.each do |other|
-               if other.valid?
-                 save(other)
-                 notify(other)
-                 log(other)
-               end
-             end %>
-        ERB
-      end
-
-      it "triggers Style/Next only for the conditional in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/Next", 11]]
-      end
-    end
-
-    context "when analyzing blocks written across ERB tags" do
-      let(:source) do
-        <<~ERB
-          <p class="a"><%= x %></p>
-          <% items.each do |item| %><b><%= item %></b><% end %>
-          <%= form_with do |f| %><%= f.text_field :name %><% end %>
-          <% others.each do |other| %>
-            <%= other %>
-          <% end %>
-          <% foos.each { |foo| %>
-            <%= foo %>
-          <% } %>
-          <% bars.each do |bar| save(bar) end %>
-        ERB
-      end
-
-      it "triggers Style/BlockDelimiters only for the multi-line brace block and the block in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Style/BlockDelimiters", 7], ["Style/BlockDelimiters", 10]]
-      end
-    end
-
-    context "when analyzing conditionals and loops whose end tags follow HTML" do
-      let(:source) do
-        <<~ERB
-          <% if a %>
-            <p>a</p><% end %>
-          <% case b %>
-          <% when 1 %>
-            <p>b</p><% end %>
-          <% while c %>
-            <p>c</p>
-            <p>c</p><% end %>
-          <% @d = if d
-                    1
-                  else
-                    2
-               end %>
-        ERB
-      end
-
-      it "triggers Layout/EndAlignment only for the conditional in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Layout/EndAlignment", 13]]
-      end
-    end
-
-    context "when analyzing blocks whose end tags follow the HTML structure" do
-      # The misaligned `end` also triggers Layout/IndentationWidth, which measures the body from `end`
-      let(:rubocop_config) { super().merge("Layout/IndentationWidth" => { "Enabled" => false }) }
-      let(:source) do
-        <<~ERB
-          <%= form_with model: @user do |f| %>
-            <%= f.text_field :name %>
-              <% end %>
-          <div class="a">
-            <%= x %>
-              </div>
-          <% items.each do |item| %>
-            <% item.children.each do |child|
-                 child.save(item)
-            end %>
-          <% end %>
-        ERB
-      end
-
-      it "triggers Layout/BlockAlignment only for the block in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Layout/BlockAlignment", 10]]
-      end
-    end
-
-    context "when analyzing bodies indented by the HTML structure" do
-      let(:source) do
-        <<~ERB
-          <ul>
-            <% items.each do |item| %>
-              <li><%= item %></li>
-            <% end %>
-          </ul>
-          <% if a %>
-                <%= a %>
-          <% else %>
-               <p>
-            <%= c %>
-               </p>
-          <% end %>
-          <% while q %>
-           <%# comment %>
-                <%= q %>
-          <% end %>
-          <% until r %>
-           <%# comment %>
-                <p>r</p>
-          <% end %>
-          <% unless s %>
-            <%
-              foo(s) %>
-          <% end %>
-          <% unless t %>
-            <% # comment %>
-                <%= t %>
-          <% end %>
-          <div class="a">
-                <%= v %>
-          </div>
-          <% if z
-                 foo
-             else
-               bar
-             end %>
-        ERB
-      end
-
-      it "triggers Layout/IndentationWidth only for the conditional in a single ERB tag" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-        expect(offenses).to eq [["Layout/IndentationWidth", 33]]
       end
     end
 
