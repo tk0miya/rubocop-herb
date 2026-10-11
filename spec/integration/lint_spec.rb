@@ -64,6 +64,16 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing ERB with lone carriage returns" do
+    let(:source) { "<div>\r  <%= x==1 %>\r</div>\n<%= y==2 %>\n" }
+
+    it "does not treat them as line breaks" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+      expect(offenses).to eq [["Layout/SpaceAroundOperators", 1, 13], ["Layout/SpaceAroundOperators", 2, 5]]
+    end
+  end
+
   context "when analyzing if-else-end with output tags" do
     let(:source) do
       <<~ERB
