@@ -25,9 +25,9 @@ module RuboCop
 
       def erb_locations: () -> Hash[Integer, ErbLocation]
 
-      def erb_max_columns: () -> Hash[Integer, Integer]
-
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
+
+      def followed_by_erb?: (::Herb::AST::ERBCommentNode node) -> bool
 
       def byteslice: (::Herb::Range) -> String
 
@@ -147,13 +147,9 @@ module RuboCop
       def render_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
       # Render collected comments that can be safely converted to Ruby comments
-      def render_comments: () -> void
-
-      # Check if this comment can be rendered as a Ruby comment without breaking code
-      # Comments are not renderable when there's code to the right on the same line,
+      # A comment followed by ERB nodes on the same line is not rendered,
       # because Ruby's # comment extends to end of line and would comment out the code
-      # @rbs node: ::Herb::AST::ERBCommentNode
-      def renderable_comment?: (::Herb::AST::ERBCommentNode node) -> bool
+      def render_comments: () -> void
 
       # @rbs node: ::Herb::AST::ERBCommentNode
       def render_erb_comment_node: (::Herb::AST::ERBCommentNode node) -> void
