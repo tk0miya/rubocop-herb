@@ -106,6 +106,26 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       end
     end
 
+    describe "erb_tag_ranges" do
+      subject(:erb_tag_ranges) { result.erb_tag_ranges.map { [_1.from, _1.to] } }
+
+      context "with ERB tags inside and outside of an element" do
+        let(:code) { "<div><%= a %></div><% b %>" }
+
+        it "collects the character ranges of the ERB tags in ascending order" do
+          expect(erb_tag_ranges).to eq [[5, 13], [19, 26]]
+        end
+      end
+
+      context "with multi-byte characters" do
+        let(:code) { "あいう<%= a %>" }
+
+        it "collects the ranges in characters" do
+          expect(erb_tag_ranges).to eq [[3, 11]]
+        end
+      end
+    end
+
     describe "tags" do
       subject(:tags) { result.tags }
 

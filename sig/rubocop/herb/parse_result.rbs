@@ -14,16 +14,18 @@ module RuboCop
 
       attr_reader erb_positions(): Array[Integer]
 
+      attr_reader erb_tag_ranges(): Array[CharRange]
+
       attr_reader tags(): Hash[Integer, Tag]
 
       attr_reader disabled_cops(): Hash[String, Array[Range[Integer]]]
 
-      def self.new: (Source source, ::Herb::ParseResult ast, Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Hash[Integer, Tag] tags, Hash[String, Array[Range[Integer]]] disabled_cops) -> instance
-                  | (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], tags: Hash[Integer, Tag], disabled_cops: Hash[String, Array[Range[Integer]]]) -> instance
+      def self.new: (Source source, ::Herb::ParseResult ast, Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Array[CharRange] erb_tag_ranges, Hash[Integer, Tag] tags, Hash[String, Array[Range[Integer]]] disabled_cops) -> instance
+                  | (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_tag_ranges: Array[CharRange], tags: Hash[Integer, Tag], disabled_cops: Hash[String, Array[Range[Integer]]]) -> instance
 
-      def self.members: () -> [ :source, :ast, :erb_locations, :erb_positions, :tags, :disabled_cops ]
+      def self.members: () -> [ :source, :ast, :erb_locations, :erb_positions, :erb_tag_ranges, :tags, :disabled_cops ]
 
-      def members: () -> [ :source, :ast, :erb_locations, :erb_positions, :tags, :disabled_cops ]
+      def members: () -> [ :source, :ast, :erb_locations, :erb_positions, :erb_tag_ranges, :tags, :disabled_cops ]
     end
 
     # Methods are defined by reopening the class (not in a Data.define block)
@@ -51,11 +53,6 @@ module RuboCop
       # Get the ERB location at the index of erb_positions
       # @rbs index: Integer
       def erb_location_at: (Integer index) -> ErbLocation?
-
-      # Character ranges of ERB tags (from "<%" to "%>") sorted by position
-      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
-      # or closing, so its content is used instead
-      def erb_tag_ranges: () -> Array[CharRange]
     end
   end
 end

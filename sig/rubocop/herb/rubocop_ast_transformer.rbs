@@ -13,8 +13,6 @@ module RuboCop
 
       attr_reader parse_result: ParseResult
 
-      @erb_tag_ranges: Array[CharRange]
-
       # @rbs parse_result: ParseResult
       def initialize: (ParseResult parse_result) -> void
 
@@ -37,9 +35,6 @@ module RuboCop
       # Check if the code at the position is rendered from HTML (i.e. outside of ERB tags)
       # @rbs pos: Integer
       def html_code?: (Integer pos) -> bool
-
-      # Memoized ParseResult#erb_tag_ranges
-      def erb_tag_ranges: () -> Array[CharRange]
 
       # Build a new location map with HTML source range
       # @rbs node: Parser::AST::Node
