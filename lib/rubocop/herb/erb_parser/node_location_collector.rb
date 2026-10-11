@@ -29,6 +29,7 @@ module RuboCop
       # Result of collecting node locations
       Result = Data.define(
         :erb_locations,    #: Hash[Integer, ErbLocation]
+        :erb_positions,    #: Array[Integer] -- start positions of the ERB locations in ascending order
         :erb_max_columns,  #: Hash[Integer, Integer] -- line => max column (character-based, from Herb)
         :tags              #: Hash[Integer, Tag]
       )
@@ -46,6 +47,7 @@ module RuboCop
 
         Result.new(
           erb_locations: collector.erb_locations,
+          erb_positions: collector.erb_positions,
           erb_max_columns: collector.erb_max_columns,
           tags: erb_tags.merge(collector.tags)
         )
@@ -53,6 +55,7 @@ module RuboCop
 
       attr_reader :source #: Source
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
+      attr_reader :erb_positions #: Array[Integer] -- start positions of the ERB locations in ascending order
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
       attr_reader :tags #: Hash[Integer, Tag]
       attr_reader :element_tags #: Set[::Herb::AST::Node?] -- open and close tags wrapped by elements
@@ -60,6 +63,7 @@ module RuboCop
       # @rbs source: Source
       def initialize(source:) #: void
         @erb_locations = {}
+        @erb_positions = []
         @erb_max_columns = {}
         @tags = {}
         @element_tags = Set.new.compare_by_identity
@@ -139,8 +143,17 @@ module RuboCop
         line = node.location.start.line
         column = node.location.start.column
 
+        record_erb_position(range.from) unless erb_locations.key?(range.from)
         erb_locations[range.from] = ErbLocation.new(type:, node:, range:, line:, column:)
         update_erb_max_columns(type, line, column)
+      end
+
+      # Insert the position keeping erb_positions sorted
+      # ERB nodes are usually visited in the order of their positions, so the position is appended in most cases
+      # @rbs pos: Integer
+      def record_erb_position(pos) #: void
+        index = erb_positions.bsearch_index { _1 > pos } || erb_positions.size
+        erb_positions.insert(index, pos)
       end
 
       # @rbs type: ErbLocation::erb_node_type
@@ -167,7 +180,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def contains_erb?(node) #: bool
         range = NodeRange.compute_char_range(node, source)
-        erb_locations.keys.any? { _1 >= range.from && _1 < range.to }
+        pos = erb_positions.bsearch { _1 >= range.from }
+        !pos.nil? && pos < range.to
       end
 
       # Record tag info for HTML elements

@@ -86,6 +86,26 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       end
     end
 
+    describe "erb_positions" do
+      subject(:erb_positions) { result.erb_positions }
+
+      context "with ERB tags inside and outside of an element" do
+        let(:code) { "<%= a %><div><%= b %></div><%= c %>" }
+
+        it "collects the start positions of the ERB tags in ascending order" do
+          expect(erb_positions).to eq [0, 13, 27]
+        end
+      end
+
+      context "with an open tag containing ERB visited twice (open and close tags in separate conditionals)" do
+        let(:code) { "<% if a %><a href=\"<%= u %>\"><% end %>x<% if a %></a><% end %>" }
+
+        it "collects each start position only once" do
+          expect(erb_positions).to eq [0, 19, 29, 39, 53]
+        end
+      end
+    end
+
     describe "erb_max_columns" do
       subject(:erb_max_columns) { result.erb_max_columns }
 

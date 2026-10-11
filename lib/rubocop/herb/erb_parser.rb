@@ -28,6 +28,7 @@ module RuboCop
           source:,
           ast:,
           erb_locations: result.erb_locations,
+          erb_positions: result.erb_positions,
           erb_max_columns: result.erb_max_columns,
           tags: result.tags,
           disabled_cops: DisabledCopsCollector.collect(ast)
