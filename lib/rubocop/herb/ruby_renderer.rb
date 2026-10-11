@@ -30,12 +30,11 @@ module RuboCop
 
       # @rbs!
       #   def source: () -> Source
-      #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
       #   def followed_by_erb?: (erb_node node) -> bool
       #   def byteslice: (::Herb::Range) -> String
 
-      def_delegators :parse_result, :source, :erb_locations, :erb_comment_nodes,
+      def_delegators :parse_result, :source, :erb_comment_nodes,
                      :followed_by_erb?, :byteslice
 
       # @rbs parse_result: ParseResult

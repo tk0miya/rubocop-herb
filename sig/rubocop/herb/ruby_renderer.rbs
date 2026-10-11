@@ -23,8 +23,6 @@ module RuboCop
 
       def source: () -> Source
 
-      def erb_locations: () -> Hash[Integer, ErbLocation]
-
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
 
       def followed_by_erb?: (erb_node node) -> bool
