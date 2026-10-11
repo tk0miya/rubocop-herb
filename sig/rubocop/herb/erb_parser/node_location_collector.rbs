@@ -2,8 +2,7 @@
 
 module RuboCop
   module Herb
-    # Visitor that collects ERB locations in a single AST traversal.
-    # Also collects HTML tags when html_visualization is enabled.
+    # Visitor that collects ERB locations and HTML tags in a single AST traversal.
     class NodeLocationCollector < ::Herb::Visitor
       NODE_TYPE_MAP: untyped
 
@@ -26,12 +25,9 @@ module RuboCop
       # Collect ERB locations and tags from a parse result
       # @rbs source: Source
       # @rbs ast: ::Herb::ParseResult
-      # @rbs html_visualization: bool
-      def self.collect: (Source source, ::Herb::ParseResult ast, ?html_visualization: bool) -> Result
+      def self.collect: (Source source, ::Herb::ParseResult ast) -> Result
 
       attr_reader source: Source
-
-      attr_reader html_visualization: bool
 
       attr_reader erb_locations: Hash[Integer, ErbLocation]
 
@@ -40,23 +36,22 @@ module RuboCop
       attr_reader tags: Hash[Integer, Tag]
 
       # @rbs source: Source
-      # @rbs html_visualization: bool
-      def initialize: (source: Source, html_visualization: bool) -> void
+      def initialize: (source: Source) -> void
 
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes: (::Herb::AST::Node node) -> void
 
-      # Visit HTML element nodes and collect tag info when html_visualization is enabled
+      # Visit HTML element nodes and collect tag info
       # super is called first to traverse children and collect ERB locations,
       # then we check if this element contains ERB to decide which tags to record
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
 
-      # Visit HTML text nodes and collect tag info when html_visualization is enabled
+      # Visit HTML text nodes and collect tag info
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
 
-      # Visit HTML comment nodes and collect tag info when html_visualization is enabled
+      # Visit HTML comment nodes and collect tag info
       # super is called first to traverse children and collect ERB locations,
       # then we check if this comment contains ERB to decide whether to record tag info.
       # Comments containing ERB are not recorded (they are visited normally to traverse children)

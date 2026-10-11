@@ -9,13 +9,11 @@ module RuboCop
       # Parse ERB code and return a ParseResult
       # @rbs path: String
       # @rbs code: String
-      # @rbs html_visualization: bool
-      def self.parse: (String path, String code, ?html_visualization: bool) -> ParseResult
+      def self.parse: (String path, String code) -> ParseResult
 
       # @rbs path: String
       # @rbs code: String
-      # @rbs html_visualization: bool
-      def parse: (String path, String code, ?html_visualization: bool) -> ParseResult
+      def parse: (String path, String code) -> ParseResult
     end
   end
 end

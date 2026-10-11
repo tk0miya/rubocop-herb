@@ -15,14 +15,11 @@ module RuboCop
 
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
-      # @rbs html_visualization: bool
-      def self.render: (ParseResult parse_result, ?html_visualization: bool) -> String
+      def self.render: (ParseResult parse_result) -> String
 
       attr_reader ruby_code: String
 
       attr_reader parse_result: ParseResult
-
-      attr_reader html_visualization: bool
 
       def source: () -> Source
 
@@ -35,8 +32,7 @@ module RuboCop
       def byteslice: (::Herb::Range) -> String
 
       # @rbs parse_result: ParseResult
-      # @rbs html_visualization: bool
-      def initialize: (ParseResult parse_result, ?html_visualization: bool) -> void
+      def initialize: (ParseResult parse_result) -> void
 
       # Override to render comments after document traversal completes
       # @rbs node: ::Herb::AST::DocumentNode

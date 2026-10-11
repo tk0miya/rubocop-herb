@@ -13,18 +13,16 @@ module RuboCop
       # Parse ERB code and return a ParseResult
       # @rbs path: String
       # @rbs code: String
-      # @rbs html_visualization: bool
-      def self.parse(path, code, html_visualization: false) #: ParseResult
-        new.parse(path, code, html_visualization:)
+      def self.parse(path, code) #: ParseResult
+        new.parse(path, code)
       end
 
       # @rbs path: String
       # @rbs code: String
-      # @rbs html_visualization: bool
-      def parse(path, code, html_visualization: false) #: ParseResult
+      def parse(path, code) #: ParseResult
         source = Source.new(path:, code:)
         ast = ::Herb.parse(code)
-        result = NodeLocationCollector.collect(source, ast, html_visualization:)
+        result = NodeLocationCollector.collect(source, ast)
 
         ParseResult.new(
           source:,

@@ -19,11 +19,6 @@ module RuboCop
         def members: () -> [ :ruby_code, :hybrid_code, :parse_result ]
       end
 
-      attr_reader html_visualization: bool
-
-      # @rbs html_visualization: bool
-      def initialize: (?html_visualization: bool) -> void
-
       # @rbs path: String
       # @rbs code: String
       def convert: (String path, String code) -> Result

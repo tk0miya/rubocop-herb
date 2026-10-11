@@ -23,8 +23,7 @@ module RuboCop
 
         # Convert the source normalized by Parser::Source::Buffer (CRLF to LF) so that
         # the positions in the result match the buffer of the original processed source
-        result = Converter.new(html_visualization: Configuration.html_visualization?)
-                          .convert(path, processed_source.buffer.source)
+        result = Converter.new.convert(path, processed_source.buffer.source)
 
         [{
           offset: 0,
