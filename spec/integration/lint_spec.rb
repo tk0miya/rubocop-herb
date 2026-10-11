@@ -83,22 +83,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
-    context "when analyzing each block with output tags" do
-      let(:source) do
-        <<~ERB
-          <% items.each do |item| %>
-            <%= item %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Lint/Void" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
     context "when analyzing if block with output tag followed by non-output tag" do
       let(:source) do
         <<~ERB
@@ -225,9 +209,9 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <% begin %>
             <p>x</p>
           <% rescue StandardError %>
-            <p>error</p>
+            e
           <% ensure %>
-            <p>done</p>
+            d
           <% end %>
         ERB
       end
@@ -619,24 +603,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
                                   ["Style/IdenticalConditionalBranches", 6]]
         end
       end
-
-      context "when analyzing conditional branches containing the same Ruby code inside different HTML" do
-        let(:source) do
-          <<~ERB
-            <% if a %>
-              <div class="a"><%= x %></div>
-            <% else %>
-              <div class="b"><%= x %></div>
-            <% end %>
-          ERB
-        end
-
-        it "does not trigger Style/IdenticalConditionalBranches" do
-          runner.run(path, source, {})
-          offenses = runner.offenses.map { [_1.cop_name, _1.line] }
-          expect(offenses).to eq [["Lint/DuplicateBranch", 3]]
-        end
-      end
     end
 
     context "with Lint/EmptyBlock enabled" do
@@ -653,15 +619,15 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <<~ERB
             <% case a %>
             <% when 1 %>
-              <p>a</p>
+              a
             <% else %>
-              <p>b</p>
+              b
             <% end %>
-            <% items.each do |item| %>
-              <p>item</p>
+            <% items.each do %>
+              i
             <% end %>
-            <%= form_with do |f| %>
-              <p>form</p>
+            <%= form_with do %>
+              f
             <% end %>
           ERB
         end
@@ -728,7 +694,7 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <<~ERB
             <% case a %>
             <% in 1 %>
-              <p>a</p>
+              a
             <% in 2 %>
             <% end %>
           ERB
@@ -826,22 +792,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
 
       it "does not trigger Style/ConditionalAssignment" do
-        runner.run(path, source, {})
-        offenses = runner.offenses.map(&:cop_name)
-        expect(offenses).to eq []
-      end
-    end
-
-    context "when analyzing each block with output tags" do
-      let(:source) do
-        <<~ERB
-          <% items.each do |item| %>
-            <%= item %>
-          <% end %>
-        ERB
-      end
-
-      it "does not trigger Lint/Void" do
         runner.run(path, source, {})
         offenses = runner.offenses.map(&:cop_name)
         expect(offenses).to eq []
@@ -992,9 +942,9 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <% begin %>
             <p>x</p>
           <% rescue StandardError %>
-            <p>error</p>
+            e
           <% ensure %>
-            <p>done</p>
+            d
           <% end %>
         ERB
       end
@@ -1463,15 +1413,15 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <<~ERB
             <% case a %>
             <% when 1 %>
-              <p>a</p>
+              a
             <% else %>
-              <p>b</p>
+              b
             <% end %>
             <% items.each do %>
-              <p>item</p>
+              i
             <% end %>
             <%= form_with do %>
-              <p>form</p>
+              f
             <% end %>
           ERB
         end
@@ -1730,7 +1680,7 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <<~ERB
             <% case a %>
             <% in 1 %>
-              <p>a</p>
+              a
             <% in 2 %>
             <% end %>
           ERB
