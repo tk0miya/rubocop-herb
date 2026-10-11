@@ -52,13 +52,18 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
     end
 
     context "with the same Ruby code at the head of multiple expressions preceded by HTML" do
-      let(:code) do
-        "<input\n<% if a %>\n  class=\"a\"\n  <%= x %>\n  <%= y %>\n" \
-          "<% else %>\n  class=\"b\"\n  <%= x %>\n  <%= z %>\n<% end %>\n>"
-      end
+      let(:code) { "<% if a %>\n  (<%= x %>\n  <%= y %>)\n<% else %>\n  [<%= x %>\n  <%= z %>]\n<% end %>" }
 
       it "disables Style/IdenticalConditionalBranches at the head" do
-        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [4..4, 8..8] })
+        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [2..2, 5..5] })
+      end
+    end
+
+    context "with the same Ruby code inside different short texts" do
+      let(:code) { "<% if a %>\n  (<%= x %>)\n<% else %>\n  [<%= x %>]\n<% end %>" }
+
+      it "disables Style/IdenticalConditionalBranches at the Ruby code" do
+        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [2..2, 4..4] })
       end
     end
 
