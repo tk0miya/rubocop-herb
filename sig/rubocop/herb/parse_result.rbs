@@ -44,9 +44,9 @@ module RuboCop
       # Get all ERB comment nodes
       def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
 
-      # Whether ERB nodes (except comments) follow the ERB comment on the line where the comment ends
-      # @rbs node: ::Herb::AST::ERBCommentNode
-      def followed_by_erb?: (::Herb::AST::ERBCommentNode node) -> bool
+      # Whether ERB nodes (except comments) follow the ERB tag of the node on the line where the tag ends
+      # @rbs node: erb_node
+      def followed_by_erb?: (erb_node node) -> bool
 
       # Get the ERB location at the index of erb_positions
       # @rbs index: Integer

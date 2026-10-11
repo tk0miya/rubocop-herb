@@ -32,7 +32,7 @@ module RuboCop
       #   def source: () -> Source
       #   def erb_locations: () -> Hash[Integer, ErbLocation]
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
-      #   def followed_by_erb?: (::Herb::AST::ERBCommentNode node) -> bool
+      #   def followed_by_erb?: (erb_node node) -> bool
       #   def byteslice: (::Herb::Range) -> String
 
       def_delegators :parse_result, :source, :erb_locations, :erb_comment_nodes,
@@ -153,8 +153,30 @@ module RuboCop
         range = NodeRange.byte_range_to_char_range(node.content.not_nil!.range, source)
         ruby_code[range.from, code.length] = code
 
-        render_semicolon(node, code, range)
+        render_statement_end(node, code, range)
         render_output_marker(node) if output_node?(node)
+      end
+
+      # Terminate the statement of the code
+      # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered.
+      # But if ERB nodes follow the tag on the same line, the comment would comment them out,
+      # so it is replaced with spaces and a semicolon is rendered after the code before it
+      # @rbs node: erb_node
+      # @rbs code: String
+      # @rbs range: CharRange -- character range of the code
+      def render_statement_end(node, code, range) #: void
+        comment = RubyComment.trailing_range(node, source)
+        return render_semicolon(node, code, range) unless comment
+        return unless followed_by_erb?(node)
+
+        render_whitespace(comment)
+        render_semicolon(node, code[0...(comment.from - range.from)].to_s, CharRange.new(range.from, comment.from))
+      end
+
+      # Render spaces over the range of ruby_code
+      # @rbs range: CharRange
+      def render_whitespace(range) #: void
+        ruby_code[range.from, range.to - range.from] = " " * (range.to - range.from)
       end
 
       # Render a semicolon after the code to terminate the statement

@@ -149,7 +149,7 @@ The libraries count positions and newlines differently, so convert positions exp
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
 - **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information, and converts Herb positions (bytes and line/column) to character positions
 - **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
-- **RubyComment** (`lib/rubocop/herb/ruby_comment.rb`): Utility module that renders an ERB comment as a Ruby comment. Shared by `RubyRenderer` and `Herb/IgnoredCopDirective` cop so that the cop detects directives as RuboCop sees them
+- **RubyComment** (`lib/rubocop/herb/ruby_comment.rb`): Utility module for Ruby comments in ERB. Renders an ERB comment as a Ruby comment (shared by `RubyRenderer` and `Herb/IgnoredCopDirective` cop so that the cop detects directives as RuboCop sees them), and finds the Ruby comment at the end of the code in an ERB tag with Prism
 
 #### RuboCop Integration
 
@@ -186,6 +186,7 @@ The libraries count positions and newlines differently, so convert positions exp
     Do not add an upper bound.
 - `lint_roller` (>= 1.1.0): RuboCop plugin framework for registering extractors
 - `not_nilable`: Provides `#not_nil!` for unwrapping nilable values with type narrowing
+- `prism`: Ruby parser used to find Ruby comments at the end of the code in ERB tags
 - `rubocop` (>= 1.90.0): The linter itself; 1.90.0 is required because `CommentConfig` overrides `cop_enabled_at_lines?`, introduced in that version
 
 ### Configuration Options
