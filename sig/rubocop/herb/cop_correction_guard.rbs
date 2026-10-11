@@ -1,0 +1,22 @@
+# Generated from lib/rubocop/herb/cop_correction_guard.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Prepended to RuboCop::Cop::Base to discard autocorrections that would break ERB templates.
+    # A discarded offense is reported as not autocorrectable.
+    # Cops inspecting files other than ERB templates are not affected.
+    module CopCorrectionGuard
+      def processed_source: () -> ::RuboCop::AST::ProcessedSource?
+
+      # `--disable-uncorrectable` inserts `# rubocop:todo` comments, which break ERB templates
+      def disable_uncorrectable?: () -> bool
+
+      private
+
+      # Keep it private as RuboCop::Cop::Base#correct is
+      # @rbs range: ::Parser::Source::Range
+      # @rbs &block: ? (::RuboCop::Cop::Corrector) -> void
+      def correct: (::Parser::Source::Range range) ?{ (::RuboCop::Cop::Corrector) -> void } -> [ Symbol, ::RuboCop::Cop::Corrector? ]
+    end
+  end
+end

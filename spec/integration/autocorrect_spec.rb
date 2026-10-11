@@ -92,4 +92,105 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
 
     it_behaves_like "an ERB autocorrector"
   end
+
+  context "with a correction that would move HTML into ERB tags" do
+    let(:source) do
+      <<~ERB
+        <% unless foo %>
+          <p>a</p>
+        <% else %>
+          <p>b</p>
+        <% end %>
+        <%= x==1 %>
+      ERB
+    end
+    let(:corrected) { source.sub("x==1", "x == 1") }
+
+    it "corrects the other offenses only" do
+      runner.run(path, source, { autocorrect: true })
+
+      expect(runner.formatted_source).to eq corrected
+    end
+
+    it "reports the offense as not correctable" do
+      runner.run(path, source, {})
+
+      offenses = runner.offenses.map { [_1.cop_name, _1.correctable?] }
+      expect(offenses).to eq [["Style/UnlessElse", false], ["Layout/SpaceAroundOperators", true]]
+    end
+
+    it "does not insert rubocop:todo comments with --disable-uncorrectable" do
+      runner.run(path, source, { autocorrect: true, disable_uncorrectable: true })
+
+      expect(runner.formatted_source).to eq corrected
+    end
+  end
+
+  context "with a correction that would swap branches containing HTML" do
+    let(:source) do
+      <<~ERB
+        <% if !foo %>
+          <p>a</p>
+        <% else %>
+          <p>b</p>
+        <% end %>
+      ERB
+    end
+
+    it "keeps the template as is" do
+      runner.run(path, source, { autocorrect: true })
+
+      expect(runner.formatted_source).to eq source
+    end
+  end
+
+  context "with a correction that would remove blank lines in HTML" do
+    let(:source) { "<p>a</p>\n\n\n<p>b</p>\n" }
+
+    it "keeps the template as is" do
+      runner.run(path, source, { autocorrect: true })
+
+      expect(runner.formatted_source).to eq source
+    end
+  end
+
+  context "with a correction that would move HTML into an ERB tag when merging conditionals" do
+    let(:source) do
+      <<~ERB
+        <% if a %>
+          <p>x</p>
+        <% else %>
+          <% if b %>
+            <p>y</p>
+          <% end %>
+        <% end %>
+      ERB
+    end
+
+    it "keeps the template as is" do
+      runner.run(path, source, { autocorrect: true })
+
+      expect(runner.formatted_source).to eq source
+    end
+  end
+
+  context "with a correction spanning multiple ERB tags that keeps HTML" do
+    let(:source) do
+      <<~ERB
+        <% if a %>
+          <p>x</p>
+        <% else %>
+        <% end %>
+      ERB
+    end
+    let(:expected) do
+      <<~ERB
+        <% if a %>
+          <p>x</p>
+        <% end %>
+      ERB
+    end
+
+    it_behaves_like "an ERB autocorrector"
+  end
 end
