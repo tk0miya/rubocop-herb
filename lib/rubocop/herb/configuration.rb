@@ -35,7 +35,11 @@ module RuboCop
           # Include both relative and absolute path patterns for glob matching
           globs = supported_extensions.flat_map { ["**/*#{_1}", "/**/*#{_1}"] }
 
-          config = { "AllCops" => { "Include" => globs }, "Herb/Linting" => herb_lint_config(globs) }
+          config = {
+            "AllCops" => { "Include" => globs },
+            "Herb/Linting" => herb_lint_config(globs),
+            "Herb/IgnoredCopDirective" => ignored_cop_directive_config(globs)
+          }
           EXCLUDED_COPS.each do |cop|
             config[cop] = { "Exclude" => globs }
           end
@@ -52,6 +56,17 @@ module RuboCop
             "Enabled" => true,
             "Include" => globs,
             "NodeCommand" => "node"
+          }
+        end
+
+        # Default configuration of Herb/IgnoredCopDirective cop
+        # @rbs globs: Array[String]
+        def ignored_cop_directive_config(globs) #: Hash[String, untyped]
+          {
+            "Description" => "Checks for rubocop directives ignored by rubocop-herb " \
+                             "because ERB tags follow them on the same line.",
+            "Enabled" => true,
+            "Include" => globs
           }
         end
 

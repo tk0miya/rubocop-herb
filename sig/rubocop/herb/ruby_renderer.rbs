@@ -164,10 +164,6 @@ module RuboCop
       def render_tag_marker: (Integer pos) -> void
 
       # @rbs code: String
-      # @rbs hash_column: Integer
-      def format_multiline_comment: (String code, Integer hash_column) -> String
-
-      # @rbs code: String
       def bleach_code: (String code) -> String
 
       # Convert byte position to character position
