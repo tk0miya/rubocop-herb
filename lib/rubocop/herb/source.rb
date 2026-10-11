@@ -77,7 +77,7 @@ module RuboCop
         line_start = line_byte_offsets.fetch(line - 1)
         next_line_start = line_byte_offsets[line] || code.bytesize
         line_content = code.byteslice(line_start, next_line_start - line_start).not_nil!
-        line_start + line_content.chars[0, column].not_nil!.join.bytesize
+        line_start + line_content[0, column].not_nil!.bytesize
       end
 
       # Compute line offsets (both byte and character) for the source code
