@@ -222,6 +222,35 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
           expect(tags).to be_empty
         end
       end
+
+      context "with an open tag without the close tag" do
+        let(:code) { "<div class=\"a\">\n  <%= x %>" }
+
+        it "collects the open tag" do
+          # open tag at 0, ERB at 18
+          expect(tags.transform_values(&:restore_source)).to eq({ 0 => true, 18 => false })
+        end
+      end
+
+      context "with an open tag containing ERB without the close tag" do
+        let(:code) { "<b <%= x %>>" }
+
+        it "does not collect the open tag" do
+          # Only ERB at 3 is recorded
+          expect(tags.transform_values(&:restore_source)).to eq({ 3 => false })
+        end
+      end
+
+      context "with open and close tags in separate conditionals" do
+        let(:code) { "<% if a %><a href=\"/\"><% end %>link<% if a %></a><% end %>" }
+
+        it "collects the open tag and the close tag" do
+          # open tag at 10, text at 31, close tag at 45 and ERB tags
+          expect(tags.transform_values(&:restore_source)).to eq(
+            { 0 => false, 22 => false, 35 => false, 49 => false, 10 => true, 31 => true, 45 => true }
+          )
+        end
+      end
     end
   end
 end
