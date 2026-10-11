@@ -4,9 +4,8 @@ require "herb"
 
 module RuboCop
   module Herb
-    # Encapsulates source code and line offset information.
-    # Provides methods for byteslice and conversions to character positions
-    # that are shared between ParseResult and NodeLocationCollector.
+    # Encapsulates source code and line offset information,
+    # and converts between byte and character positions.
     class Source
       attr_reader :path #: String
       attr_reader :code #: String
@@ -36,7 +35,8 @@ module RuboCop
       # Get a substring by character range
       # @rbs range: CharRange
       def slice(range) #: String
-        code[range.from...range.to].not_nil!
+        from = char_to_byte_pos(range.from)
+        code.byteslice(from, char_to_byte_pos(range.to) - from).not_nil!
       end
 
       # Convert byte position to character position
@@ -44,9 +44,7 @@ module RuboCop
       # Uses binary search to find the line, then only processes bytes within that line
       # @rbs byte_pos: Integer
       def byte_to_char_pos(byte_pos) #: Integer
-        # Binary search to find the line containing byte_pos
-        line_idx = line_byte_offsets.bsearch_index { _1 > byte_pos } || line_byte_offsets.size
-        line_idx -= 1 if line_idx.positive?
+        line_idx = line_index(line_byte_offsets, byte_pos)
 
         # Get the starting positions for this line
         line_byte_start = line_byte_offsets.fetch(line_idx)
@@ -59,6 +57,22 @@ module RuboCop
         line_char_start + chars_in_line
       end
 
+      # Convert character position to byte position
+      # Indexing a string by characters takes linear time if it contains multi-byte characters,
+      # so it finds the line with binary search, then only processes characters within that line
+      # @rbs char_pos: Integer
+      def char_to_byte_pos(char_pos) #: Integer
+        return char_pos if code.ascii_only?
+
+        line_idx = line_index(line_char_offsets, char_pos)
+
+        # Only process characters within this line
+        chars_in_line = char_pos - line_char_offsets.fetch(line_idx)
+        bytes_in_line = line_at(line_idx)[0, chars_in_line].not_nil!.bytesize
+
+        line_byte_offsets.fetch(line_idx) + bytes_in_line
+      end
+
       # Convert a line and a column of Herb::Location to a character position
       # @rbs line: Integer -- 1-indexed line number
       # @rbs column: Integer -- 0-indexed character-based column
@@ -67,6 +81,22 @@ module RuboCop
       end
 
       private
+
+      # Binary search to find the index of the line containing the position
+      # @rbs offsets: Array[Integer] -- line_byte_offsets or line_char_offsets
+      # @rbs pos: Integer -- byte or character position (the same unit as offsets)
+      def line_index(offsets, pos) #: Integer
+        line_idx = offsets.bsearch_index { _1 > pos } || offsets.size
+        line_idx.positive? ? line_idx - 1 : line_idx
+      end
+
+      # Get the line at the index
+      # @rbs line_idx: Integer
+      def line_at(line_idx) #: String
+        line_byte_start = line_byte_offsets.fetch(line_idx)
+        line_byte_end = line_byte_offsets.fetch(line_idx + 1, code.bytesize)
+        code.byteslice(line_byte_start, line_byte_end - line_byte_start).not_nil!
+      end
 
       # Compute line offsets (both byte and character) for the source code
       # @rbs code: String
