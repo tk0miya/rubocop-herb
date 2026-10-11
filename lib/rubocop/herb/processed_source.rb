@@ -58,8 +58,18 @@ module RuboCop
       def transform_ast #: void
         return unless ast
 
-        buffer.instance_variable_set(:@source, hybrid_code)
+        replace_buffer_source(hybrid_code)
         @ast = RuboCopASTTransformer.transform(ast, parse_result)
+      end
+
+      # Replace the source of the buffer, which is immutable once populated.
+      # The buffer also keeps a UTF-32 copy of non-ASCII source to slice it (`@slice_source`),
+      # so it is cleared and repopulated in the same way as RuboCop populates the buffer.
+      # @rbs source: String
+      def replace_buffer_source(source) #: void
+        buffer.instance_variable_set(:@source, nil)
+        buffer.instance_variable_set(:@slice_source, nil)
+        buffer.source = source
       end
     end
   end

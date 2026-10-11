@@ -63,6 +63,23 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
     end
   end
 
+  describe "with multi-byte characters in the Ruby code" do
+    let(:erb_source) { '<div class="日本"><%= t("あ") %></div>' }
+    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
+    let(:processed_source) do
+      described_class.new(
+        conversion_result.ruby_code, 3.3, "test.html.erb",
+        hybrid_code: conversion_result.hybrid_code,
+        parse_result: conversion_result.parse_result
+      )
+    end
+
+    it "restores full HTML tag including multi-byte characters" do
+      sources = collect_send_sources(processed_source.ast)
+      expect(sources).to eq(['<div class="日本">', 't("あ")', "</div>"])
+    end
+  end
+
   describe "without HTML tags to restore" do
     let(:erb_source) { "<%= @name %>" }
     let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
