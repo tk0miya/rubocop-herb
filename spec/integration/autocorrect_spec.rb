@@ -8,189 +8,233 @@ require "tempfile"
 require "yaml"
 
 RSpec.describe "Autocorrect with RuboCop", type: :feature do
-  let(:runner) { RuboCop::Lsp::StdinRunner.new(config_store) }
-  let(:config_store) do
-    RuboCop::ConfigStore.new.tap do |store|
-      store.options_config = config.path
-    end
-  end
-  let(:config) do
-    Tempfile.new([".rubocop", ".yml"]).tap do |f|
-      f.write(YAML.dump(rubocop_config))
-      f.close
-    end
-  end
-  # Herb/Linting is tested in herb_lint_spec.rb
-  let(:rubocop_config) { RuboCop::Herb::Configuration.to_rubocop_config.merge("Herb/Linting" => { "Enabled" => false }) }
-  let(:path) { "test.html.erb" }
+  context "with a single cop", :config do
+    include_context "with ERB source"
 
-  before do
-    RuboCop::Herb::Configuration.setup({})
-    RuboCop::Lsp::StdinRunner.ruby_extractors.unshift(RuboCop::Herb::Extractor)
-  end
+    # Each context picks an existing cop only as an example of the correction it describes
+    context "when a correction stays inside an ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Layout::SpaceAroundOperators }
 
-  after do
-    config.unlink
-    RuboCop::Lsp::StdinRunner.ruby_extractors.shift
-  end
+      it "corrects the offense" do
+        expect_offense(<<~ERB)
+          <div><%= x==1 %></div>
+                    ^^ Surrounding space missing for operator `==`.
+        ERB
 
-  shared_examples "an ERB autocorrector" do
-    it "corrects the offense while producing valid ERB" do
-      runner.run(path, source, { autocorrect: true })
-
-      expect(runner.formatted_source).to eq expected
-      expect { ERB.new(runner.formatted_source) }.not_to raise_error
-    end
-  end
-
-  context "with Layout/SpaceAroundOperators offense" do
-    let(:source) { "<div><%= x==1 %></div>" }
-    let(:expected) { "<div><%= x == 1 %></div>" }
-
-    it_behaves_like "an ERB autocorrector"
-  end
-
-  context "with Style/StringConcatenation offense" do
-    let(:source) { "<p><%= 'Hello' + 'World' %></p>" }
-    let(:expected) { "<p><%= 'HelloWorld' %></p>" }
-
-    it_behaves_like "an ERB autocorrector"
-  end
-
-  context "with Style/ZeroLengthPredicate offense" do
-    let(:source) { "<%= arr.length==0 %>" }
-    let(:expected) { "<%= arr.empty? %>" }
-
-    it_behaves_like "an ERB autocorrector"
-  end
-
-  context "with Layout/HashAlignment offense spanning multiple lines" do
-    let(:source) do
-      <<~ERB
-        <%= render locals: {
-          foo: 1,
-          barbaz:   2
-        } %>
-      ERB
-    end
-    let(:expected) do
-      <<~ERB
-        <%= render locals: {
-          foo: 1,
-          barbaz: 2
-        } %>
-      ERB
+        expect_correction(<<~ERB)
+          <div><%= x == 1 %></div>
+        ERB
+      end
     end
 
-    it_behaves_like "an ERB autocorrector"
-  end
+    context "when a correction replaces an expression inside an ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Style::StringConcatenation }
 
-  context "with Layout/SpaceAroundOperators offense in ERB with CRLF line endings" do
-    let(:source) { "<div>\r\n  <%= x==1 %>\r\n</div>\r\n" }
-    # Parser::Source::Buffer normalizes CRLF to LF, as it does for Ruby files
-    let(:expected) { "<div>\n  <%= x == 1 %>\n</div>\n" }
+      it "corrects the offense" do
+        expect_offense(<<~ERB)
+          <p><%= 'Hello' + 'World' %></p>
+                 ^^^^^^^^^^^^^^^^^ Prefer string interpolation to string concatenation.
+        ERB
 
-    it_behaves_like "an ERB autocorrector"
-  end
-
-  context "with a correction that would move HTML into ERB tags" do
-    let(:source) do
-      <<~ERB
-        <% unless foo %>
-          <p>a</p>
-        <% else %>
-          <p>b</p>
-        <% end %>
-        <%= x==1 %>
-      ERB
-    end
-    let(:corrected) { source.sub("x==1", "x == 1") }
-
-    it "corrects the other offenses only" do
-      runner.run(path, source, { autocorrect: true })
-
-      expect(runner.formatted_source).to eq corrected
+        expect_correction(<<~ERB)
+          <p><%= "HelloWorld" %></p>
+        ERB
+      end
     end
 
-    it "reports the offense as not correctable" do
-      runner.run(path, source, {})
+    context "when a correction rewrites a method call inside an ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Style::ZeroLengthPredicate }
 
-      offenses = runner.offenses.map { [_1.cop_name, _1.correctable?] }
-      expect(offenses).to eq [["Style/UnlessElse", false], ["Layout/SpaceAroundOperators", true]]
+      it "corrects the offense" do
+        expect_offense(<<~ERB)
+          <%= arr.length == 0 %>
+              ^^^^^^^^^^^^^^^ Use `empty?` instead of `length == 0`.
+        ERB
+
+        expect_correction(<<~ERB)
+          <%= arr.empty? %>
+        ERB
+      end
     end
 
-    it "does not insert rubocop:todo comments with --disable-uncorrectable" do
-      runner.run(path, source, { autocorrect: true, disable_uncorrectable: true })
+    context "when a correction spans multiple lines inside an ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Layout::HashAlignment }
 
-      expect(runner.formatted_source).to eq corrected
+      it "corrects the offense" do
+        expect_offense(<<~ERB)
+          <%= render locals: {
+            foo: 1,
+            barbaz:   2
+            ^^^^^^^^^^^ Align the keys of a hash literal if they span more than one line.
+          } %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <%= render locals: {
+            foo: 1,
+            barbaz: 2
+          } %>
+        ERB
+      end
     end
-  end
 
-  context "with a correction that would swap branches containing HTML" do
-    let(:source) do
-      <<~ERB
-        <% if !foo %>
-          <p>a</p>
-        <% else %>
-          <p>b</p>
-        <% end %>
-      ERB
-    end
+    context "when a correction removes an ERB tag and keeps HTML" do
+      let(:cop_class) { RuboCop::Cop::Style::EmptyElse }
 
-    it "keeps the template as is" do
-      runner.run(path, source, { autocorrect: true })
-
-      expect(runner.formatted_source).to eq source
-    end
-  end
-
-  context "with a correction that would remove blank lines in HTML" do
-    let(:source) { "<p>a</p>\n\n\n<p>b</p>\n" }
-
-    it "keeps the template as is" do
-      runner.run(path, source, { autocorrect: true })
-
-      expect(runner.formatted_source).to eq source
-    end
-  end
-
-  context "with a correction that would move HTML into an ERB tag when merging conditionals" do
-    let(:source) do
-      <<~ERB
-        <% if a %>
-          <p>x</p>
-        <% else %>
-          <% if b %>
-            <p>y</p>
+      it "corrects the offense" do
+        expect_offense(<<~ERB)
+          <% if a %>
+            <p>x</p>
+          <% else %>
+             ^^^^ Redundant `else`-clause.
           <% end %>
-        <% end %>
-      ERB
+        ERB
+
+        expect_correction(<<~ERB)
+          <% if a %>
+            <p>x</p>
+          <% end %>
+        ERB
+      end
     end
 
-    it "keeps the template as is" do
-      runner.run(path, source, { autocorrect: true })
+    context "when a correction would swap branches containing HTML" do
+      let(:cop_class) { RuboCop::Cop::Style::UnlessElse }
 
-      expect(runner.formatted_source).to eq source
+      it "reports the offense as not correctable" do
+        offenses = expect_offense(<<~ERB)
+          <% unless foo %>
+             ^^^^^^^^^^^^^ Do not use `unless` with `else`. Rewrite these with the positive case first.
+            <p>a</p>
+          <% else %>
+            <p>b</p>
+          <% end %>
+        ERB
+
+        expect(offenses.map(&:correctable?)).to eq [false]
+        expect_no_corrections
+      end
+    end
+
+    context "when a correction would invert a condition of branches containing HTML" do
+      let(:cop_class) { RuboCop::Cop::Style::NegatedIfElseCondition }
+
+      it "reports the offense as not correctable" do
+        offenses = expect_offense(<<~ERB)
+          <% if !foo %>
+             ^^^^^^^^^^ Invert the negated condition and swap the if-else branches.
+            <p>a</p>
+          <% else %>
+            <p>b</p>
+          <% end %>
+        ERB
+
+        expect(offenses.map(&:correctable?)).to eq [false]
+        expect_no_corrections
+      end
+    end
+
+    context "when a correction would merge conditionals containing HTML" do
+      let(:cop_class) { RuboCop::Cop::Style::IfInsideElse }
+
+      it "reports the offense as not correctable" do
+        offenses = expect_offense(<<~ERB)
+          <% if a %>
+            <p>x</p>
+          <% else %>
+            <% if b %>
+               ^^ Convert `if` nested inside `else` to `elsif`.
+              <p>y</p>
+            <% end %>
+          <% end %>
+        ERB
+
+        expect(offenses.map(&:correctable?)).to eq [false]
+        expect_no_corrections
+      end
+    end
+
+    context "when a correction would remove blank lines in HTML" do
+      let(:cop_class) { RuboCop::Cop::Layout::EmptyLines }
+
+      it "reports the offense as not correctable" do
+        offenses = expect_offense(<<~ERB)
+          <p>a</p>
+
+
+          ^{} Extra blank line detected.
+          <p>b</p>
+        ERB
+
+        expect(offenses.map(&:correctable?)).to eq [false]
+        expect_no_corrections
+      end
     end
   end
 
-  context "with a correction spanning multiple ERB tags that keeps HTML" do
-    let(:source) do
-      <<~ERB
-        <% if a %>
-          <p>x</p>
-        <% else %>
-        <% end %>
-      ERB
+  context "with the whole run of RuboCop" do
+    let(:runner) { RuboCop::Lsp::StdinRunner.new(config_store) }
+    let(:config_store) do
+      RuboCop::ConfigStore.new.tap do |store|
+        store.options_config = config.path
+      end
     end
-    let(:expected) do
-      <<~ERB
-        <% if a %>
-          <p>x</p>
-        <% end %>
-      ERB
+    let(:config) do
+      Tempfile.new([".rubocop", ".yml"]).tap do |f|
+        f.write(YAML.dump(rubocop_config))
+        f.close
+      end
+    end
+    # Herb/Linting is tested in herb_lint_spec.rb
+    let(:rubocop_config) { RuboCop::Herb::Configuration.to_rubocop_config.merge("Herb/Linting" => { "Enabled" => false }) }
+    let(:path) { "test.html.erb" }
+
+    before do
+      RuboCop::Herb::Configuration.setup({})
+      RuboCop::Lsp::StdinRunner.ruby_extractors.unshift(RuboCop::Herb::Extractor)
     end
 
-    it_behaves_like "an ERB autocorrector"
+    after do
+      config.unlink
+      RuboCop::Lsp::StdinRunner.ruby_extractors.shift
+    end
+
+    context "with Layout/SpaceAroundOperators offense in ERB with CRLF line endings" do
+      let(:source) { "<div>\r\n  <%= x==1 %>\r\n</div>\r\n" }
+      # Parser::Source::Buffer normalizes CRLF to LF, as it does for Ruby files
+      let(:expected) { "<div>\n  <%= x == 1 %>\n</div>\n" }
+
+      it "corrects the offense" do
+        runner.run(path, source, { autocorrect: true })
+
+        expect(runner.formatted_source).to eq expected
+      end
+    end
+
+    context "with a correction that would move HTML into ERB tags" do
+      let(:source) do
+        <<~ERB
+          <% unless foo %>
+            <p>a</p>
+          <% else %>
+            <p>b</p>
+          <% end %>
+          <%= x==1 %>
+        ERB
+      end
+      let(:corrected) { source.sub("x==1", "x == 1") }
+
+      it "corrects the other offenses only" do
+        runner.run(path, source, { autocorrect: true })
+
+        expect(runner.formatted_source).to eq corrected
+      end
+
+      it "does not insert rubocop:todo comments with --disable-uncorrectable" do
+        runner.run(path, source, { autocorrect: true, disable_uncorrectable: true })
+
+        expect(runner.formatted_source).to eq corrected
+      end
+    end
   end
 end
