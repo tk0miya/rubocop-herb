@@ -38,7 +38,7 @@ module RuboCop
       # text too short to place the marker (see RubyRenderer::TEXT_MARKER_POSITION),
       # HTML in open tags (e.g. attributes and their values) and HTML comments containing ERB
       # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
-      # the branch. HTML elements are not because they are rendered and make the branch unique.
+      # the branch. HTML elements and tags are not because they are rendered and make the branch unique.
       # @rbs nodes: Array[::Herb::AST::Node]
       def unrendered_html?(nodes) #: bool
         nodes.any? { unrendered_html_node?(_1) }
@@ -52,7 +52,8 @@ module RuboCop
           text.match?(/\S/) && !text.match?(RubyRenderer::TEXT_MARKER_POSITION)
         when ::Herb::AST::LiteralNode
           node.content.to_s.match?(/\S/)
-        when ::Herb::AST::HTMLElementNode, ::Herb::AST::WhitespaceNode
+        when ::Herb::AST::HTMLElementNode, ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode,
+             ::Herb::AST::WhitespaceNode
           false
         when ::Herb::AST::HTMLCommentNode
           node.children.any? { _1.type.start_with?("AST_ERB_") }

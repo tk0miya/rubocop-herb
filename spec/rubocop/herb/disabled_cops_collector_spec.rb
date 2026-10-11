@@ -515,6 +515,22 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with if branches containing an open tag and a close tag not wrapped by an element" do
+      let(:code) do
+        "<% if a %>\n  <div>\n<% elsif b %>\n  <%= y %>\n<% else %>\n  <%= y %>\n<% end %>\n" \
+          "<% if a %>\n  </div>\n<% else %>\n  <%= y %>\n<% end %>"
+      end
+
+      it "does not disable Lint/DuplicateBranch because the tags are rendered" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1, 8..8],
+                                **conditional_cops(1..1, 8..8),
+                                **end_alignment(7..7, 12..12),
+                                **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11)
+                              })
+      end
+    end
+
     context "with if branches containing HTML comments with ERB" do
       let(:code) { "<% if a %>\n  <!-- a<%= x %> -->\n<% else %>\n  <!-- b<%= x %> -->\n<% end %>" }
 
