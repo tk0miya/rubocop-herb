@@ -159,11 +159,12 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       context "with HTML element without ERB" do
         let(:code) { "<div class=\"x\">text</div>" }
 
-        it "collects the whole element and text node" do
-          # element at 0, text "text" at 15
-          expect(tags.keys.sort).to eq [0, 15]
+        it "collects HTML tags and text node" do
+          # open_tag at 0, text "text" at 15, close_tag at 19
+          expect(tags.keys.sort).to eq [0, 15, 19]
           expect(tags[0].restore_source).to be true
           expect(tags[15].restore_source).to be true
+          expect(tags[19].restore_source).to be true
         end
       end
 
@@ -181,8 +182,8 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         let(:code) { "<div>hello</div>" }
 
         it "collects text node tag" do
-          # element at 0, text "hello" at 5
-          expect(tags.keys.sort).to eq [0, 5]
+          # open_tag at 0, text "hello" at 5, close_tag at 10
+          expect(tags.keys.sort).to eq [0, 5, 10]
           expect(tags[5].restore_source).to be true
         end
       end
@@ -191,8 +192,8 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         let(:code) { "<div>こんにちは</div>" }
 
         it "does not collect text node tag" do
-          # Only element at 0, multi-byte text is not recorded
-          expect(tags.keys).to eq [0]
+          # open_tag at 0 and close_tag at 10, multi-byte text is not recorded
+          expect(tags.keys.sort).to eq [0, 10]
         end
       end
 

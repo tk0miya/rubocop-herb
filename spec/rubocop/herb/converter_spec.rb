@@ -57,7 +57,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with an HTML comment tag" do
       let(:source) { "<div><!-- user.name --></div>" }
-      let(:expected) { "div;                         " }
+      let(:expected) { "div; _a;               div;  " }
       let(:expected_hybrid) { "<div><!-- user.name --></div>" }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -525,7 +525,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["div; ",
          "     while condition;  ",
-         "    p;               ",
+         "    p; _a;       p;  ",
          "     end;  ",
          "div;  "].join("\n")
       end
@@ -551,7 +551,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:expected) do
         ["div; ",
          "     until done;  ",
-         "    p;            ",
+         "    p; _a;    p;  ",
          "     end;  ",
          "div;  "].join("\n")
       end
@@ -953,10 +953,10 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # HTML tags without ERB nodes should render tag name only and skip processing children
+    # HTML tags without ERB nodes
     describe "with HTML tag without ERB nodes" do
       let(:source) { "<div>text</div>" }
-      let(:expected) { "div;           " }
+      let(:expected) { "div; _a; div;  " }
       let(:expected_hybrid) { "<div>text</div>" }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -964,7 +964,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with HTML tag with attributes but without ERB nodes" do
       let(:source) { '<span class="admin">Admin</span>' }
-      let(:expected) { "span;                           " }
+      let(:expected) { "span;               _a;  span;  " }
       let(:expected_hybrid) { '<span class="admin">Admin</span>' }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -972,7 +972,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with nested HTML tags without ERB nodes" do
       let(:source) { "<div><p>text</p></div>" }
-      let(:expected) { "div;                  " }
+      let(:expected) { "div; p; _a; p;  div;  " }
       let(:expected_hybrid) { "<div><p>text</p></div>" }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -980,7 +980,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with parent tag containing ERB but child tag without ERB" do
       let(:source) { "<div><%= x %><p>text</p></div>" }
-      let(:expected) { "div; _ = x;  p;         div;  " }
+      let(:expected) { "div; _ = x;  p; _a; p;  div;  " }
       let(:expected_hybrid) { "<div>_ = x;  <p>text</p></div>" }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -1004,9 +1004,9 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["   if admin?;  ",
-         "  span;                           ",
+         "  span;               _a;  span;  ",
          "   else;  ",
-         "  span;                         ",
+         "  span;              _a; span;  ",
          "   end;  "].join("\n")
       end
       let(:expected_hybrid) do
