@@ -115,6 +115,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
         disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
+        # A semicolon is rendered at the closing of the when tag (`when 1;`)
+        disable_cop("Style/WhenThen", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -139,6 +141,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBInNode
       def visit_erb_in_node(node) #: void
         disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
+        # A semicolon is rendered at the closing of the in tag (`in 1;`)
+        disable_cop("Style/InPatternThen", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -287,6 +291,17 @@ module RuboCop
         # Converting them to `next` breaks the template (e.g. it leaves the closing of the end tag)
         disable_cop("Style/Next", node)
         disable_one_line_conditional(node)
+        disable_else_layout(node)
+      end
+
+      # Output tags following the else tag on the same line become `else;  _ = x;` in the Ruby code.
+      # Lint/ElseLayout reports them, but its autocorrect breaks the template (e.g. it drops the tag closing).
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_else_layout(node) #: void
+        else_node = node.is_a?(::Herb::AST::ERBIfNode) ? Branches.of_if(node).last : node.else_clause
+        return unless else_node.is_a?(::Herb::AST::ERBElseNode)
+
+        disable_cop("Lint/ElseLayout", else_node)
       end
 
       # Conditionals written across multiple ERB tags on a single line become

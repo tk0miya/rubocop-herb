@@ -348,6 +348,32 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing when, in and else tags written across ERB tags" do
+    let(:rubocop_config) { super().merge("Style/InPatternThen" => { "Enabled" => true }) }
+    let(:source) do
+      <<~ERB
+        <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
+        <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
+        <% if a %><%= x %>
+        <% else %><%= y %><% end %>
+        <% case a when 1; b end %>
+        <% case a
+           in 1; b
+           end %>
+        <% if a
+             b
+           else c
+           end %>
+      ERB
+    end
+
+    it "triggers Style/WhenThen, Style/InPatternThen and Lint/ElseLayout only for the code in a single ERB tag" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+      expect(offenses).to eq [["Style/WhenThen", 5], ["Style/InPatternThen", 7], ["Lint/ElseLayout", 11]]
+    end
+  end
+
   context "when analyzing a conditional written in a single ERB tag" do
     let(:source) { "<% if a then b else c end %>\n" }
 

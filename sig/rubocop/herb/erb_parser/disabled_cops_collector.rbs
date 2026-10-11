@@ -138,6 +138,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
       def disable_conditional_cops: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
 
+      # Output tags following the else tag on the same line become `else;  _ = x;` in the Ruby code.
+      # Lint/ElseLayout reports them, but its autocorrect breaks the template (e.g. it drops the tag closing).
+      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
+      def disable_else_layout: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
+
       # Conditionals written across multiple ERB tags on a single line become
       # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
       # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
