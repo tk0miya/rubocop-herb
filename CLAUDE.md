@@ -134,7 +134,8 @@ The libraries count positions and newlines differently, so convert positions exp
 
 - Convert a `Herb::Range` with `Source#byte_to_char_pos` (or `NodeRange.byte_range_to_char_range`), and a `Herb::Location` with `Source#char_pos` (or `NodeRange.compute_char_range`)
 - Test changes involving positions with multi-byte characters (e.g. Japanese text and emoji), as positions in bytes and characters only differ there
-- The Extractor converts the source normalized by `Parser::Source::Buffer` (`\r\n` → `\n`) so that positions match RuboCop. A lone `\r` is a newline for Herb but not for `Source`, so the line numbers of Herb locations do not match
+- The Extractor converts the source normalized by `Parser::Source::Buffer` (`\r\n` → `\n`) so that positions match RuboCop
+- A lone `\r` is a newline for Herb but a space for Ruby and RuboCop, so `ErbParser` replaces it with a space before parsing with Herb to keep the lines of Herb locations in line with the source
 
 ### Key Components
 

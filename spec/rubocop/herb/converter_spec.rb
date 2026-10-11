@@ -136,6 +136,14 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with lone carriage returns" do
+      let(:source) { "<div>\r<%= x %>\r</div>\n<%= y %>\n" }
+      let(:expected) { "div; \r_ = x;  \rdiv;  \n_ = y;  \n" }
+      let(:expected_hybrid) { "<div>\r_ = x;  \r</div>\n_ = y;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with text node containing multi-byte characters" do
       let(:source) { "<div>表示件数<%= @count %></div>" }
       # "表示件数" is 4 characters, bleached to 4 spaces with "_a;" marker (leaves 1 space)
