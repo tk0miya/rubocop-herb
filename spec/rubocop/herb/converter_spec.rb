@@ -929,10 +929,16 @@ RSpec.describe RuboCop::Herb::Converter do
          "<html>"].join("\n")
       end
       let(:expected) do
-        ["      ",
+        ["html; ",
          "  _ = form_with do;  ",
          "     end;  ",
-         "      "].join("\n")
+         "html; "].join("\n")
+      end
+      let(:expected_hybrid) do
+        ["<html>",
+         "  _ = form_with do;  ",
+         "     end;  ",
+         "<html>"].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -1106,6 +1112,86 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:source) { '<meta content="<%= x %>">' }
       let(:expected) { "meta;          _ = x;    " }
       let(:expected_hybrid) { "meta;          _ = x;    " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # HTML tags not wrapped by an element
+    describe "with an open tag without the close tag" do
+      let(:source) { "<div class=\"a\">\n  <%= x %>" }
+      let(:expected) { "div;           \n  _ = x;  " }
+      let(:expected_hybrid) { "<div class=\"a\">\n  _ = x;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an open tag containing ERB without the close tag" do
+      let(:source) { "<b <%= x %>>" }
+      let(:expected) { "b; _ = x;   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with open tags in the branches of a conditional" do
+      let(:source) do
+        ["<% if a %>",
+         "  <div class=\"a\">",
+         "<% else %>",
+         "  <div class=\"b\">",
+         "<% end %>",
+         "  <%= x %>",
+         "</div>"].join("\n")
+      end
+      let(:expected) do
+        ["   if a;  ",
+         "  div;           ",
+         "   else;  ",
+         "  div;           ",
+         "   end;  ",
+         "  _ = x;  ",
+         "div;  "].join("\n")
+      end
+      let(:expected_hybrid) do
+        ["   if a;  ",
+         "  <div class=\"a\">",
+         "   else;  ",
+         "  <div class=\"b\">",
+         "   end;  ",
+         "  _ = x;  ",
+         "</div>"].join("\n")
+      end
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with open and close tags in separate conditionals" do
+      let(:source) do
+        ["<% if a %>",
+         "  <a href=\"/\">",
+         "<% end %>",
+         "link",
+         "<% if a %>",
+         "  </a>",
+         "<% end %>"].join("\n")
+      end
+      let(:expected) do
+        ["   if a;  ",
+         "  a;          ",
+         "   end;  ",
+         "_a; ",
+         "   if a;  ",
+         "  a;  ",
+         "   end;  "].join("\n")
+      end
+      let(:expected_hybrid) do
+        ["   if a;  ",
+         "  <a href=\"/\">",
+         "   end;  ",
+         "link",
+         "   if a;  ",
+         "  </a>",
+         "   end;  "].join("\n")
+      end
 
       it_behaves_like "a Ruby code extractor for ERB"
     end

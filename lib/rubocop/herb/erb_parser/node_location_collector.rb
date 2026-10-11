@@ -55,12 +55,14 @@ module RuboCop
       attr_reader :erb_locations #: Hash[Integer, ErbLocation]
       attr_reader :erb_max_columns #: Hash[Integer, Integer]
       attr_reader :tags #: Hash[Integer, Tag]
+      attr_reader :element_tags #: Set[::Herb::AST::Node?] -- open and close tags wrapped by elements
 
       # @rbs source: Source
       def initialize(source:) #: void
         @erb_locations = {}
         @erb_max_columns = {}
         @tags = {}
+        @element_tags = Set.new.compare_by_identity
         @source = source
 
         super()
@@ -80,8 +82,27 @@ module RuboCop
       # then we check if this element contains ERB to decide which tags to record
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
+        element_tags << node.open_tag << node.close_tag
         super
         record_html_element_tag(node)
+      end
+
+      # Visit HTML open tag nodes not wrapped by an element and collect tag info
+      # (e.g. an open tag without the close tag, or open tags in the branches of a conditional)
+      # Tags of an element are recorded by visit_html_element_node
+      # Open tags containing ERB are not recorded for the same reason as in record_html_element_tag
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        super
+        record_tag(node) unless element_tags.include?(node) || contains_erb?(node)
+      end
+
+      # Visit HTML close tag nodes not wrapped by an element and collect tag info
+      # (e.g. a close tag in the branches of a conditional)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node(node) #: void
+        super
+        record_tag(node) unless element_tags.include?(node)
       end
 
       # Visit HTML text nodes and collect tag info

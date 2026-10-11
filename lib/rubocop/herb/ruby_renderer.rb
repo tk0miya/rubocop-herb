@@ -90,17 +90,32 @@ module RuboCop
       end
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, renders open tag and close tag as "tag; " and processes children
+      # If the element contains ERB nodes, its children are processed (the tags are rendered by the visitors below)
       # If the element contains no ERB nodes, renders only the open tag name with full element range
       # HTML elements are not rendered as Ruby blocks because ERB does not create a scope for them
       # (e.g. a local variable assigned in an element is available after the element)
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
-        render_tag_node(node.open_tag)
-        return unless contains_erb?(node)
+        return super if contains_erb?(node)
 
+        render_tag_node(node.open_tag)
+      end
+
+      # Visit HTML open tag nodes and render them as "tag; "
+      # This also renders open tags not wrapped by an element
+      # (e.g. an open tag without the close tag, or open tags in the branches of a conditional)
+      # @rbs node: ::Herb::AST::HTMLOpenTagNode
+      def visit_html_open_tag_node(node) #: void
+        render_tag_node(node)
         super
-        render_tag_node(node.close_tag)
+      end
+
+      # Visit HTML close tag nodes and render them as "tag; "
+      # This also renders close tags not wrapped by an element (e.g. a close tag in a conditional)
+      # @rbs node: ::Herb::AST::HTMLCloseTagNode
+      def visit_html_close_tag_node(node) #: void
+        render_tag_node(node)
+        super
       end
 
       # Visit HTML text nodes (plain text content between tags)
