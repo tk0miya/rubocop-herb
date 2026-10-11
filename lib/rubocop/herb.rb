@@ -55,6 +55,14 @@ module RuboCop
     #                  | ::Herb::AST::HTMLOpenTagNode
     #                  | ::Herb::AST::HTMLCloseTagNode
     #                  | ::Herb::AST::HTMLCommentNode
+    #
+    #   # Union type for ERB nodes holding the statements of a branch
+    #   type branch_node = ::Herb::AST::ERBIfNode
+    #                    | ::Herb::AST::ERBUnlessNode
+    #                    | ::Herb::AST::ERBElseNode
+    #                    | ::Herb::AST::ERBWhenNode
+    #                    | ::Herb::AST::ERBInNode
+    #                    | ::Herb::AST::ERBRescueNode
 
     class Error < StandardError; end
   end

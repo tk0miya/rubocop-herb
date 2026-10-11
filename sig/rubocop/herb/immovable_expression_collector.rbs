@@ -7,6 +7,8 @@ module RuboCop
     # but an expression next to HTML cannot be moved without changing the output
     # (e.g. `x` in `<input <%= x %>>` or `(<%= x %>)`).
     # Such expressions are found from the Ruby AST and the HTML in the original source.
+    # Expressions on the first or the last line of the conditional (e.g. conditionals written on a single line)
+    # are also collected because the cop crashes on them.
     class ImmovableExpressionCollector
       COP_NAME: String
 
@@ -35,6 +37,18 @@ module RuboCop
       def collect: () -> Hash[String, Array[Range[Integer]]]
 
       private
+
+      # Identical tails (or heads) of the branches sharing a line with the first or the last line of the conditional
+      # (e.g. `<% if a %><%= x %><% else %><%= x %><% end %>` becomes `if a; _ = x; else; _ = x; end`)
+      # The autocorrection of the cop removes the whole lines of the expressions and inserts one of them
+      # before (or after) the conditional, so the cop crashes on them (Parser::ClobberingError)
+      # @rbs node: ::RuboCop::AST::Node
+      # @rbs branches: Array[::RuboCop::AST::Node]
+      def expressions_on_conditional_lines: (::RuboCop::AST::Node node, Array[::RuboCop::AST::Node] branches) -> Array[::RuboCop::AST::Node]
+
+      # Ternaries and if with `then` are not autocorrected by the cop, so they are still checked
+      # @rbs node: ::RuboCop::AST::Node
+      def autocorrected?: (::RuboCop::AST::Node node) -> bool
 
       # Identical tails (or heads) of the branches that cannot be moved after (or before) the conditional
       # An expression that is both a tail and a head (a branch having a single expression) is immovable

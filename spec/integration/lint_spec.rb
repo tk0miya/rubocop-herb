@@ -625,6 +625,43 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       end
     end
 
+    context "when analyzing conditional branches differing only in HTML not rendered in the Ruby code" do
+      let(:source) do
+        <<~ERB
+          <% if a %>
+            <%= x %>a
+          <% else %>
+            <%= x %>b
+          <% end %>
+          <p class="<% if b %>abc<%= x %><% elsif c %>def<%= x %><% end %>"></p>
+        ERB
+      end
+
+      it "does not trigger Lint/DuplicateBranch" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Style/IdenticalConditionalBranches", 2],
+                                ["Style/IdenticalConditionalBranches", 4]]
+      end
+    end
+
+    context "when analyzing conditionals on a single line having the same Ruby code in all branches" do
+      let(:source) do
+        <<~ERB
+          <% if a %><%= x %><% else %><%= x %><% end %>
+          <% if b %><%= y %><% elsif c %><%= y %><% else %><%= y %><% end %>
+        ERB
+      end
+
+      it "does not trigger Style/IdenticalConditionalBranches, which crashes on them" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.line] }
+        expect(offenses).to eq [["Lint/DuplicateBranch", 1],
+                                ["Lint/DuplicateBranch", 2],
+                                ["Lint/DuplicateBranch", 2]]
+      end
+    end
+
     context "when analyzing ERB tags split into multiple nodes" do
       let(:source) do
         <<~ERB

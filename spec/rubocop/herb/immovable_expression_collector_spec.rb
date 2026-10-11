@@ -89,11 +89,11 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
         <<~ERB
           <% if a %>
             <input class="<% items.each do |i| %>
-              <% if b %><%= i %><% else %><%= i %><% end %>
+              <%= i %>
             <% end %>">
           <% else %>
             <% items.each do |i| %>
-              <% if b %><%= i %><% else %><%= i %><% end %>
+              <%= i %>
             <% end %>
           <% end %>
         ERB
@@ -101,6 +101,58 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
 
       it "disables Style/IdenticalConditionalBranches only at the first line of the Ruby code" do
         expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [2..2, 6..6] })
+      end
+    end
+
+    context "with the same Ruby code in conditionals written on a single line" do
+      let(:code) do
+        "<% if a %><%= x %><% else %><%= x %><% end %>\n" \
+          "<% case a %><% when 1 %><%= x %><% else %><%= x %><% end %>\n" \
+          "<% case a %><% in 1 %><%= x %><% else %><%= x %><% end %>"
+      end
+
+      it "disables Style/IdenticalConditionalBranches at the Ruby code" do
+        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [1..1, 1..1, 2..2, 2..2, 3..3, 3..3] })
+      end
+    end
+
+    context "with the same Ruby code on the first line of the conditional" do
+      let(:code) { "<% if a %><%= x %>\n<% else %>\n<%= x %>\n<% end %>" }
+
+      it "disables Style/IdenticalConditionalBranches at the Ruby code" do
+        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [1..1, 3..3] })
+      end
+    end
+
+    context "with the same Ruby code at the head of multiple expressions on the first line of the conditional" do
+      let(:code) { "<% if a %><% x %>\n<% y %>\n<% else %>\n<% x %>\n<% z %>\n<% end %>" }
+
+      it "disables Style/IdenticalConditionalBranches at the head" do
+        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [1..1, 4..4] })
+      end
+    end
+
+    context "with the same Ruby code on the last line of the conditional" do
+      let(:code) { "<% if a %>\n<%= x %>\n<% else %><%= x %><% end %>" }
+
+      it "disables Style/IdenticalConditionalBranches at the Ruby code" do
+        expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [2..2, 3..3] })
+      end
+    end
+
+    context "with the same Ruby code in a ternary and an if with then on a single line" do
+      let(:code) { "<%= a ? x : x %>\n<% if a then %><%= x %><% else %><%= x %><% end %>" }
+
+      it "disables nothing because the cop does not autocorrect them" do
+        expect(subject).to eq({})
+      end
+    end
+
+    context "with the same Ruby code on the lines other than the first and the last lines of the conditional" do
+      let(:code) { "<% if a %>\n  <%= x %><% else %><%= x %>\n<% end %>" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
       end
     end
 
