@@ -175,13 +175,16 @@ module RuboCop
 
       # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
       # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
-      # (herb-lint's erb-prefer-do-end-blocks). Blocks written within a single ERB tag are still checked.
+      # (herb-lint's erb-prefer-do-end-blocks). Style/SingleLineDoEndBlock suggests splitting them into
+      # multiple lines, but line breaks between ERB tags change the rendered whitespace.
+      # Blocks written within a single ERB tag are still checked.
       # @rbs node: ::Herb::AST::ERBBlockNode
       def disable_single_line_block(node) #: void
         first_line = node.location.start.line
         return unless first_line == node.location.end.line
 
         disable_line("Style/BlockDelimiters", first_line)
+        disable_line("Style/SingleLineDoEndBlock", first_line)
       end
 
       # The column of the end tag follows the HTML structure (e.g. `<p>x</p><% end %>`),

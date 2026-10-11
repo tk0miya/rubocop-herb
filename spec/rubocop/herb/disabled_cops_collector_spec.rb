@@ -333,9 +333,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block written across ERB tags on a single line" do
       let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
 
-      it "disables Style/BlockDelimiters and Layout/BlockAlignment at the line" do
+      it "disables Style/BlockDelimiters, Style/SingleLineDoEndBlock and Layout/BlockAlignment at the line" do
         expect(subject).to eq({
                                 "Style/BlockDelimiters" => [1..1],
+                                "Style/SingleLineDoEndBlock" => [1..1],
                                 "Layout/BlockAlignment" => [1..1],
                                 **indentation_width(1..1)
                               })
