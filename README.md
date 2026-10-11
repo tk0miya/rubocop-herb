@@ -73,6 +73,7 @@ rubocop-herb converts an ERB comment to a Ruby comment so that RuboCop processes
 (including `<%# rubocop:disable %>` directives).
 But rubocop-herb cannot convert an ERB comment followed by ERB tags on the same line,
 because the Ruby comment would comment out the following code; rubocop-herb ignores such a comment.
+The same applies to a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`).
 This is harmless for ordinary comments, but rubocop directives in such a comment have no effect.
 The `Herb/IgnoredCopDirective` cop (enabled by default) reports rubocop directives
 ignored by rubocop-herb because ERB tags follow them on the same line:
@@ -84,6 +85,13 @@ ignored by rubocop-herb because ERB tags follow them on the same line:
 <%# good %>
 <%# rubocop:disable Lint/Void %>
 <%= user.name %>
+
+<%# bad: rubocop-herb ignores this directive %>
+<% name = user.name # rubocop:disable Lint/UselessAssignment %><%= user.email %>
+
+<%# good %>
+<% name = user.name # rubocop:disable Lint/UselessAssignment %>
+<%= user.email %>
 ```
 
 To disable the cop, configure it in `.rubocop.yml`:
