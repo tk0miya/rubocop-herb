@@ -74,6 +74,22 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing a block whose body is an ERB comment followed by HTML on the same line" do
+    let(:source) do
+      <<~ERB
+        <% items.each do |item| %>
+          <%# comment %><li>x</li>
+        <% end %>
+      ERB
+    end
+
+    it "triggers Lint/UnusedBlockArgument as for the body without the comment" do
+      runner.run(path, source, {})
+      offenses = runner.offenses.map { [_1.cop_name, _1.line, _1.column] }
+      expect(offenses).to eq [["Lint/UnusedBlockArgument", 1, 18]]
+    end
+  end
+
   context "when analyzing a control flow ERB tag with a trailing Ruby comment followed by its end tag" do
     let(:source) { "<% if x # comment %>a<% end %>\n" }
 

@@ -31,11 +31,11 @@ module RuboCop
       # @rbs!
       #   def source: () -> Source
       #   def erb_comment_nodes: () -> Array[::Herb::AST::ERBCommentNode]
-      #   def followed_by_erb?: (erb_node node) -> bool
+      #   def followed_by_content?: (erb_node node) -> bool
       #   def byteslice: (::Herb::Range) -> String
 
       def_delegators :parse_result, :source, :erb_comment_nodes,
-                     :followed_by_erb?, :byteslice
+                     :followed_by_content?, :byteslice
 
       # @rbs parse_result: ParseResult
       def initialize(parse_result) #: void
@@ -158,7 +158,7 @@ module RuboCop
 
       # Terminate the statement of the code
       # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered.
-      # But if ERB nodes follow the tag on the same line, the comment would comment them out,
+      # But if ERB tags or HTML follow the tag on the same line, the comment would comment them out,
       # so it is replaced with spaces and a semicolon is rendered after the code before it
       # @rbs node: erb_node
       # @rbs code: String
@@ -166,7 +166,7 @@ module RuboCop
       def render_statement_end(node, code, range) #: void
         comment = RubyComment.trailing_range(node, source)
         return render_semicolon(node, code, range) unless comment
-        return unless followed_by_erb?(node)
+        return unless followed_by_content?(node)
 
         render_whitespace(comment)
         render_semicolon(node, code[0...(comment.from - range.from)].to_s, CharRange.new(range.from, comment.from))
@@ -248,11 +248,11 @@ module RuboCop
       end
 
       # Render collected comments that can be safely converted to Ruby comments
-      # A comment followed by ERB nodes on the same line is not rendered,
-      # because Ruby's # comment extends to end of line and would comment out the code
+      # A comment followed by ERB tags or HTML on the same line is not rendered,
+      # because Ruby's # comment extends to end of line and would comment them out
       def render_comments #: void
         erb_comment_nodes.each do |node|
-          render_erb_comment_node(node) unless followed_by_erb?(node)
+          render_erb_comment_node(node) unless followed_by_content?(node)
         end
       end
 

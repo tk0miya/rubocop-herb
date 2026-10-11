@@ -3,10 +3,10 @@
 module RuboCop
   module Cop
     module Herb
-      # Checks for rubocop directives ignored by rubocop-herb because ERB tags follow them on the same line.
+      # Checks for rubocop directives ignored by rubocop-herb because ERB tags or HTML follow them on the same line.
       #
       # rubocop-herb converts an ERB comment to a Ruby comment so that RuboCop processes it.
-      # But rubocop-herb ignores an ERB comment followed by ERB tags on the same line,
+      # But rubocop-herb ignores an ERB comment followed by ERB tags or HTML on the same line,
       # because the Ruby comment would comment out the following code.
       # The same applies to a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`).
       # This is harmless for ordinary comments, but rubocop directives (e.g. `rubocop:disable`)

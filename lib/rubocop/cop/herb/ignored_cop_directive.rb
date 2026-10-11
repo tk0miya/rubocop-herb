@@ -5,10 +5,10 @@ require "rubocop"
 module RuboCop
   module Cop
     module Herb
-      # Checks for rubocop directives ignored by rubocop-herb because ERB tags follow them on the same line.
+      # Checks for rubocop directives ignored by rubocop-herb because ERB tags or HTML follow them on the same line.
       #
       # rubocop-herb converts an ERB comment to a Ruby comment so that RuboCop processes it.
-      # But rubocop-herb ignores an ERB comment followed by ERB tags on the same line,
+      # But rubocop-herb ignores an ERB comment followed by ERB tags or HTML on the same line,
       # because the Ruby comment would comment out the following code.
       # The same applies to a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`).
       # This is harmless for ordinary comments, but rubocop directives (e.g. `rubocop:disable`)
@@ -37,7 +37,7 @@ module RuboCop
       #   <%# Show the user name %><%= user.name %>
       # rubocop:enable Lint/RedundantCopDisableDirective
       class IgnoredCopDirective < Base
-        MSG = "rubocop-herb ignores this rubocop directive because ERB tags follow it on the same line. " \
+        MSG = "rubocop-herb ignores this rubocop directive because ERB tags or HTML follow it on the same line. " \
               "Place them on a separate line."
 
         def on_new_investigation #: void
@@ -47,7 +47,7 @@ module RuboCop
           parse_result = source.parse_result
           parse_result.erb_locations.each_value do |location|
             node = location.node #: ::RuboCop::Herb::erb_node
-            next unless parse_result.followed_by_erb?(node)
+            next unless parse_result.followed_by_content?(node)
 
             range = directive_range(node, parse_result)
             next unless range

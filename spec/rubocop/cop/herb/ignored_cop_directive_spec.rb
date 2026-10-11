@@ -7,7 +7,7 @@ RSpec.describe RuboCop::Cop::Herb::IgnoredCopDirective do
     it "registers an offense at the directive" do
       expect_offense(<<~ERB)
         <div><%# rubocop:disable Lint/Void %><%= x %></div>
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ rubocop-herb ignores this rubocop directive because ERB tags follow it on the same line. Place them on a separate line.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ rubocop-herb ignores this rubocop directive because ERB tags or HTML follow it on the same line. Place them on a separate line.
       ERB
     end
   end
@@ -25,9 +25,18 @@ RSpec.describe RuboCop::Cop::Herb::IgnoredCopDirective do
   end
 
   context "when an ERB comment containing a rubocop directive is followed by HTML only on the same line" do
+    it "registers an offense at the directive" do
+      expect_offense(<<~ERB)
+        <%# rubocop:disable Lint/Void %><div>text</div>
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ #{described_class::MSG}
+      ERB
+    end
+  end
+
+  context "when an ERB comment containing a rubocop directive is followed by another ERB comment only" do
     it "does not register an offense" do
       expect_no_offenses(<<~ERB)
-        <%# rubocop:disable Lint/Void %><div>text</div>
+        <%# rubocop:disable Lint/Void %><%# note %>
       ERB
     end
   end

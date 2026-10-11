@@ -23,6 +23,9 @@ module RuboCop
     class ParseResult
       extend Forwardable
 
+      # An ERB comment tag, or the first line of one continuing to the next line
+      ERB_COMMENT_TAG = /<%-?#.*?(?:%>|\z)/ #: Regexp
+
       # @rbs!
       #   def code: () -> String
       #   def byteslice: (::Herb::Range) -> String
@@ -42,28 +45,17 @@ module RuboCop
         erb_locations.values.select(&:comment?).map(&:node) #: Array[::Herb::AST::ERBCommentNode]
       end
 
-      # Whether ERB nodes (except comments) follow the ERB tag of the node on the line where the tag ends
+      # Whether anything (ERB tags except comments, HTML or text) follows the ERB tag of the node
+      # on the line where the tag ends
       # @rbs node: erb_node
-      def followed_by_erb?(node) #: bool
+      def followed_by_content?(node) #: bool
         tag_closing = node.tag_closing
         return false unless tag_closing
 
-        line = tag_closing.location.end.line
-        tag_end = NodeRange.byte_range_to_char_range(tag_closing.range, source).to
-        index = erb_positions.bsearch_index { _1 >= tag_end } || erb_positions.size
-        while (location = erb_location_at(index)) && location.line == line
-          return true unless location.comment?
-
-          index += 1
-        end
-        false
-      end
-
-      # Get the ERB location at the index of erb_positions
-      # @rbs index: Integer
-      def erb_location_at(index) #: ErbLocation?
-        pos = erb_positions[index]
-        pos && erb_locations[pos]
+        # Byte positions avoid converting to character positions, which scans the code from its start
+        tag_end = tag_closing.range.to
+        line_end = code.byteindex("\n", tag_end) || code.bytesize
+        code.byteslice(tag_end...line_end).to_s.gsub(ERB_COMMENT_TAG, "").match?(/\S/)
       end
     end
   end
