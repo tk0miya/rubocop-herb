@@ -5,10 +5,15 @@
 # calls Cop::Base#cop_name, so declare them here.
 # Herb/Linting cop resolves herb-lint from ConfigFinder.project_root and checks
 # CommentConfig#cop_enabled_at_line? before reporting the startup error.
+# Herb/IgnoredCopDirective cop detects rubocop directives with DirectiveComment::DIRECTIVE_COMMENT_REGEXP.
 
 module RuboCop
   module ConfigFinder
     def self.project_root: () -> String?
+  end
+
+  class DirectiveComment
+    DIRECTIVE_COMMENT_REGEXP: Regexp
   end
 
   class CommentConfig

@@ -149,6 +149,7 @@ The libraries count positions and newlines differently, so convert positions exp
 - **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion (e.g., conditional branches containing only HTML)
 - **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information, and converts Herb positions (bytes and line/column) to character positions
 - **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
+- **RubyComment** (`lib/rubocop/herb/ruby_comment.rb`): Utility module that renders an ERB comment as a Ruby comment. Shared by `RubyRenderer` and `Herb/IgnoredCopDirective` cop so that the cop detects directives as RuboCop sees them
 
 #### RuboCop Integration
 
@@ -159,13 +160,17 @@ The libraries count positions and newlines differently, so convert positions exp
 - **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<input <%= x %>>` or `(<%= x %>)` in every branch)
 - **TrailingWhitespaceCollector** (`lib/rubocop/herb/trailing_whitespace_collector.rb`): Collects the lines to disable `Layout/TrailingWhitespace` for trailing whitespace rendered by the conversion (e.g., `<%= x %>` becomes `_ = x;  `). Works on the lines and the original source, so trailing whitespace written in ERB tags (e.g., a line in a multi-line ERB tag) is still checked
 - **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that restores original HTML tag information in parsed AST nodes, and renames nodes rendered from HTML uniquely so that cops comparing code (e.g. `Lint/DuplicateBranch`) only compare the Ruby parts
-- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and the default configuration of `Herb/Linting` cop
+- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and the default configuration of the Herb cops
 
 #### herb-lint Integration
 
 - **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses. Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
 - **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it
 - **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol)
+
+#### Other Cops
+
+- **Herb/IgnoredCopDirective cop** (`lib/rubocop/cop/herb/ignored_cop_directive.rb`): Reports rubocop directives (e.g. `rubocop:disable`) in ERB comments followed by ERB tags on the same line. rubocop-herb does not convert such a comment to a Ruby comment (it would comment out the following code) and ignores it, so the directive has no effect. Ordinary comments are not reported because ignoring them is harmless. No autocorrection because inserting a line break may change the rendered whitespace
 
 #### Utilities
 

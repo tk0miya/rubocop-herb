@@ -17,6 +17,7 @@ require_relative "herb/parse_result"
 require_relative "herb/plugin"
 require_relative "herb/processed_source"
 require_relative "herb/rubocop_ast_transformer"
+require_relative "herb/ruby_comment"
 require_relative "herb/ruby_renderer"
 require_relative "herb/source"
 require_relative "herb/tag"
@@ -24,6 +25,7 @@ require_relative "herb/trailing_whitespace_collector"
 require_relative "herb/version"
 
 require_relative "cop/herb/linting"
+require_relative "cop/herb/ignored_cop_directive"
 
 module RuboCop
   module Herb

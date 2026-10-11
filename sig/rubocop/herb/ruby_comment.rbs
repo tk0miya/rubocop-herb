@@ -1,0 +1,17 @@
+# Generated from lib/rubocop/herb/ruby_comment.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Utility module for rendering ERB comments as Ruby comments
+    module RubyComment
+      # Render an ERB comment to a Ruby comment (from "#" of "<%#" to the end of the content)
+      # Each line of a multiline comment is commented out with "#"
+      # @rbs node: ::Herb::AST::ERBCommentNode
+      def self.render: (::Herb::AST::ERBCommentNode node) -> String
+
+      # @rbs code: String
+      # @rbs hash_column: Integer
+      def self.format_multiline_comment: (String code, Integer hash_column) -> String
+    end
+  end
+end

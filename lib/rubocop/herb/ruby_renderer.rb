@@ -236,16 +236,10 @@ module RuboCop
       end
 
       # @rbs node: ::Herb::AST::ERBCommentNode
-      def render_erb_comment_node(node) #: void # rubocop:disable Metrics/AbcSize
+      def render_erb_comment_node(node) #: void
         hash_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to - 1)
-        ruby_code[hash_pos] = "#"
-
-        code = extract_ruby_code(node)
-        range = node.content.not_nil!.range
-        hash_column = node.tag_opening.not_nil!.location.start.column + 2
-        formatted_code = format_multiline_comment(code, hash_column)
-        char_from = byte_to_char_pos(range.from)
-        ruby_code[char_from, formatted_code.length] = formatted_code
+        comment = RubyComment.render(node)
+        ruby_code[hash_pos, comment.length] = comment
       end
 
       # Render HTML comment as "_a;" at the start of the comment to indicate content presence (like text nodes)
@@ -259,20 +253,6 @@ module RuboCop
       # @rbs pos: Integer -- character position in ruby_code
       def render_tag_marker(pos) #: void
         ruby_code[pos, 3] = "_a;"
-      end
-
-      # @rbs code: String
-      # @rbs hash_column: Integer
-      def format_multiline_comment(code, hash_column) #: String
-        result = code.gsub(/(?<=\n)( +)/) do |match|
-          if match.length > hash_column + 1
-            "#{match[0...hash_column]}##{match[(hash_column + 1)..]}"
-          else
-            "##{match[1..]}"
-          end
-        end
-
-        result.gsub(/(?<=\n)([^ \n#])/, "#")
       end
 
       # @rbs code: String

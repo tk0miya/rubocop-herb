@@ -1,0 +1,43 @@
+# Generated from lib/rubocop/cop/herb/ignored_cop_directive.rb with RBS::Inline
+
+module RuboCop
+  module Cop
+    module Herb
+      # Checks for rubocop directives ignored by rubocop-herb because ERB tags follow them on the same line.
+      #
+      # rubocop-herb converts an ERB comment to a Ruby comment so that RuboCop processes it.
+      # But rubocop-herb ignores an ERB comment followed by ERB tags on the same line,
+      # because the Ruby comment would comment out the following code.
+      # This is harmless for ordinary comments, but rubocop directives (e.g. `rubocop:disable`)
+      # in such a comment have no effect.
+      #
+      # rubocop:disable Lint/RedundantCopDisableDirective -- the examples contain directives
+      # @example
+      #   # bad
+      #   <%# rubocop:disable Lint/Void %><%= user.name %>
+      #
+      #   # good
+      #   <%# rubocop:disable Lint/Void %>
+      #   <%= user.name %>
+      #
+      #   # good
+      #   <%= user.name %><%# rubocop:disable Lint/Void %>
+      #
+      #   # good (ordinary comments are not checked)
+      #   <%# Show the user name %><%= user.name %>
+      # rubocop:enable Lint/RedundantCopDisableDirective
+      class IgnoredCopDirective < Base
+        MSG: ::String
+
+        def on_new_investigation: () -> void
+
+        private
+
+        # Whether the ERB comment contains a rubocop directive (e.g. `rubocop:disable`)
+        # when rendered as a Ruby comment
+        # @rbs node: ::Herb::AST::ERBCommentNode
+        def directive?: (::Herb::AST::ERBCommentNode node) -> bool
+      end
+    end
+  end
+end
