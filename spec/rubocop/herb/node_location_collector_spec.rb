@@ -160,6 +160,15 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
       context "when html_visualization is enabled" do
         let(:result) { described_class.collect(source, ast, html_visualization: true) }
 
+        context "with ERB tag only" do
+          let(:code) { "<%= hello %>" }
+
+          it "collects ERB tag with restore_source: false" do
+            expect(tags.size).to eq(1)
+            expect(tags[0].restore_source).to be false
+          end
+        end
+
         context "with HTML element containing ERB" do
           let(:code) { "<div class=\"x\"><%= hello %></div>" }
 

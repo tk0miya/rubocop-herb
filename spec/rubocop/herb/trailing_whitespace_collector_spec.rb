@@ -56,6 +56,30 @@ RSpec.describe RuboCop::Herb::TrailingWhitespaceCollector do
     context "with HTML visualized as Ruby code" do
       let(:html_visualization) { true }
 
+      context "with ERB tag at the end of a line" do
+        let(:code) { "<%= a %>" }
+
+        it "disables Layout/TrailingWhitespace at the line" do
+          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
+        end
+      end
+
+      context "with trailing whitespace written in an ERB tag" do
+        let(:code) { "<%\n  a = 1  \n  b = 2 %>" }
+
+        it "disables Layout/TrailingWhitespace except for the line in the ERB tag" do
+          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1, 3..3] })
+        end
+      end
+
+      context "with trailing whitespace written in HTML" do
+        let(:code) { "<p>x</p>  " }
+
+        it "disables Layout/TrailingWhitespace at the line" do
+          expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
+        end
+      end
+
       context "with HTML at the end of a line" do
         let(:code) { "<% a = 1 %><p>x</p>" }
 
