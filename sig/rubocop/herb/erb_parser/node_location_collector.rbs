@@ -43,10 +43,10 @@ module RuboCop
       def initialize: (source: Source) -> void
 
       # Character ranges of ERB tags (from "<%" to "%>") sorted by position
-      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
-      # or closing, so its content is used instead
       def erb_tag_ranges: () -> Array[CharRange]
 
+      # Escaped ERB tags (e.g. `<%% x %>`) are text, so they are recorded as tags like text nodes,
+      # not as ERB locations. Their children (e.g. the body of `<%% if x %>`) are visited as usual
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes: (::Herb::AST::Node node) -> void
 
@@ -111,6 +111,17 @@ module RuboCop
       # Text nodes with multi-byte characters are skipped
       # @rbs node: ::Herb::AST::HTMLTextNode
       def record_text_node_tag: (::Herb::AST::HTMLTextNode node) -> void
+
+      # Record tag info for escaped ERB tags
+      # Tags with multi-byte characters are skipped for the same reason as text nodes
+      # @rbs node: erb_node
+      def record_escaped_tag: (erb_node node) -> void
+
+      # Character range of the ERB tag of the node (from "<%" to "%>")
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      # @rbs node: erb_node
+      def tag_char_range: (erb_node node) -> CharRange
 
       # Record tag info for HTML comments (without ERB)
       # Comments with multi-byte characters are skipped

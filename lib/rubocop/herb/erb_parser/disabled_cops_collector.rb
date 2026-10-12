@@ -2,6 +2,7 @@
 
 require "herb"
 require_relative "branches"
+require_relative "../escaped_erb_visitor"
 
 module RuboCop
   module Herb
@@ -9,7 +10,10 @@ module RuboCop
     # Some cops report false positives caused by the conversion
     # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
     # This collector finds such lines from the ERB structure.
+    # Escaped ERB tags (e.g. `<%% if a %>`) are text, so no cops are disabled for them.
     class DisabledCopsCollector < ::Herb::Visitor
+      include EscapedErbVisitor
+
       # Collect the disabled lines for each cop from a parse result
       # @rbs ast: ::Herb::ParseResult
       def self.collect(ast) #: Hash[String, Array[Range[Integer]]]
@@ -231,13 +235,13 @@ module RuboCop
         (disabled_cops["Layout/IndentationWidth"] ||= []) << (first_line..last_line)
       end
 
-      # The line of the Ruby code in the first ERB tag (except the ones without code) in the nodes,
-      # including the ones in HTML elements
+      # The line of the Ruby code in the first ERB tag (except the ones without code and escaped ones) in the nodes,
+      # including the ones in HTML elements and in the bodies of escaped ERB tags
       # @rbs nodes: Array[::Herb::AST::Node]
       def first_erb_line(nodes) #: Integer?
         nodes.each do |node|
           next if codeless_erb?(node)
-          return ruby_code_line(node) if node.type.start_with?("AST_ERB_")
+          return ruby_code_line(node) if node.type.start_with?("AST_ERB_") && !ErbNode.escaped?(node)
 
           line = first_erb_line(node.compact_child_nodes)
           return line if line
@@ -246,10 +250,11 @@ module RuboCop
       end
 
       # Whether the node is an ERB comment or an ERB tag containing only whitespace and Ruby comments
+      # Escaped ERB tags (e.g. `<%%# note %>`) are text, so they are content
       # @rbs node: ::Herb::AST::Node
       def codeless_erb?(node) #: bool
         return true if node.is_a?(::Herb::AST::ERBCommentNode)
-        return false unless node.is_a?(::Herb::AST::ERBContentNode)
+        return false if !node.is_a?(::Herb::AST::ERBContentNode) || ErbNode.escaped?(node)
 
         code_line_offset(node.content&.value.to_s).nil?
       end
