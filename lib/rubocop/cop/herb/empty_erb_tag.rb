@@ -5,7 +5,7 @@ require "rubocop"
 module RuboCop
   module Cop
     module Herb
-      # Checks for empty ERB tags (`<% %>`), which output nothing.
+      # Checks for empty ERB tags (`<% %>`) and empty ERB comments (`<%# %>`), which output nothing.
       #
       # An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removing `1` from `<% 1 %>`)
       # leaves an empty tag, as rubocop-herb keeps the delimiters of ERB tags.  This cop removes it,
@@ -13,7 +13,7 @@ module RuboCop
       # Otherwise the whitespace trimmed by the trim markers (the indentation before `<%-` and
       # the newline after `-%>`) is removed along with the tag, so the rendered output is kept.
       #
-      # Output tags (`<%= %>`) and comments (`<%# %>`) are not checked.
+      # Output tags (`<%= %>`) and literal tags (`<%% %>`) are not checked.
       #
       # @example
       #   # bad
@@ -30,13 +30,17 @@ module RuboCop
       #
       #   # good
       #   <p></p>
+      #
+      #   # bad
+      #   <%# %>
       class EmptyErbTag < Base
         extend AutoCorrector
 
         MSG = "Remove the empty ERB tag."
 
-        # Openings of the ERB tags checked by this cop (`<%=` and `<%==` are output tags)
-        TAG_OPENINGS = ["<%", "<%-"].freeze #: Array[String]
+        # Openings of the ERB tags checked by this cop
+        # (`<%=` and `<%==` are output tags, and `<%%` is a literal tag outputting `<%`)
+        TAG_OPENINGS = ["<%", "<%-", "<%#"].freeze #: Array[String]
 
         def on_new_investigation #: void
           source = processed_source
@@ -44,7 +48,7 @@ module RuboCop
 
           source.parse_result.erb_locations.each_value do |location|
             node = location.node #: ::RuboCop::Herb::erb_node
-            register_offense(node, source) if location.type == :content && empty_tag?(node)
+            register_offense(node, source) if (location.type == :content || location.comment?) && empty_tag?(node)
           end
         end
 

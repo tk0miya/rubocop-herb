@@ -168,13 +168,13 @@ The libraries count positions and newlines differently, so convert positions exp
 
 #### herb-lint Integration
 
-- **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses. Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
+- **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses (except the rules replaced by other Herb cops, e.g. `erb-no-empty-tags` by `Herb/EmptyErbTag`). Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
 - **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it
 - **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol)
 
 #### Other Cops
 
-- **Herb/EmptyErbTag cop** (`lib/rubocop/cop/herb/empty_erb_tag.rb`): Reports empty `<% %>` tags and removes them by autocorrection (with their lines if they are alone on them, and with the whitespace trimmed by `<%-` and `-%>`). Removes the tags left empty by corrections removing the whole code of a tag (e.g. `Lint/Void` turns `<% 1 %>` into `<% %>`, as `CorrectionAdjuster` keeps the delimiters), through RuboCop's autocorrection loop
+- **Herb/EmptyErbTag cop** (`lib/rubocop/cop/herb/empty_erb_tag.rb`): Reports empty `<% %>` tags and `<%# %>` comments and removes them by autocorrection (with their lines if they are alone on them, and with the whitespace trimmed by `<%-` and `-%>`). Removes the tags left empty by corrections removing the whole code of a tag (e.g. `Lint/Void` turns `<% 1 %>` into `<% %>`, as `CorrectionAdjuster` keeps the delimiters), through RuboCop's autocorrection loop.
 - **Herb/IgnoredCopDirective cop** (`lib/rubocop/cop/herb/ignored_cop_directive.rb`): Reports rubocop directives (e.g. `rubocop:disable`) in ERB comments, or in Ruby comments at the end of the code in ERB tags, followed by ERB tags or HTML on the same line. rubocop-herb ignores such a comment because it would comment out the following code, so the directive has no effect. Ordinary comments are not reported because ignoring them is harmless. No autocorrection because inserting a line break may change the rendered whitespace
 
 #### Utilities

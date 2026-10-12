@@ -97,6 +97,21 @@ RSpec.describe "Lint with Herb/Linting cop", type: :feature do
     end
   end
 
+  context "when the template has an empty ERB tag" do
+    let(:source) do
+      <<~ERB
+        <div>
+          <% %>
+        </div>
+      ERB
+    end
+
+    it "reports it as an offense of Herb/EmptyErbTag only" do
+      runner.run(path, source, {})
+      expect(runner.offenses.map(&:cop_name)).to eq ["Herb/EmptyErbTag"]
+    end
+  end
+
   context "when the herb-lint offense is disabled with herb:disable comment" do
     let(:source) do
       <<~ERB

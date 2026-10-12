@@ -153,9 +153,39 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
   end
 
   context "when an ERB comment is empty" do
+    it "registers an offense and removes the line" do
+      expect_offense(<<~ERB)
+        <p>a</p>
+        <%# %>
+        ^^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>a</p>
+        <p>b</p>
+      ERB
+    end
+  end
+
+  context "when an ERB comment with a trim marker `-%>` is empty" do
+    it "registers an offense and removes the tag and the newline trimmed by the marker" do
+      expect_offense(<<~ERB)
+        <p>a</p><%# -%>
+                ^^^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>a</p><p>b</p>
+      ERB
+    end
+  end
+
+  context "when an ERB comment has text" do
     it "does not register an offense" do
       expect_no_offenses(<<~ERB)
-        <%# %>
+        <%# note %>
       ERB
     end
   end
