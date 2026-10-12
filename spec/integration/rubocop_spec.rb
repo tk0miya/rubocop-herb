@@ -1312,31 +1312,25 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       end
     end
 
-    # Layout/SpaceBeforeSemicolon is disabled, as it removes the space and the delimiters between the tags
-    # (the empty ERB tags are rendered as `;`)
-    context "when the tag follows another tag with a space between them",
-            rubocop_config: { "Herb/EmptyErbTag" => { "Enabled" => false },
-                              "Layout/SpaceBeforeSemicolon" => { "Enabled" => false } } do
-      it "keeps the other tag and the space" do
+    context "when the tag follows another tag with a space between them" do
+      it "removes the code, and then the space and the delimiters between the tags" do
         expect_offense(<<~ERB)
           <%= a %> <% 1 %>
                       ^ Lint/Void: Literal `1` used in void context.
           <%= b %>
         ERB
 
+        # The empty tag is rendered as `;` (`_ = a;     ;`), so Layout/SpaceBeforeSemicolon removes the space and
+        # the delimiters between the tags
         expect_correction(<<~ERB)
-          <%= a %> <% %>
+          <%= a  %>
           <%= b %>
         ERB
       end
     end
 
-    # Layout/SpaceBeforeSemicolon is disabled, as it removes the space and the delimiters between the tags
-    # (the empty ERB tags are rendered as `;`)
-    context "when the codes of both of the adjacent tags are removed",
-            rubocop_config: { "Herb/EmptyErbTag" => { "Enabled" => false },
-                              "Layout/SpaceBeforeSemicolon" => { "Enabled" => false } } do
-      it "keeps the delimiters of both tags" do
+    context "when the codes of both of the adjacent tags are removed" do
+      it "removes the codes, and then the space and the delimiters between the tags" do
         expect_offense(<<~ERB)
           <% 1 %> <% 2 %>
              ^ Lint/Void: Literal `1` used in void context.
@@ -1344,8 +1338,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           <%= b %>
         ERB
 
+        # The empty tags are rendered as `;`, so Layout/SpaceBeforeSemicolon removes the space and the delimiters
+        # between the tags
         expect_correction(<<~ERB)
-          <% %> <% %>
+          <%  %>
           <%= b %>
         ERB
       end
