@@ -227,6 +227,7 @@ plugins:
 - **Converter spec** (`spec/rubocop/herb/converter_spec.rb`): Use when testing the extraction of `ruby_code` and `hybrid_code` from ERB templates. Focus on verifying the conversion logic itself.
 - **Integration spec** (`spec/integration/`): Use when testing RuboCop lint and autocorrect results, such as which cops are triggered, how offenses are reported or how they are corrected.
   - `spec/integration/rubocop_spec.rb` uses the "with the whole RuboCop" shared context (`spec/support/whole_rubocop.rb`)
+  - Follow `expect_offense` with `expect_correction` or `expect_no_corrections` in every example, so that corrections breaking the ERB source are caught (`expect_no_offenses` needs neither, as nothing is corrected without offenses)
 - **When in doubt, use Converter spec**: If you're unsure which to use, write tests in the Converter spec. It's better to test the conversion logic directly.
 
 ### Writing Type Annotations
