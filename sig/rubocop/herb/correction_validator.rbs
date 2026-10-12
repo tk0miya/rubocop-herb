@@ -6,14 +6,19 @@ module RuboCop
     #
     # Cops correct the converted Ruby code, so a correction spanning multiple ERB tags may
     # move or drop the HTML and ERB delimiters between them (e.g. swapping if/else branches).
+    # It may also move the code of output tags into other tags, as output tags are rendered as `_ = code`
+    # (e.g. `<% unless a %><%= x %><% else %><%= y %><% end %>` into `<% _ = a ? y : x %>`),
+    # which stops rendering the result of the code.
     # A correction is accepted only if applying it to the original ERB source keeps
-    # the HTML parts as they are and does not introduce new parse errors.
+    # the HTML parts as they are, keeps the number of output tags and does not introduce new parse errors.
     class CorrectionValidator
       ERB_TOKEN_TYPES: Array[String]
 
       attr_reader parse_result: ParseResult
 
       @html_segments: Array[String]?
+
+      @output_tag_count: Integer?
 
       # @rbs parse_result: ParseResult
       def initialize: (ParseResult parse_result) -> void
@@ -31,12 +36,21 @@ module RuboCop
 
       def html_segments: () -> Array[String]
 
+      def output_tag_count: () -> Integer
+
+      # @rbs code: String
+      def tokens_of: (String code) -> Array[::Herb::Token]
+
       # Split the source into the HTML parts between ERB tags
       # Leading and trailing whitespace of each part is ignored as it is the layout of
       # the adjacent ERB tags.  This allows corrections removing ERB tags (e.g. merging
       # `else` and `if` into `elsif`) along with their indentation and newlines.
-      # @rbs code: String
-      def html_segments_of: (String code) -> Array[String]
+      # @rbs tokens: Array[::Herb::Token]
+      def html_segments_of: (Array[::Herb::Token] tokens) -> Array[String]
+
+      # The number of output tags (`<%=` and `<%==`)
+      # @rbs tokens: Array[::Herb::Token]
+      def output_tag_count_of: (Array[::Herb::Token] tokens) -> Integer
 
       # @rbs token: ::Herb::Token
       def erb_token?: (::Herb::Token token) -> bool
