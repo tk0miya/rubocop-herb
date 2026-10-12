@@ -7,7 +7,9 @@ module RuboCop
       #
       # An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removing `1` from `<% 1 %>`)
       # leaves an empty tag, as rubocop-herb keeps the delimiters of ERB tags.  This cop removes it,
-      # along with its line if the tag is alone on the line, so that the code is removed as in Ruby files.
+      # along with its line if the tag is alone on the line (or with other empty tags only),
+      # so that the code is removed as in Ruby files.  If the tag ends the line after other content,
+      # the whitespace before it is removed too, so as not to leave trailing whitespace.
       # Otherwise the whitespace trimmed by the trim markers (the indentation before `<%-` and
       # the newline after `-%>`) is removed along with the tag, so the rendered output is kept.
       #
@@ -44,6 +46,8 @@ module RuboCop
 
         private
 
+        attr_reader empty_tags: Array[::RuboCop::Herb::CharRange]
+
         # @rbs node: ::RuboCop::Herb::erb_node
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         def register_offense: (::RuboCop::Herb::erb_node node, ::RuboCop::Herb::ProcessedSource source) -> void
@@ -56,12 +60,21 @@ module RuboCop
         def tag_range: (::RuboCop::Herb::erb_node node, ::RuboCop::Herb::ParseResult parse_result) -> ::RuboCop::Herb::CharRange
 
         # The range to remove for the tag
-        # The line is removed if the tag is alone on it.  Otherwise the indentation before `<%-` and
-        # the newline after `-%>` are removed as they are trimmed from the output
+        # The line is removed if the tag is alone on it or with other empty tags only (e.g. `<% %> <% %>`).
+        # The whitespace before the tag is removed if the tag ends the line, unless `-%>` trims the newline,
+        # so as not to leave trailing whitespace.
+        # Otherwise the indentation before `<%-` and the newline after `-%>` are removed
+        # as they are trimmed from the output
         # @rbs node: ::RuboCop::Herb::erb_node
         # @rbs tag: ::RuboCop::Herb::CharRange
         # @rbs parse_result: ::RuboCop::Herb::ParseResult
         def removal_range: (::RuboCop::Herb::erb_node node, ::RuboCop::Herb::CharRange tag, ::RuboCop::Herb::ParseResult parse_result) -> ::RuboCop::Herb::CharRange
+
+        # The start position of the whitespace before the position in the line
+        # @rbs pos: Integer
+        # @rbs line_from: Integer -- start position of the line
+        # @rbs parse_result: ::RuboCop::Herb::ParseResult
+        def whitespace_start: (Integer pos, Integer line_from, ::RuboCop::Herb::ParseResult parse_result) -> Integer
 
         # The range of the tag and the whitespace trimmed by its trim markers
         # @rbs node: ::RuboCop::Herb::erb_node
@@ -70,6 +83,13 @@ module RuboCop
         # @rbs parse_result: ::RuboCop::Herb::ParseResult
         def trimmed_range: (::RuboCop::Herb::erb_node node, ::RuboCop::Herb::CharRange tag, Integer line_from, ::RuboCop::Herb::ParseResult parse_result) -> ::RuboCop::Herb::CharRange
 
+        # Whether the trim marker `-%>` of the tag trims the newline after it
+        # @rbs node: ::RuboCop::Herb::erb_node
+        # @rbs tag: ::RuboCop::Herb::CharRange
+        # @rbs parse_result: ::RuboCop::Herb::ParseResult
+        def trims_newline?: (::RuboCop::Herb::erb_node node, ::RuboCop::Herb::CharRange tag, ::RuboCop::Herb::ParseResult parse_result) -> bool
+
+        # Whether the range has only whitespace and empty tags, which are removed by this cop as well
         # @rbs parse_result: ::RuboCop::Herb::ParseResult
         # @rbs from: Integer
         # @rbs to: Integer

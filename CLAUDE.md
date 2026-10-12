@@ -174,7 +174,7 @@ The libraries count positions and newlines differently, so convert positions exp
 
 #### Other Cops
 
-- **Herb/EmptyErbTag cop** (`lib/rubocop/cop/herb/empty_erb_tag.rb`): Reports empty `<% %>` tags and `<%# %>` comments and removes them by autocorrection (with their lines if they are alone on them, and with the whitespace trimmed by `<%-` and `-%>`). Removes the tags left empty by corrections removing the whole code of a tag (e.g. `Lint/Void` turns `<% 1 %>` into `<% %>`, as `CorrectionAdjuster` keeps the delimiters), through RuboCop's autocorrection loop.
+- **Herb/EmptyErbTag cop** (`lib/rubocop/cop/herb/empty_erb_tag.rb`): Reports empty `<% %>` tags and `<%# %>` comments and removes them by autocorrection (with their lines if they are alone on them or with other empty tags only, with the whitespace before them if they end the line, and with the whitespace trimmed by `<%-` and `-%>`). Removes the tags left empty by corrections removing the whole code of a tag (e.g. `Lint/Void` turns `<% 1 %>` into `<% %>`, as `CorrectionAdjuster` keeps the delimiters), through RuboCop's autocorrection loop.
 - **Herb/IgnoredCopDirective cop** (`lib/rubocop/cop/herb/ignored_cop_directive.rb`): Reports rubocop directives (e.g. `rubocop:disable`) in ERB comments, or in Ruby comments at the end of the code in ERB tags, followed by ERB tags or HTML on the same line. rubocop-herb ignores such a comment because it would comment out the following code, so the directive has no effect. Ordinary comments are not reported because ignoring them is harmless. No autocorrection because inserting a line break may change the rendered whitespace
 
 #### Utilities
