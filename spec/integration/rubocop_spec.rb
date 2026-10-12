@@ -1117,9 +1117,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  # Each context picks an existing cop only as an example of the correction it describes
-  context "when a correction stays inside an ERB tag" do
-    it "corrects the offense" do
+  context "when an operator without surrounding spaces is written in an ERB tag inside HTML" do
+    it "adds the spaces in the tag" do
       expect_offense(<<~ERB)
         <div><%= x==1 %></div>
                   ^^ Layout/SpaceAroundOperators: Surrounding space missing for operator `==`.
@@ -1131,8 +1130,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction replaces an expression inside an ERB tag" do
-    it "corrects the offense" do
+  context "when string literals are concatenated in an ERB tag inside HTML" do
+    it "replaces the concatenation with a string in the tag" do
       expect_offense(<<~ERB)
         <p><%= 'Hello' + 'World' %></p>
                ^^^^^^^^^^^^^^^^^ Style/StringConcatenation: Prefer string interpolation to string concatenation.
@@ -1144,9 +1143,9 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction inserts code at the edges of the content of an ERB tag",
+  context "when a method call with arguments is written in an ERB tag without whitespace around the code",
           rubocop_config: { "Style/MethodCallWithArgsParentheses" => { "Enabled" => true } } do
-    it "corrects the offense" do
+    it "adds the parentheses in the tag" do
       expect_offense(<<~ERB)
         <%=foo 1%>
            ^^^^^ Style/MethodCallWithArgsParentheses: Use parentheses for method calls with arguments.
@@ -1158,8 +1157,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction rewrites a method call inside an ERB tag" do
-    it "corrects the offense" do
+  context "when the length is compared with zero in an ERB tag" do
+    it "replaces the comparison with `empty?`" do
       expect_offense(<<~ERB)
         <%= arr.length == 0 %>
             ^^^^^^^^^^^^^^^ Style/NumericPredicate: Use `arr.length.zero?` instead of `arr.length == 0`.
@@ -1172,8 +1171,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction spans multiple lines inside an ERB tag" do
-    it "corrects the offense" do
+  context "when a hash literal with misaligned keys spans multiple lines in an ERB tag" do
+    it "aligns the keys in the tag" do
       expect_offense(<<~ERB)
         <%= render locals: {
           foo: 1,
@@ -1191,8 +1190,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction removes an ERB tag and keeps HTML" do
-    it "corrects the offense" do
+  context "when an empty else branch follows a branch containing HTML" do
+    it "removes the else tag and keeps the HTML" do
       expect_offense(<<~ERB)
         <% if a %>
           <p>x</p>
@@ -1209,7 +1208,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction would invert a condition of branches containing HTML" do
+  context "when a negated condition has an else branch and the branches contain HTML" do
     it "reports the offense as not correctable" do
       expect_offense(<<~ERB)
         <% if !foo %>
@@ -1225,7 +1224,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction would merge conditionals containing HTML" do
+  context "when a conditional containing HTML is nested in the else branch of a conditional containing HTML" do
     it "reports the offense as not correctable" do
       expect_offense(<<~ERB)
         <% if a %>
@@ -1377,7 +1376,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction would re-indent an ERB tag by removing its delimiters" do
+  context "when an else tag is indented differently from its if tag" do
     it "reports the offense as not correctable" do
       expect_offense(<<~ERB)
         <% if x %>
@@ -1393,7 +1392,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction would remove blank lines in HTML" do
+  context "when HTML has consecutive blank lines" do
     it "reports the offense as not correctable" do
       expect_offense(<<~ERB)
         <p>a</p>
@@ -1408,8 +1407,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when a correction would move HTML into ERB tags and another correction would not" do
-    it "corrects the other offense only" do
+  context "when unless-else branches containing HTML are followed by an operator without surrounding spaces" do
+    it "adds the spaces around the operator only" do
       expect_offense(<<~ERB)
         <% unless foo %>
            ^^^^^^^^^^^^^ Style/UnlessElse: Do not use `unless` with `else`. Rewrite these with the positive case first.
@@ -1435,7 +1434,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when corrections leave an empty ERB tag" do
+  context "when a useless assignment of a literal is written in an ERB tag alone on its line" do
     it "removes the line of the tag" do
       expect_offense(<<~ERB)
         <p>a</p>
@@ -1479,7 +1478,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       end
     end
 
-    context "when a correction removes the code of ERB tags along with the delimiters before them" do
+    context "when literals are written in ERB tags with CRLF line endings" do
       let(:source) { "<p>a</p>\r\n  <% 1 %>\r\n<p><% 2 %></p>\r\n<%= b %>\r\n" }
 
       it "corrects the offenses as the LF equivalent" do
