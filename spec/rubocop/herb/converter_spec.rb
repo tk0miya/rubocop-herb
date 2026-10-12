@@ -47,6 +47,30 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    describe "with a raw output ERB tag" do
+      let(:source) { "<div><%== user.name %></div>" }
+      let(:expected) { "div;  _ = user.name;  div;  " }
+      let(:expected_hybrid) { "<div> _ = user.name;  </div>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a raw output ERB tag following multi-byte characters" do
+      let(:source) { "<div>表示件数<%== @count %></div>" }
+      let(:expected) { "div; _a;  _ = @count;  div;  " }
+      let(:expected_hybrid) { "<div>_a;  _ = @count;  </div>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an empty output ERB tag" do
+      let(:source) { "<div><%= %></div>" }
+      let(:expected) { "div;    ;  div;  " }
+      let(:expected_hybrid) { "<div>   ;  </div>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with a comment ERB tag" do
       let(:source) { "<div><%# user.name %>\n</div>" }
       let(:expected) { "div;   # user.name   \ndiv;  " }

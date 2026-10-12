@@ -171,7 +171,7 @@ module RuboCop
       def determine_type(node) #: ErbLocation::erb_node_type
         case node
         when ::Herb::AST::ERBContentNode
-          node.tag_opening.not_nil!.value == "<%=" ? :output : :content
+          ErbLocation::OUTPUT_TAG_OPENINGS.include?(node.tag_opening.not_nil!.value) ? :output : :content
         else
           NODE_TYPE_MAP.fetch(node.class)
         end
