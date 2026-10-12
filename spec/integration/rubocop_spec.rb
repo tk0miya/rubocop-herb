@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe "Lint with RuboCop", type: :feature do
+RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   include_context "with the whole RuboCop"
 
   context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag" do
@@ -850,6 +850,372 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
+  # Each context picks an existing cop only as an example of the correction it describes
+  context "when a correction stays inside an ERB tag" do
+    it "corrects the offense" do
+      expect_offense(<<~ERB)
+        <div><%= x==1 %></div>
+                  ^^ Layout/SpaceAroundOperators: Surrounding space missing for operator `==`.
+      ERB
+
+      expect_correction(<<~ERB)
+        <div><%= x == 1 %></div>
+      ERB
+    end
+  end
+
+  context "when a correction replaces an expression inside an ERB tag" do
+    it "corrects the offense" do
+      expect_offense(<<~ERB)
+        <p><%= 'Hello' + 'World' %></p>
+               ^^^^^^^^^^^^^^^^^ Style/StringConcatenation: Prefer string interpolation to string concatenation.
+      ERB
+
+      expect_correction(<<~ERB)
+        <p><%= 'HelloWorld' %></p>
+      ERB
+    end
+  end
+
+  context "when a correction inserts code at the edges of the content of an ERB tag",
+          rubocop_config: { "Style/MethodCallWithArgsParentheses" => { "Enabled" => true } } do
+    it "corrects the offense" do
+      # Layout/SpaceAroundOperators is a false positive, as `<%=foo` is rendered as `_ =foo`
+      expect_offense(<<~ERB)
+        <%=foo 1%>
+           ^^^^^ Style/MethodCallWithArgsParentheses: Use parentheses for method calls with arguments.
+          ^ Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%=foo(1)%>
+      ERB
+    end
+  end
+
+  context "when a correction rewrites a method call inside an ERB tag" do
+    it "corrects the offense" do
+      expect_offense(<<~ERB)
+        <%= arr.length == 0 %>
+            ^^^^^^^^^^^^^^^ Style/NumericPredicate: Use `arr.length.zero?` instead of `arr.length == 0`.
+            ^^^^^^^^^^^^^^^ Style/ZeroLengthPredicate: Use `empty?` instead of `length == 0`.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= arr.empty? %>
+      ERB
+    end
+  end
+
+  context "when a correction spans multiple lines inside an ERB tag" do
+    it "corrects the offense" do
+      expect_offense(<<~ERB)
+        <%= render locals: {
+          foo: 1,
+          barbaz:   2
+          ^^^^^^^^^^^ Layout/HashAlignment: Align the keys of a hash literal if they span more than one line.
+        } %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= render locals: {
+          foo: 1,
+          barbaz: 2
+        } %>
+      ERB
+    end
+  end
+
+  context "when a correction removes an ERB tag and keeps HTML" do
+    it "corrects the offense" do
+      expect_offense(<<~ERB)
+        <% if a %>
+          <p>x</p>
+        <% else %>
+           ^^^^ Style/EmptyElse: Redundant `else`-clause.
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% if a %>
+          <p>x</p>
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when a correction would invert a condition of branches containing HTML" do
+    it "reports the offense as not correctable" do
+      expect_offense(<<~ERB)
+        <% if !foo %>
+           ^^^^^^^^^^ Style/NegatedIfElseCondition: Invert the negated condition and swap the if-else branches.
+          <p>a</p>
+        <% else %>
+          <p>b</p>
+        <% end %>
+      ERB
+
+      expect(run_rubocop(last_source).map(&:correctable?)).to eq [false]
+      expect_no_corrections
+    end
+  end
+
+  context "when a correction would merge conditionals containing HTML" do
+    it "reports the offense as not correctable" do
+      expect_offense(<<~ERB)
+        <% if a %>
+          <p>x</p>
+        <% else %>
+          <% if b %>
+             ^^ Style/IfInsideElse: Convert `if` nested inside `else` to `elsif`.
+            <p>y</p>
+          <% end %>
+        <% end %>
+      ERB
+
+      expect(run_rubocop(last_source).map(&:correctable?)).to eq [false]
+      expect_no_corrections
+    end
+  end
+
+  # Herb/EmptyErbTag is disabled to keep the empty ERB tags left by the corrections of Lint/Void
+  context "when a correction removes the code of an ERB tag along with the delimiters before it",
+          rubocop_config: { "Herb/EmptyErbTag" => { "Enabled" => false } } do
+    context "when the tag is alone on its line" do
+      it "removes the code and keeps the delimiters" do
+        expect_offense(<<~ERB)
+          <p>a</p>
+            <% 1 %>
+               ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <p>a</p>
+            <% %>
+          <%= b %>
+        ERB
+      end
+    end
+
+    context "when the tag is on the first line" do
+      it "removes the code and keeps the delimiters" do
+        expect_offense(<<~ERB)
+          <% 1 %>
+             ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <% %>
+          <%= b %>
+        ERB
+      end
+    end
+
+    context "when the tag is next to HTML" do
+      it "removes the code and keeps the delimiters" do
+        expect_offense(<<~ERB)
+          <p><% 1 %></p>
+                ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <p><% %></p>
+          <%= b %>
+        ERB
+      end
+    end
+
+    context "when the tag is next to another ERB tag" do
+      it "removes the code and keeps the delimiters" do
+        expect_offense(<<~ERB)
+          <% 1 %><%= b %>
+             ^ Lint/Void: Literal `1` used in void context.
+        ERB
+
+        expect_correction(<<~ERB)
+          <% %><%= b %>
+        ERB
+      end
+    end
+
+    # Layout/SpaceBeforeSemicolon is disabled, as it removes the space and the delimiters between the tags
+    # (the empty ERB tags are rendered as `;`)
+    context "when the tag follows another tag with a space between them",
+            rubocop_config: { "Herb/EmptyErbTag" => { "Enabled" => false },
+                              "Layout/SpaceBeforeSemicolon" => { "Enabled" => false } } do
+      it "keeps the other tag and the space" do
+        expect_offense(<<~ERB)
+          <%= a %> <% 1 %>
+                      ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <%= a %> <% %>
+          <%= b %>
+        ERB
+      end
+    end
+
+    # Layout/SpaceBeforeSemicolon is disabled, as it removes the space and the delimiters between the tags
+    # (the empty ERB tags are rendered as `;`)
+    context "when the codes of both of the adjacent tags are removed",
+            rubocop_config: { "Herb/EmptyErbTag" => { "Enabled" => false },
+                              "Layout/SpaceBeforeSemicolon" => { "Enabled" => false } } do
+      it "keeps the delimiters of both tags" do
+        expect_offense(<<~ERB)
+          <% 1 %> <% 2 %>
+             ^ Lint/Void: Literal `1` used in void context.
+                     ^ Lint/Void: Literal `2` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <% %> <% %>
+          <%= b %>
+        ERB
+      end
+    end
+
+    context "when the tag follows multi-byte characters" do
+      it "removes the code and keeps the delimiters" do
+        expect_offense(<<~ERB)
+          <p>日本語🍣</p>
+          <% 1 %>
+             ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <p>日本語🍣</p>
+          <% %>
+          <%= b %>
+        ERB
+      end
+    end
+
+    context "when the tag has other code" do
+      it "keeps the tag" do
+        expect_offense(<<~ERB)
+          <% foo; 1 %>
+                  ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <% foo; %>
+          <%= b %>
+        ERB
+      end
+    end
+
+    context "when the tag has a comment" do
+      it "keeps the tag" do
+        expect_offense(<<~ERB)
+          <% 1 # comment %>
+             ^ Lint/Void: Literal `1` used in void context.
+          <%= b %>
+        ERB
+
+        expect_correction(<<~ERB)
+          <% # comment %>
+          <%= b %>
+        ERB
+      end
+    end
+  end
+
+  context "when a correction would re-indent an ERB tag by removing its delimiters" do
+    it "reports the offense as not correctable" do
+      expect_offense(<<~ERB)
+        <% if x %>
+          <% b %>
+            <% else %>
+               ^^^^ Layout/ElseAlignment: Align `else` with `if`.
+          <% c %>
+        <% end %>
+      ERB
+
+      expect(run_rubocop(last_source).map(&:correctable?)).to eq [false]
+      expect_no_corrections
+    end
+  end
+
+  context "when a correction would remove blank lines in HTML" do
+    it "reports the offense as not correctable" do
+      expect_offense(<<~ERB)
+        <p>a</p>
+
+
+        ^{} Layout/EmptyLines: Extra blank line detected.
+        <p>b</p>
+      ERB
+
+      expect(run_rubocop(last_source).map(&:correctable?)).to eq [false]
+      expect_no_corrections
+    end
+  end
+
+  context "when a correction would move HTML into ERB tags and another correction would not" do
+    it "corrects the other offense only" do
+      expect_offense(<<~ERB)
+        <% unless foo %>
+           ^^^^^^^^^^^^^ Style/UnlessElse: Do not use `unless` with `else`. Rewrite these with the positive case first.
+          <p>a</p>
+        <% else %>
+          <p>b</p>
+        <% end %>
+        <%= x==1 %>
+             ^^ Layout/SpaceAroundOperators: Surrounding space missing for operator `==`.
+      ERB
+
+      corrected = <<~ERB
+        <% unless foo %>
+          <p>a</p>
+        <% else %>
+          <p>b</p>
+        <% end %>
+        <%= x == 1 %>
+      ERB
+      expect_correction(corrected)
+      # Without inserting rubocop:todo comments for the uncorrectable offense
+      expect_correction(corrected, disable_uncorrectable: true)
+    end
+  end
+
+  context "when corrections leave an empty ERB tag" do
+    it "removes the line of the tag" do
+      expect_offense(<<~ERB)
+        <p>a</p>
+        <% unused = 1 %>
+           ^^^^^^ Lint/UselessAssignment: Useless assignment to variable - `unused`.
+        <%= b %>
+      ERB
+
+      # Lint/UselessAssignment leaves `<% 1 %>`, Lint/Void leaves `<% %>`, then Herb/EmptyErbTag removes the line
+      # as the statement is removed in Ruby files
+      expect_correction(<<~ERB)
+        <p>a</p>
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when analyzing an empty ERB tag on the last line without a newline" do
+    # Written in a string literal, as heredocs end with a newline
+    let(:source) { "<p>a</p>\n<% %>" }
+
+    it "triggers Herb/EmptyErbTag and removes the line of the tag" do
+      offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
+      expect(offenses).to eq [["Herb/EmptyErbTag", 2, 0]]
+
+      expect(autocorrect(source)).to eq "<p>a</p>\n"
+    end
+  end
+
   # Written in string literals, as annotations would not line up with CR escaped in heredocs
   context "with CR in the source" do
     context "when analyzing ERB with CRLF line endings" do
@@ -858,6 +1224,20 @@ RSpec.describe "Lint with RuboCop", type: :feature do
       it "reports the same offenses as the LF equivalent besides Layout/EndOfLine" do
         offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
         expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Layout/SpaceAroundOperators", 4, 9]]
+
+        # Parser::Source::Buffer normalizes CRLF to LF, as it does for Ruby files
+        expect(autocorrect(source)).to eq "<div>\n  <p>\n    <%= a %>\n    <%= x == 1 %>\n  </p>\n</div>\n"
+      end
+    end
+
+    context "when a correction removes the code of ERB tags along with the delimiters before them" do
+      let(:source) { "<p>a</p>\r\n  <% 1 %>\r\n<p><% 2 %></p>\r\n<%= b %>\r\n" }
+
+      it "corrects the offenses as the LF equivalent" do
+        offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Lint/Void", 2, 5], ["Lint/Void", 3, 6]]
+
+        expect(autocorrect(source)).to eq "<p>a</p>\n<p></p>\n<%= b %>\n"
       end
     end
 
