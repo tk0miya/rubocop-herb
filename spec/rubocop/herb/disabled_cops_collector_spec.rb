@@ -569,5 +569,25 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({})
       end
     end
+
+    context "with output tags whose code follows the tag openings without whitespace" do
+      let(:code) { "<%=foo%>\n<%==bar%>\n<%=yield%>\n<%= baz %>\n<%=%>" }
+
+      it "disables Layout/SpaceAroundOperators at the tags with the code" do
+        expect(subject).to eq({ "Layout/SpaceAroundOperators" => [1..1, 2..2, 3..3] })
+      end
+    end
+
+    context "with output block tag whose code follows the tag opening without whitespace" do
+      let(:code) { "<%=form_with do |f|%>\n  <%= f.text_field :name %>\n<% end %>" }
+
+      it "disables Layout/SpaceAroundOperators at the block tag" do
+        expect(subject).to eq({
+                                "Layout/SpaceAroundOperators" => [1..1],
+                                "Layout/BlockAlignment" => [3..3],
+                                **indentation_width(2..2)
+                              })
+      end
+    end
   end
 end
