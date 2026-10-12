@@ -19,6 +19,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <%= x # comment %><%= y==1 %>
                                ^^ Layout/SpaceAroundOperators: Surrounding space missing for operator `==`.
       ERB
+
+      expect_correction(<<~ERB)
+        <%= x # comment %><%= y == 1 %>
+      ERB
     end
   end
 
@@ -27,6 +31,12 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       expect_offense(<<~ERB)
         <% items.each do |item| %>
                           ^^^^ Lint/UnusedBlockArgument: Unused block argument - `item`. You can omit the argument if you don't care about it.
+          <%# comment %><li>x</li>
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% items.each do |_item| %>
           <%# comment %><li>x</li>
         <% end %>
       ERB
@@ -141,6 +151,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            ^^^^^^^^^^^ Lint/EmptyConditionalBody: Avoid `unless` branches without a body.
         <% end %>
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -153,6 +165,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           <p>b</p>
         <% end %>
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -181,6 +195,13 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            ^^^^^^ Lint/EmptyEnsure: Empty `ensure` block detected.
         <% end %>
       ERB
+
+      expect_correction(<<~ERB)
+        <% begin %>
+          <p>x</p>
+        <% rescue StandardError %>
+        <% end %>
+      ERB
     end
   end
 
@@ -192,6 +213,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% unless a %><%= x %><% else %><%= y %><% end %>
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/UnlessElse: Do not use `unless` with `else`. Rewrite these with the positive case first.
       ERB
+
+      # The correction moves the output tags into a non-output tag, so that they are no longer rendered
+      pending "rubocop-herb accepts corrections moving the code of output tags into non-output tags"
+      expect_no_corrections
     end
   end
 
@@ -201,6 +226,11 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
         <% case a when 1; b end %>
                         ^ Style/WhenThen: Do not use `when 1;`. Use `when 1 then` instead.
+      ERB
+
+      expect_correction(<<~ERB)
+        <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
+        <% case a when 1 then b end %>
       ERB
     end
   end
@@ -212,6 +242,13 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% case a
            in 1; b
                ^ Style/InPatternThen: Do not use `in 1;`. Use `in 1 then` instead.
+           end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
+        <% case a
+           in 1 then b
            end %>
       ERB
     end
@@ -228,6 +265,16 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
                 ^ Lint/ElseLayout: Odd `else` layout detected. Did you mean to use `elsif`?
            end %>
       ERB
+
+      expect_correction(<<~ERB)
+        <% if a %><%= x %>
+        <% else %><%= y %><% end %>
+        <% if a
+             b
+           else
+             c
+           end %>
+      ERB
     end
   end
 
@@ -236,6 +283,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       expect_offense(<<~ERB)
         <% if a then b else c end %>
            ^^^^^^^^^^^^^^^^^^^^^^ Style/OneLineConditional: Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+      ERB
+
+      expect_correction(<<~ERB)
+        <% a ? b : c %>
       ERB
     end
   end
@@ -254,6 +305,18 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% if d; foo; end %>
            ^^ Style/IfUnlessModifier: Favor modifier `if` usage when having a single-line body. Another good alternative is the usage of control flow `&&`/`||`.
            ^^^^^^^^^^^^^^ Style/IfWithSemicolon: Do not use `if d;` - use a ternary operator instead.
+      ERB
+
+      expect_correction(<<~ERB)
+        <% if a %>
+          <p>a</p>
+        <% elsif b %>
+          <p>b</p>
+        <% end %>
+        <% unless c %>
+          <%= c %>
+        <% end %>
+        <% foo if d %>
       ERB
     end
   end
@@ -279,6 +342,26 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            else
              @z = 2
            end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% case a %>
+        <% when 1 %>
+          <%= x %>
+        <% else %>
+          <%= y %>
+        <% end %>
+        <% case b %>
+        <% in 1 %>
+          <%= x %>
+        <% in 2 %>
+          <%= y %>
+        <% end %>
+        <% @z = if c
+                  1
+                else
+                  2
+                end %>
       ERB
     end
   end
@@ -405,6 +488,18 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
               e
             end %>
       ERB
+
+      expect_correction(<<~ERB)
+        <% if a %>
+          <p><%= a %></p>
+        <% else %>
+          <p><%= b %></p>
+        <% end %>
+        <% if c %>
+          <%= c %>
+        <% end %>
+        <%= d || e %>
+      ERB
     end
   end
 
@@ -429,6 +524,25 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
              end
            end %>
       ERB
+
+      expect_correction(<<~ERB)
+        <ul>
+          <% items.each do |item| %>
+            <% if item.visible? %>
+              <li><%= item.a %></li>
+              <li><%= item.b %></li>
+              <li><%= item.c %></li>
+            <% end %>
+          <% end %>
+        </ul>
+        <% others.each do |other|
+             next unless other.valid?
+
+             save(other)
+             notify(other)
+             log(other)
+           end %>
+      ERB
     end
   end
 
@@ -445,6 +559,18 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
                      ^ Style/BlockDelimiters: Avoid using `{...}` for multi-line blocks.
           <%= foo %>
         <% } %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p class="a"><%= x %></p>
+        <% items.each do |item| %><b><%= item %></b><% end %>
+        <%= form_with do |f| %><%= f.text_field :name %><% end %>
+        <% others.each do |other| %>
+          <%= other %>
+        <% end %>
+        <% foos.each do |foo| %>
+          <%= foo %>
+        <% end %>
       ERB
     end
   end
@@ -463,6 +589,12 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% items.each do |i| foo(i) end %>
                       ^^ Style/BlockDelimiters: Prefer `{...}` over `do...end` for single-line blocks.
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/SingleLineDoEndBlock: Prefer multiline `do`...`end` block.
+      ERB
+
+      expect_correction(<<~ERB)
+        <% items.each do |i|
+             foo(i)
+           end %>
       ERB
     end
   end
@@ -485,6 +617,22 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
              end %>
              ^^^ Layout/EndAlignment: `end` at 13, 5 is not aligned with `if` at 9, 8.
       ERB
+
+      expect_correction(<<~ERB)
+        <% if a %>
+          <p>a</p><% end %>
+        <% case b %>
+        <% when 1 %>
+          <p>b</p><% end %>
+        <% while c %>
+          <p>c</p>
+          <p>c</p><% end %>
+        <% @d = if d
+                  1
+                else
+                  2
+                end %>
+      ERB
     end
   end
 
@@ -503,6 +651,20 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           ^^^^^ Layout/IndentationWidth: Use 2 (not 5) spaces for indentation.
           end %>
           ^^^ Layout/BlockAlignment: `end` at 10, 2 is not aligned with `item.children.each do |child|` at 8, 5.
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= form_with model: @user do |f| %>
+          <%= f.text_field :name %>
+            <% end %>
+        <div class="a">
+          <%= x %>
+            </div>
+        <% items.each do |item| %>
+          <% item.children.each do |child|
+               child.save(item)
+             end %>
         <% end %>
       ERB
     end
@@ -545,6 +707,45 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% if z
                foo
            ^^^^ Layout/IndentationWidth: Use 2 (not 4) spaces for indentation.
+           else
+             bar
+           end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <ul>
+          <% items.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+        <% if a %>
+              <%= a %>
+        <% else %>
+             <p>
+          <%= c %>
+             </p>
+        <% end %>
+        <% while q %>
+         <%# comment %>
+              <%= q %>
+        <% end %>
+        <% until r %>
+         <%# comment %>
+              <p>r</p>
+        <% end %>
+        <% unless s %>
+          <%
+            foo(s) %>
+        <% end %>
+        <% unless t %>
+          <% # comment %>
+              <%= t %>
+        <% end %>
+        <div class="a">
+              <%= v %>
+        </div>
+        <% if z
+             foo
            else
              bar
            end %>
@@ -603,6 +804,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           ^^^^^ Style/IdenticalConditionalBranches: Move `_ = x` out of the conditional.
         <% end %>
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -623,6 +826,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
                                                   ^^^^ Lint/DuplicateBranch: Duplicate branch body detected.
                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/DuplicateBranch: Duplicate branch body detected.
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -651,6 +856,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           ^^^^^ Style/IdenticalConditionalBranches: Move `_ = x` out of the conditional.
         <% end %>
       ERB
+
+      # The correction moves the output tags into a non-output tag, so that they are no longer rendered
+      pending "rubocop-herb accepts corrections moving the code of output tags into non-output tags"
+      expect_no_corrections
     end
   end
 
@@ -710,6 +919,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           ^^^^^ Style/IdenticalConditionalBranches: Move `_ = x` out of the conditional.
         <% end %>
       ERB
+
+      # The correction moves the output tags into a non-output tag, so that they are no longer rendered
+      pending "rubocop-herb accepts corrections moving the code of output tags into non-output tags"
+      expect_no_corrections
     end
   end
 
@@ -749,6 +962,12 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            ^^^^ Style/EmptyElse: Redundant `else`-clause.
         <% end %>
       ERB
+
+      expect_correction(<<~ERB)
+        <% case a %>
+        <% when 1 %>
+        <% end %>
+      ERB
     end
   end
 
@@ -759,6 +978,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            ^^^^^^^^^^^^^^^^^^^^^^^ Lint/EmptyBlock: Empty block detected.
         <% end %>
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -772,6 +993,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            ^^^^ Lint/EmptyInPattern: Avoid `in` branches without a body.
         <% end %>
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -798,6 +1021,12 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% else; end %>
            ^^^^ Style/EmptyElse: Redundant `else`-clause.
       ERB
+
+      expect_correction(<<~ERB)
+        <% if a %>
+          <p>a</p>
+        <% end %>
+      ERB
     end
   end
 
@@ -816,6 +1045,18 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <p>x</p>\s\s
         <%= @b %>\s\s
       ERB
+
+      expect_correction(<<~ERB)
+        <div>
+          <%= @a %>
+        </div>
+        <%
+          @e = 1
+          @f = 2
+        %>
+        <p>x</p>\s\s
+        <%= @b %>\s\s
+      ERB
     end
   end
 
@@ -829,6 +1070,17 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
           <%= n %>
           <%= "n" %>
               ^^^ Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols.
+        <% end %>
+        <% case b %><% in 1 %>x<% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% case a %>
+        <% in 1 %>
+          <p>one</p>
+        <% in Integer => n %>
+          <%= n %>
+          <%= 'n' %>
         <% end %>
         <% case b %><% in 1 %>x<% end %>
       ERB
@@ -1247,6 +1499,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       it "triggers Layout/EndOfLine only at the line ending with CRLF" do
         offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
         expect(offenses).to eq [["Layout/EndOfLine", 2, 0]]
+
+        expect(autocorrect(source)).to eq source
       end
     end
 
@@ -1256,6 +1510,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       it "does not treat them as line breaks" do
         offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
         expect(offenses).to eq [["Layout/SpaceAroundOperators", 1, 13], ["Layout/SpaceAroundOperators", 2, 5]]
+
+        expect(autocorrect(source)).to eq "<div>\r  <%= x == 1 %>\r</div>\n<%= y == 2 %>\n"
       end
     end
   end
