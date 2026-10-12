@@ -222,8 +222,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/UnlessElse: Do not use `unless` with `else`. Rewrite these with the positive case first.
       ERB
 
-      # The correction moves the output tags into a non-output tag, so that they are no longer rendered
-      pending "rubocop-herb accepts corrections moving the code of output tags into non-output tags"
       expect_no_corrections
     end
   end
@@ -878,8 +876,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% end %>
       ERB
 
-      # The correction moves the output tags into a non-output tag, so that they are no longer rendered
-      pending "rubocop-herb accepts corrections moving the code of output tags into non-output tags"
       expect_no_corrections
     end
   end
@@ -941,8 +937,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% end %>
       ERB
 
-      # The correction moves the output tags into a non-output tag, so that they are no longer rendered
-      pending "rubocop-herb accepts corrections moving the code of output tags into non-output tags"
       expect_no_corrections
     end
   end

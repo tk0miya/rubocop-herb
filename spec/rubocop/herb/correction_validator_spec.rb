@@ -73,6 +73,30 @@ RSpec.describe RuboCop::Herb::CorrectionValidator do
       it { is_expected.to be true }
     end
 
+    context "when the correction moves the code of output tags into a code tag" do
+      let(:source) { "<% if a %><%= x %><% else %><%= y %><% end %>" }
+
+      before { corrector.replace(range(0, source.size), "<% _ = a ? x : y %>") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction moves the code of an unescaped output tag into a code tag" do
+      let(:source) { "<% if a %><%== x %><% end %>" }
+
+      before { corrector.replace(range(0, source.size), "<% _ = x if a %>") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction removes a code tag next to an output tag" do
+      let(:source) { "<%= a %> <% %>" }
+
+      before { corrector.replace(range(0, source.size), "<%= a  %>") }
+
+      it { is_expected.to be true }
+    end
+
     context "when the correction introduces a parse error" do
       let(:source) { "<% if a %><p>x</p><% end %>" }
 
