@@ -195,19 +195,33 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing when, in and else tags written across ERB tags" do
-    it "triggers Style/WhenThen, Style/InPatternThen and Lint/ElseLayout only for the code in a single ERB tag" do
+  context "when analyzing when tags written across ERB tags" do
+    it "triggers Style/WhenThen only for the code in a single ERB tag" do
       expect_offense(<<~ERB)
         <% case a %><% when 1 %><%= x %><% else %><%= y %><% end %>
-        <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
-        <% if a %><%= x %>
-        <% else %><%= y %><% end %>
         <% case a when 1; b end %>
                         ^ Style/WhenThen: Do not use `when 1;`. Use `when 1 then` instead.
+      ERB
+    end
+  end
+
+  context "when analyzing in tags written across ERB tags" do
+    it "triggers Style/InPatternThen only for the code in a single ERB tag" do
+      expect_offense(<<~ERB)
+        <% case a %><% in 1 %><%= x %><% else %><%= y %><% end %>
         <% case a
            in 1; b
                ^ Style/InPatternThen: Do not use `in 1;`. Use `in 1 then` instead.
            end %>
+      ERB
+    end
+  end
+
+  context "when analyzing else tags written across ERB tags" do
+    it "triggers Lint/ElseLayout only for the code in a single ERB tag" do
+      expect_offense(<<~ERB)
+        <% if a %><%= x %>
+        <% else %><%= y %><% end %>
         <% if a
              b
            else c
@@ -419,7 +433,7 @@ RSpec.describe "Lint with RuboCop", type: :feature do
   end
 
   context "when analyzing blocks written across ERB tags" do
-    it "triggers Style/BlockDelimiters only for the multi-line brace block and the block in a single ERB tag" do
+    it "triggers Style/BlockDelimiters only for the multi-line brace block" do
       expect_offense(<<~ERB)
         <p class="a"><%= x %></p>
         <% items.each do |item| %><b><%= item %></b><% end %>
@@ -431,9 +445,6 @@ RSpec.describe "Lint with RuboCop", type: :feature do
                      ^ Style/BlockDelimiters: Avoid using `{...}` for multi-line blocks.
           <%= foo %>
         <% } %>
-        <% bars.each do |bar| save(bar) end %>
-                     ^^ Style/BlockDelimiters: Prefer `{...}` over `do...end` for single-line blocks.
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/SingleLineDoEndBlock: Prefer multiline `do`...`end` block.
       ERB
     end
   end
@@ -447,7 +458,7 @@ RSpec.describe "Lint with RuboCop", type: :feature do
   end
 
   context "when analyzing a single-line block in a single ERB tag" do
-    it "triggers Style/SingleLineDoEndBlock" do
+    it "triggers Style/BlockDelimiters and Style/SingleLineDoEndBlock" do
       expect_offense(<<~ERB)
         <% items.each do |i| foo(i) end %>
                       ^^ Style/BlockDelimiters: Prefer `{...}` over `do...end` for single-line blocks.
@@ -581,8 +592,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing conditional branches differing only in HTML not rendered in the Ruby code" do
-    it "does not trigger Lint/DuplicateBranch" do
+  context "when analyzing conditional branches differing only in text too short to be rendered in the Ruby code" do
+    it "triggers Style/IdenticalConditionalBranches but not Lint/DuplicateBranch" do
       expect_offense(<<~ERB)
         <% if a %>
           <%= x %>a
@@ -591,13 +602,20 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           <%= x %>b
           ^^^^^ Style/IdenticalConditionalBranches: Move `_ = x` out of the conditional.
         <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing conditional branches in an attribute differing only in text not rendered in the Ruby code" do
+    it "does not trigger Lint/DuplicateBranch" do
+      expect_no_offenses(<<~ERB)
         <p class="<% if b %>abc<%= x %><% elsif c %>def<%= x %><% end %>"></p>
       ERB
     end
   end
 
   context "when analyzing conditionals on a single line having the same Ruby code in all branches" do
-    it "does not trigger Style/IdenticalConditionalBranches, which crashes on them" do
+    it "triggers Lint/DuplicateBranch only, as Style/IdenticalConditionalBranches crashes on them" do
       expect_offense(<<~ERB)
         <% if a %><%= x %><% else %><%= x %><% end %>
                              ^^^^ Lint/DuplicateBranch: Duplicate branch body detected.
@@ -695,8 +713,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing else branches, when branches and blocks containing only HTML" do
-    it "does not trigger Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
+  context "when analyzing else branches and when branches containing only HTML" do
+    it "does not trigger Style/EmptyElse and Lint/EmptyWhen" do
       expect_no_offenses(<<~ERB)
         <% case a %>
         <% when 1 %>
@@ -704,6 +722,13 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         <% else %>
           b
         <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing blocks containing only HTML" do
+    it "does not trigger Lint/EmptyBlock" do
+      expect_no_offenses(<<~ERB)
         <% items.each do %>
           i
         <% end %>
@@ -714,8 +739,8 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing else branches, when branches and blocks without any content" do
-    it "triggers Style/EmptyElse, Lint/EmptyWhen and Lint/EmptyBlock" do
+  context "when analyzing else branches and when branches without any content" do
+    it "triggers Style/EmptyElse and Lint/EmptyWhen" do
       expect_offense(<<~ERB)
         <% case a %>
         <% when 1 %>
@@ -723,6 +748,13 @@ RSpec.describe "Lint with RuboCop", type: :feature do
         <% else %>
            ^^^^ Style/EmptyElse: Redundant `else`-clause.
         <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing blocks without any content" do
+    it "triggers Lint/EmptyBlock" do
+      expect_offense(<<~ERB)
         <% items.each do |item| %>
            ^^^^^^^^^^^^^^^^^^^^^^^ Lint/EmptyBlock: Empty block detected.
         <% end %>
