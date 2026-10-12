@@ -5,6 +5,8 @@ require "rubocop"
 module RuboCop
   module Herb
     # Prepended to RuboCop::Cop::Base to discard autocorrections that would break ERB templates.
+    # An autocorrection reaching the delimiters of an ERB tag is trimmed by CorrectionAdjuster
+    # (e.g. removing an expression without the delimiters of its ERB tag) before validation.
     # A discarded offense is reported as not autocorrectable.
     # Cops inspecting files other than ERB templates are not affected.
     module CopCorrectionGuard
@@ -31,8 +33,20 @@ module RuboCop
           # Correct on a candidate corrector first; the given corrector is left empty if rejected
           candidate = ::RuboCop::Cop::Corrector.new(corrector.source_buffer)
           block.call(candidate)
-          corrector.merge!(candidate) if source.correction_validator.valid?(candidate)
+          accepted = acceptable_correction(source, candidate)
+          corrector.merge!(accepted) if accepted
         end
+      end
+
+      # The candidate trimmed to the content of ERB tags if it is valid, or the candidate if it is valid
+      # The trimmed one is preferred, as the candidate may be accepted but join ERB tags
+      # (e.g. `<% a %> <% 1 %>` into `<% a  %>` by removing `1` along with the whitespace on its left)
+      # @rbs source: ProcessedSource
+      # @rbs candidate: ::RuboCop::Cop::Corrector
+      def acceptable_correction(source, candidate) #: ::RuboCop::Cop::Corrector?
+        validator = source.correction_validator
+        trimmed = source.correction_adjuster.trim(candidate)
+        [trimmed, candidate].compact.find { validator.valid?(_1) }
       end
     end
   end

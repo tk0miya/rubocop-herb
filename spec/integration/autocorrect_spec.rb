@@ -42,6 +42,21 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
       end
     end
 
+    context "when a correction inserts code at the edges of the content of an ERB tag" do
+      let(:cop_class) { RuboCop::Cop::Style::MethodCallWithArgsParentheses }
+
+      it "corrects the offense" do
+        expect_offense(<<~ERB)
+          <%=foo 1%>
+             ^^^^^ Use parentheses for method calls with arguments.
+        ERB
+
+        expect_correction(<<~ERB)
+          <%=foo(1)%>
+        ERB
+      end
+    end
+
     context "when a correction rewrites a method call inside an ERB tag" do
       let(:cop_class) { RuboCop::Cop::Style::ZeroLengthPredicate }
 
@@ -154,6 +169,166 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
       end
     end
 
+    context "when a correction removes the code of an ERB tag along with the delimiters before it" do
+      let(:cop_class) { RuboCop::Cop::Lint::Void }
+
+      context "when the tag is alone on its line" do
+        it "removes the code and keeps the delimiters" do
+          expect_offense(<<~ERB)
+            <p>a</p>
+              <% 1 %>
+                 ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <p>a</p>
+              <% %>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag is on the first line" do
+        it "removes the code and keeps the delimiters" do
+          expect_offense(<<~ERB)
+            <% 1 %>
+               ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <% %>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag is next to HTML" do
+        it "removes the code and keeps the delimiters" do
+          expect_offense(<<~ERB)
+            <p><% 1 %></p>
+                  ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <p><% %></p>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag is next to another ERB tag" do
+        it "removes the code and keeps the delimiters" do
+          expect_offense(<<~ERB)
+            <% 1 %><%= b %>
+               ^ Literal `1` used in void context.
+          ERB
+
+          expect_correction(<<~ERB)
+            <% %><%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag follows another tag with a space between them" do
+        it "keeps the other tag and the space" do
+          expect_offense(<<~ERB)
+            <%= a %> <% 1 %>
+                        ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <%= a %> <% %>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the codes of both of the adjacent tags are removed" do
+        it "keeps the delimiters of both tags" do
+          expect_offense(<<~ERB)
+            <% 1 %> <% 2 %>
+               ^ Literal `1` used in void context.
+                       ^ Literal `2` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <% %> <% %>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag follows multi-byte characters" do
+        it "removes the code and keeps the delimiters" do
+          expect_offense(<<~ERB)
+            <p>日本語🍣</p>
+            <% 1 %>
+               ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <p>日本語🍣</p>
+            <% %>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag has other code" do
+        it "keeps the tag" do
+          expect_offense(<<~ERB)
+            <% foo; 1 %>
+                    ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <% foo; %>
+            <%= b %>
+          ERB
+        end
+      end
+
+      context "when the tag has a comment" do
+        it "keeps the tag" do
+          expect_offense(<<~ERB)
+            <% 1 # note %>
+               ^ Literal `1` used in void context.
+            <%= b %>
+          ERB
+
+          expect_correction(<<~ERB)
+            <% # note %>
+            <%= b %>
+          ERB
+        end
+      end
+    end
+
+    context "when a correction would re-indent an ERB tag by removing its delimiters" do
+      let(:cop_class) { RuboCop::Cop::Layout::ElseAlignment }
+
+      it "reports the offense as not correctable" do
+        offenses = expect_offense(<<~ERB)
+          <% if x %>
+            <% b %>
+              <% else %>
+                 ^^^^ Align `else` with `if`.
+            <% c %>
+          <% end %>
+        ERB
+
+        expect(offenses.map(&:correctable?)).to eq [false]
+        expect_no_corrections
+      end
+    end
+
     context "when a correction would remove blank lines in HTML" do
       let(:cop_class) { RuboCop::Cop::Layout::EmptyLines }
 
@@ -208,6 +383,30 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
         runner.run(path, source, { autocorrect: true })
 
         expect(runner.formatted_source).to eq expected
+      end
+    end
+
+    context "with a useless assignment of a literal in an ERB tag" do
+      let(:source) do
+        <<~ERB
+          <p>a</p>
+          <% unused = 1 %>
+          <%= b %>
+        ERB
+      end
+      # Lint/UselessAssignment leaves `<% 1 %>`, then Lint/Void removes `1` as in Ruby files
+      let(:corrected) do
+        <<~ERB
+          <p>a</p>
+          <% %>
+          <%= b %>
+        ERB
+      end
+
+      it "removes the code and keeps the delimiters" do
+        runner.run(path, source, { autocorrect: true })
+
+        expect(runner.formatted_source).to eq corrected
       end
     end
 

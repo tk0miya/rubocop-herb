@@ -14,6 +14,7 @@ module RuboCop
 
       # @rbs @comment_config: CommentConfig?
       # @rbs @correction_validator: CorrectionValidator?
+      # @rbs @correction_adjuster: CorrectionAdjuster?
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
@@ -38,6 +39,11 @@ module RuboCop
       # Validator to discard autocorrections that would break the ERB template
       def correction_validator #: CorrectionValidator
         @correction_validator ||= CorrectionValidator.new(parse_result)
+      end
+
+      # Adjuster to trim autocorrections to the content of ERB tags
+      def correction_adjuster #: CorrectionAdjuster
+        @correction_adjuster ||= CorrectionAdjuster.new(parse_result, raw_source)
       end
 
       private

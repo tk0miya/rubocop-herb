@@ -1,0 +1,100 @@
+# Generated from lib/rubocop/herb/correction_adjuster.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Adjusts autocorrections made on the Ruby code converted from an ERB file.
+    #
+    # The ERB delimiters are rendered as whitespace in the converted Ruby code, so a correction
+    # removing an expression along with the whitespace around it (e.g. `Lint/Void`) also removes
+    # the delimiters of its ERB tag.  The adjuster trims a replacement starting (or ending)
+    # outside ERB tags to the content of the ERB tag it ends (or starts) in, if the trimmed part
+    # is whitespace in the Ruby code (#trim), so that the correction keeps the delimiters.
+    class CorrectionAdjuster
+      # The content of an ERB tag and its character range
+      class Content < Data
+        attr_reader location(): ErbLocation
+
+        attr_reader range(): CharRange
+
+        def self.new: (ErbLocation location, CharRange range) -> instance
+                    | (location: ErbLocation, range: CharRange) -> instance
+
+        def self.members: () -> [ :location, :range ]
+
+        def members: () -> [ :location, :range ]
+      end
+
+      # A replacement of the correction in character positions
+      class Replacement < Data
+        attr_reader from(): Integer
+
+        attr_reader to(): Integer
+
+        attr_reader text(): String
+
+        def self.new: (Integer from, Integer to, String text) -> instance
+                    | (from: Integer, to: Integer, text: String) -> instance
+
+        def self.members: () -> [ :from, :to, :text ]
+
+        def members: () -> [ :from, :to, :text ]
+      end
+
+      attr_reader parse_result: ParseResult
+
+      attr_reader ruby_code: String
+
+      @contents: Array[Content]?
+
+      # @rbs parse_result: ParseResult
+      # @rbs ruby_code: String -- Ruby code converted from the ERB source
+      def initialize: (ParseResult parse_result, String ruby_code) -> void
+
+      # Returns the trimmed correction, or nil if there is nothing to trim
+      # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
+      def trim: (::RuboCop::Cop::Corrector corrector) -> ::RuboCop::Cop::Corrector?
+
+      private
+
+      # @rbs corrector: ::RuboCop::Cop::Corrector
+      def replacements_of: (::RuboCop::Cop::Corrector corrector) -> Array[Replacement]
+
+      # Contents of the ERB tags except comments, sorted by position
+      def contents: () -> Array[Content]
+
+      # @rbs location: ErbLocation
+      def content_of: (ErbLocation location) -> Content?
+
+      # The content in which a replacement starting at the position starts
+      # A replacement starting at the end of a content starts outside it
+      # @rbs pos: Integer
+      def content_starting_at: (Integer pos) -> Content?
+
+      # The content in which a replacement ending at the position ends
+      # A replacement ending at the start of a content ends outside it
+      # @rbs pos: Integer
+      def content_ending_at: (Integer pos) -> Content?
+
+      # Trim the replacement to the content of the ERB tag if it starts (or ends) outside ERB tags,
+      # the trimmed part is whitespace in the Ruby code (e.g. the delimiters and the indentation),
+      # and the part left in the content has code
+      # A replacement of whitespace only (e.g. re-indenting the tag) is not trimmed, as the trimmed
+      # replacement would change the whitespace inside the tag instead
+      # @rbs replacement: Replacement
+      def trim_replacement: (Replacement replacement) -> Replacement
+
+      # @rbs replacement: Replacement
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def trim_to: (Replacement replacement, ?from: Integer, ?to: Integer) -> Replacement
+
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def whitespace?: (Integer from, Integer to) -> bool
+
+      # @rbs buffer: ::Parser::Source::Buffer
+      # @rbs replacements: Array[Replacement]
+      def build_corrector: (::Parser::Source::Buffer buffer, Array[Replacement] replacements) -> ::RuboCop::Cop::Corrector
+    end
+  end
+end
