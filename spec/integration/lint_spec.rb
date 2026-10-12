@@ -782,41 +782,11 @@ RSpec.describe "Lint with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing ERB with CRLF line endings" do
-    # Written in a string literal, as annotations would not line up with CR escaped in heredocs
-    let(:source) { "<div>\r\n  <p>\r\n    <%= a %>\r\n    <%= x==1 %>\r\n  </p>\r\n</div>\r\n" }
-
-    it "reports the same offenses as the LF equivalent besides Layout/EndOfLine" do
-      offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
-      expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Layout/SpaceAroundOperators", 4, 9]]
-    end
-  end
-
   context "when analyzing a control flow ERB tag with a trailing Ruby comment followed by its end tag" do
     it "does not trigger Lint/Syntax" do
       expect_no_offenses(<<~ERB)
         <% if x # comment %>a<% end %>
       ERB
-    end
-  end
-
-  context "when analyzing ERB with mixed line endings" do
-    # Written in a string literal, as annotations would not line up with CR escaped in heredocs
-    let(:source) { "<div>\n  <%= a %>\r\n</div>\n" }
-
-    it "triggers Layout/EndOfLine only at the line ending with CRLF" do
-      offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
-      expect(offenses).to eq [["Layout/EndOfLine", 2, 0]]
-    end
-  end
-
-  context "when analyzing ERB with lone carriage returns" do
-    # Written in a string literal, as annotations would not line up with CR escaped in heredocs
-    let(:source) { "<div>\r  <%= x==1 %>\r</div>\n<%= y==2 %>\n" }
-
-    it "does not treat them as line breaks" do
-      offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
-      expect(offenses).to eq [["Layout/SpaceAroundOperators", 1, 13], ["Layout/SpaceAroundOperators", 2, 5]]
     end
   end
 
@@ -877,6 +847,36 @@ RSpec.describe "Lint with RuboCop", type: :feature do
           class="<%= #{"x" * 100} %>">
         </div>
       ERB
+    end
+  end
+
+  # Written in string literals, as annotations would not line up with CR escaped in heredocs
+  context "with CR in the source" do
+    context "when analyzing ERB with CRLF line endings" do
+      let(:source) { "<div>\r\n  <p>\r\n    <%= a %>\r\n    <%= x==1 %>\r\n  </p>\r\n</div>\r\n" }
+
+      it "reports the same offenses as the LF equivalent besides Layout/EndOfLine" do
+        offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Layout/SpaceAroundOperators", 4, 9]]
+      end
+    end
+
+    context "when analyzing ERB with mixed line endings" do
+      let(:source) { "<div>\n  <%= a %>\r\n</div>\n" }
+
+      it "triggers Layout/EndOfLine only at the line ending with CRLF" do
+        offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 2, 0]]
+      end
+    end
+
+    context "when analyzing ERB with lone carriage returns" do
+      let(:source) { "<div>\r  <%= x==1 %>\r</div>\n<%= y==2 %>\n" }
+
+      it "does not treat them as line breaks" do
+        offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/SpaceAroundOperators", 1, 13], ["Layout/SpaceAroundOperators", 2, 5]]
+      end
     end
   end
 end
