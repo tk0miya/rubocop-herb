@@ -30,6 +30,15 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         end
       end
 
+      context "with a raw output ERB tag" do
+        let(:code) { "<%== hello %>" }
+
+        it "collects the ERB location with type :output" do
+          expect(erb_locations.size).to eq(1)
+          expect(erb_locations.values.first.type).to eq(:output)
+        end
+      end
+
       context "with a comment ERB tag" do
         let(:code) { "<%# hello %>" }
 

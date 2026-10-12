@@ -4,6 +4,9 @@ module RuboCop
   module Herb
     # Represents the location and metadata of an ERB node
     class ErbLocation
+      # Tag openings of the ERB tags that output the result of the code (`<%==` outputs it without escaping)
+      OUTPUT_TAG_OPENINGS = ["<%=", "<%=="].freeze #: Array[String]
+
       # @rbs!
       #   type erb_node_type = :content | :output | :comment
       #                      | :block | :if | :unless | :else
@@ -31,7 +34,7 @@ module RuboCop
         @column = column
       end
 
-      # Check if this is an output node (<%= %>)
+      # Check if this is an output node (<%= %> or <%== %>)
       def output? #: bool
         type == :output
       end

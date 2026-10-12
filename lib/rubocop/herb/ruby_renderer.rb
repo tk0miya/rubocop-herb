@@ -80,7 +80,7 @@ module RuboCop
         end
       end
 
-      # Visit ERB content nodes (the actual Ruby code: <% %> or <%= %>)
+      # Visit ERB content nodes (the actual Ruby code: <% %>, <%= %> or <%== %>)
       # Comments (ERBCommentNode) are not visited here; they are rendered later via render_comments
       # @rbs node: ::Herb::AST::ERBContentNode
       def visit_erb_content_node(node) #: void
@@ -141,7 +141,7 @@ module RuboCop
 
       # @rbs node: erb_node
       def output_node?(node) #: bool
-        node.tag_opening&.value == "<%="
+        ErbLocation::OUTPUT_TAG_OPENINGS.include?(node.tag_opening&.value)
       end
 
       # @rbs node: erb_node
@@ -153,7 +153,7 @@ module RuboCop
         ruby_code[range.from, code.length] = code
 
         render_statement_end(node, code, range)
-        render_output_marker(node) if output_node?(node)
+        render_output_marker(node) if output_node?(node) && !code.strip.empty?
       end
 
       # Terminate the statement of the code
@@ -197,15 +197,16 @@ module RuboCop
         ruby_code[semicolon_pos] = ";" if semicolon_pos < ruby_code.size
       end
 
-      # Render `_ =` marker over the output tag opening (`<%=`) to avoid Lint/Void false positives
-      # The marker is rendered for every output tag, including the last statement of a conditional,
-      # because the HTML following the conditional puts it in void context
+      # Render `_ =` marker over the output tag opening (`<%=` or `<%==`) to avoid Lint/Void false positives
+      # The marker is rendered for every output tag with code, including the last statement of a conditional,
+      # because the HTML following the conditional puts it in void context.
+      # An empty output tag (e.g. `<%= %>`) has no value to assign, so no marker is rendered (`_ =;` is invalid Ruby)
+      # The marker is placed at the end of the tag opening (`<%==` becomes ` _ =`) so that the space
+      # between the tag opening and the code is kept as the space after `=`
       # @rbs node: erb_node
       def render_output_marker(node) #: void
-        pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
-        ruby_code[pos] = "_"
-        ruby_code[pos + 1] = " "
-        ruby_code[pos + 2] = "="
+        pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to) - 3
+        ruby_code[pos, 3] = "_ ="
       end
 
       # Render HTML open tag or close tag as Ruby code: "tag; "
