@@ -394,19 +394,30 @@ RSpec.describe "Autocorrect with RuboCop", type: :feature do
           <%= b %>
         ERB
       end
-      # Lint/UselessAssignment leaves `<% 1 %>`, then Lint/Void removes `1` as in Ruby files
+      # Lint/UselessAssignment leaves `<% 1 %>`, Lint/Void leaves `<% %>`, then Herb/EmptyErbTag removes the line
+      # as the statement is removed in Ruby files
       let(:corrected) do
         <<~ERB
           <p>a</p>
-          <% %>
           <%= b %>
         ERB
       end
 
-      it "removes the code and keeps the delimiters" do
+      it "removes the line of the tag" do
         runner.run(path, source, { autocorrect: true })
 
         expect(runner.formatted_source).to eq corrected
+      end
+    end
+
+    context "with an empty ERB tag on the last line without a newline" do
+      # expect_offense of a single cop cannot give a source without the trailing newline
+      let(:source) { "<p>a</p>\n<% %>" }
+
+      it "removes the line of the tag" do
+        runner.run(path, source, { autocorrect: true })
+
+        expect(runner.formatted_source).to eq "<p>a</p>\n"
       end
     end
 

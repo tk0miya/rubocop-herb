@@ -20,6 +20,9 @@ module RuboCop
       class Linting < Base
         SEVERITIES: Hash[String, Symbol]
 
+        # Rules of herb-lint not reported, as other Herb cops report the same offenses with autocorrection
+        REPLACED_RULES: Array[String]
+
         # Files affecting the result of herb-lint other than the linted file itself
         CONFIG_FILES: Array[String]
 
@@ -33,6 +36,11 @@ module RuboCop
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
         def lint: (::RuboCop::Herb::ProcessedSource source, String path) -> void
+
+        # Offenses of herb-lint except the rules replaced by other Herb cops
+        # @rbs source: ::RuboCop::Herb::ProcessedSource
+        # @rbs path: String -- absolute path of the file
+        def herb_lint_offenses: (::RuboCop::Herb::ProcessedSource source, String path) -> Array[::RuboCop::Herb::HerbLintClient::Offense]
 
         def client: () -> ::RuboCop::Herb::HerbLintClient
 

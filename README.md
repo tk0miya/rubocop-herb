@@ -71,6 +71,7 @@ With `rubocop --parallel`, each worker process spawns its own one.
 Limitations:
 
 - Autocorrection of herb-lint is not supported. Run `herb-lint --fix` instead.
+- The `erb-no-empty-tags` rule is not reported, as the `Herb/EmptyErbTag` cop reports and autocorrects it.
 - herb-lint does not run on files where the Ruby code has syntax errors.
 - Rules that analyze other templates (e.g. partials and their callers) run without the project-wide analysis,
   so that RuboCop's result cache stays valid per file.
@@ -111,6 +112,37 @@ Herb/IgnoredCopDirective:
 
 It does not support autocorrection, because inserting a line break may change the rendered whitespace
 and the indentation of the following code depends on the surrounding HTML.
+
+### Herb/EmptyErbTag cop
+
+The `Herb/EmptyErbTag` cop (enabled by default) reports empty ERB tags (`<% %>`) and empty ERB comments (`<%# %>`),
+which output nothing, and removes them by autocorrection:
+
+```erb
+<%# bad %>
+<p>a</p>
+<% %>
+<p>b</p>
+
+<%# good %>
+<p>a</p>
+<p>b</p>
+```
+
+An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removing `1` from `<% 1 %>`)
+keeps the delimiters of the tag, so that it does not break the template.
+This cop removes the empty tag left by it, as the statement is removed in Ruby files.
+The line of the tag is removed if the tag is alone on it.
+The whitespace trimmed by the trim markers (`<%-` and `-%>`) is removed along with the tag.
+
+The cop replaces the `erb-no-empty-tags` rule of herb-lint, so `Herb/Linting` does not report the rule.
+
+To disable the cop, configure it in `.rubocop.yml`:
+
+```yaml
+Herb/EmptyErbTag:
+  Enabled: false
+```
 
 ## Development
 

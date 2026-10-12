@@ -28,6 +28,11 @@ module RuboCop
           "hint" => :refactor
         }.freeze #: Hash[String, Symbol]
 
+        # Rules of herb-lint not reported, as other Herb cops report the same offenses with autocorrection
+        REPLACED_RULES = [
+          "erb-no-empty-tags" # Herb/EmptyErbTag
+        ].freeze #: Array[String]
+
         # Files affecting the result of herb-lint other than the linted file itself
         CONFIG_FILES = [
           ".herb.yml",
@@ -58,7 +63,7 @@ module RuboCop
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
         def lint(source, path) #: void
-          client.lint(path, source.parse_result.code).each do |offense|
+          herb_lint_offenses(source, path).each do |offense|
             add_offense(offense_range(offense), message: "[#{offense.rule}] #{offense.message}",
                                                 severity: SEVERITIES.fetch(offense.severity, :convention))
           end
@@ -71,6 +76,13 @@ module RuboCop
                       message: "herb-lint is not available: #{e.message}. Set up herb-lint " \
                                "(`npm install --save-dev @herb-tools/linter`) or disable Herb/Linting cop.",
                       severity: :error)
+        end
+
+        # Offenses of herb-lint except the rules replaced by other Herb cops
+        # @rbs source: ::RuboCop::Herb::ProcessedSource
+        # @rbs path: String -- absolute path of the file
+        def herb_lint_offenses(source, path) #: Array[::RuboCop::Herb::HerbLintClient::Offense]
+          client.lint(path, source.parse_result.code).reject { REPLACED_RULES.include?(_1.rule) }
         end
 
         def client #: ::RuboCop::Herb::HerbLintClient
