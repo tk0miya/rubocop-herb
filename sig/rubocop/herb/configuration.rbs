@@ -26,6 +26,10 @@ module RuboCop
       # @rbs globs: Array[String]
       private def self.ignored_cop_directive_config: (Array[String] globs) -> Hash[String, untyped]
 
+      # Default configuration of Herb/EmptyErbTag cop
+      # @rbs globs: Array[String]
+      private def self.empty_erb_tag_config: (Array[String] globs) -> Hash[String, untyped]
+
       private attr_reader self.supported_extensions: Array[String]
     end
   end

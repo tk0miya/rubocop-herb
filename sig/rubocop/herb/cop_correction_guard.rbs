@@ -6,9 +6,11 @@ module RuboCop
     # An autocorrection reaching the delimiters of an ERB tag is trimmed by CorrectionAdjuster
     # (e.g. removing an expression without the delimiters of its ERB tag) before validation.
     # A discarded offense is reported as not autocorrectable.
-    # Cops inspecting files other than ERB templates are not affected.
+    # Cops inspecting files other than ERB templates, and the cops of rubocop-herb, are not affected.
     module CopCorrectionGuard
       def processed_source: () -> ::RuboCop::AST::ProcessedSource?
+
+      def cop_name: () -> String
 
       # `--disable-uncorrectable` inserts `# rubocop:todo` comments, which break ERB templates
       def disable_uncorrectable?: () -> bool

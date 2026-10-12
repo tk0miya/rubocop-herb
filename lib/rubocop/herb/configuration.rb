@@ -38,7 +38,8 @@ module RuboCop
           config = {
             "AllCops" => { "Include" => globs },
             "Herb/Linting" => herb_lint_config(globs),
-            "Herb/IgnoredCopDirective" => ignored_cop_directive_config(globs)
+            "Herb/IgnoredCopDirective" => ignored_cop_directive_config(globs),
+            "Herb/EmptyErbTag" => empty_erb_tag_config(globs)
           }
           EXCLUDED_COPS.each do |cop|
             config[cop] = { "Exclude" => globs }
@@ -65,6 +66,16 @@ module RuboCop
           {
             "Description" => "Checks for rubocop directives ignored by rubocop-herb " \
                              "because ERB tags or HTML follow them on the same line.",
+            "Enabled" => true,
+            "Include" => globs
+          }
+        end
+
+        # Default configuration of Herb/EmptyErbTag cop
+        # @rbs globs: Array[String]
+        def empty_erb_tag_config(globs) #: Hash[String, untyped]
+          {
+            "Description" => "Checks for empty ERB tags, which output nothing.",
             "Enabled" => true,
             "Include" => globs
           }
