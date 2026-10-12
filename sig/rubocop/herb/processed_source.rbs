@@ -35,6 +35,7 @@ module RuboCop
       def correction_validator: () -> CorrectionValidator
 
       # Adjuster to trim autocorrections to the content of ERB tags
+      # The raw source is normalized as the buffer is (CRLF to LF), on which the positions of corrections are based
       def correction_adjuster: () -> CorrectionAdjuster
 
       private

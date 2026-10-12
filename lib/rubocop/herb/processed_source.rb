@@ -42,8 +42,9 @@ module RuboCop
       end
 
       # Adjuster to trim autocorrections to the content of ERB tags
+      # The raw source is normalized as the buffer is (CRLF to LF), on which the positions of corrections are based
       def correction_adjuster #: CorrectionAdjuster
-        @correction_adjuster ||= CorrectionAdjuster.new(parse_result, raw_source)
+        @correction_adjuster ||= CorrectionAdjuster.new(parse_result, raw_source.gsub("\r\n", "\n"))
       end
 
       private

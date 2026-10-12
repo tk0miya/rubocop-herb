@@ -1230,6 +1230,17 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       end
     end
 
+    context "when a correction removes the code of ERB tags along with the delimiters before them" do
+      let(:source) { "<p>a</p>\r\n  <% 1 %>\r\n<p><% 2 %></p>\r\n<%= b %>\r\n" }
+
+      it "corrects the offenses as the LF equivalent" do
+        offenses = run_rubocop(source).map { [_1.cop_name, _1.line, _1.column] }
+        expect(offenses).to eq [["Layout/EndOfLine", 1, 0], ["Lint/Void", 2, 5], ["Lint/Void", 3, 6]]
+
+        expect(autocorrect(source)).to eq "<p>a</p>\n<p></p>\n<%= b %>\n"
+      end
+    end
+
     context "when analyzing ERB with mixed line endings" do
       let(:source) { "<div>\n  <%= a %>\r\n</div>\n" }
 
