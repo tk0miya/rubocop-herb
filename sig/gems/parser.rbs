@@ -4,7 +4,8 @@
 # Parser::Source::Map or Parser::Source::Map::Send. We use both constructors
 # in RuboCopASTTransformer, so declare them here.
 # CorrectionValidator and CopCorrectionGuard merge and apply corrections with
-# the methods of TreeRewriter below.
+# the methods of TreeRewriter below, and CorrectionAdjuster reads the replacements
+# of corrections with `#as_replacements`.
 
 module Parser
   module Source
@@ -14,6 +15,7 @@ module Parser
       def import!: (TreeRewriter foreign_rewriter, ?offset: Integer) -> self
       def merge!: (TreeRewriter with) -> self
       def rewrite: () -> String
+      def as_replacements: () -> Array[[Range, String]]
     end
 
     class Map
