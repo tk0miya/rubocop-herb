@@ -1249,149 +1249,137 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  # Herb/EmptyErbTag is disabled to keep the empty ERB tags left by the corrections of Lint/Void
-  context "when a correction removes the code of an ERB tag along with the delimiters before it",
-          rubocop_config: { "Herb/EmptyErbTag" => { "Enabled" => false } } do
-    context "when the tag is alone on its line" do
-      it "removes the code and keeps the delimiters" do
-        expect_offense(<<~ERB)
-          <p>a</p>
-            <% 1 %>
-               ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
-
-        expect_correction(<<~ERB)
-          <p>a</p>
-            <% %>
-          <%= b %>
-        ERB
-      end
-    end
-
-    context "when the tag is on the first line" do
-      it "removes the code and keeps the delimiters" do
-        expect_offense(<<~ERB)
+  context "when a literal is written in an ERB tag alone on its line" do
+    it "removes the line of the tag" do
+      expect_offense(<<~ERB)
+        <p>a</p>
           <% 1 %>
              ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
+        <%= b %>
+      ERB
 
-        expect_correction(<<~ERB)
-          <% %>
-          <%= b %>
-        ERB
-      end
+      expect_correction(<<~ERB)
+        <p>a</p>
+        <%= b %>
+      ERB
     end
+  end
 
-    context "when the tag is next to HTML" do
-      it "removes the code and keeps the delimiters" do
-        expect_offense(<<~ERB)
-          <p><% 1 %></p>
+  context "when a literal is written in an ERB tag on the first line" do
+    it "removes the line of the tag" do
+      expect_offense(<<~ERB)
+        <% 1 %>
+           ^ Lint/Void: Literal `1` used in void context.
+        <%= b %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when a literal is written in an ERB tag next to HTML" do
+    it "removes the tag" do
+      expect_offense(<<~ERB)
+        <p><% 1 %></p>
+              ^ Lint/Void: Literal `1` used in void context.
+        <%= b %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p></p>
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when a literal is written in an ERB tag next to another ERB tag" do
+    it "removes the tag" do
+      expect_offense(<<~ERB)
+        <% 1 %><%= b %>
+           ^ Lint/Void: Literal `1` used in void context.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when a literal is written in an ERB tag following another ERB tag with a space between them" do
+    it "removes the tag and the space before it" do
+      expect_offense(<<~ERB)
+        <%= a %> <% 1 %>
+                    ^ Lint/Void: Literal `1` used in void context.
+        <%= b %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= a %>
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when literals are written in all the ERB tags on a line" do
+    it "removes the line of the tags" do
+      expect_offense(<<~ERB)
+        <% 1 %> <% 2 %>
+           ^ Lint/Void: Literal `1` used in void context.
+                   ^ Lint/Void: Literal `2` used in void context.
+        <%= b %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when a literal is written in an ERB tag on a line after multi-byte characters" do
+    it "removes the line of the tag" do
+      expect_offense(<<~ERB)
+        <p>日本語🍣</p>
+        <% 1 %>
+           ^ Lint/Void: Literal `1` used in void context.
+        <%= b %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>日本語🍣</p>
+        <%= b %>
+      ERB
+    end
+  end
+
+  context "when a literal follows other code in an ERB tag" do
+    it "removes the literal and keeps the tag" do
+      expect_offense(<<~ERB)
+        <% foo; 1 %>
                 ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
+        <%= b %>
+      ERB
 
-        expect_correction(<<~ERB)
-          <p><% %></p>
-          <%= b %>
-        ERB
-      end
+      expect_correction(<<~ERB)
+        <% foo; %>
+        <%= b %>
+      ERB
     end
+  end
 
-    context "when the tag is next to another ERB tag" do
-      it "removes the code and keeps the delimiters" do
-        expect_offense(<<~ERB)
-          <% 1 %><%= b %>
-             ^ Lint/Void: Literal `1` used in void context.
-        ERB
+  context "when a literal is followed by a comment in an ERB tag" do
+    it "removes the literal and keeps the tag" do
+      expect_offense(<<~ERB)
+        <% 1 # comment %>
+           ^ Lint/Void: Literal `1` used in void context.
+        <%= b %>
+      ERB
 
-        expect_correction(<<~ERB)
-          <% %><%= b %>
-        ERB
-      end
-    end
-
-    context "when the tag follows another tag with a space between them" do
-      it "removes the code, and then the space and the delimiters between the tags" do
-        expect_offense(<<~ERB)
-          <%= a %> <% 1 %>
-                      ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
-
-        # The empty tag is rendered as `;` (`_ = a;     ;`), so Layout/SpaceBeforeSemicolon removes the space and
-        # the delimiters between the tags
-        expect_correction(<<~ERB)
-          <%= a  %>
-          <%= b %>
-        ERB
-      end
-    end
-
-    context "when the codes of both of the adjacent tags are removed" do
-      it "removes the codes, and then the space and the delimiters between the tags" do
-        expect_offense(<<~ERB)
-          <% 1 %> <% 2 %>
-             ^ Lint/Void: Literal `1` used in void context.
-                     ^ Lint/Void: Literal `2` used in void context.
-          <%= b %>
-        ERB
-
-        # The empty tags are rendered as `;`, so Layout/SpaceBeforeSemicolon removes the space and the delimiters
-        # between the tags
-        expect_correction(<<~ERB)
-          <%  %>
-          <%= b %>
-        ERB
-      end
-    end
-
-    context "when the tag follows multi-byte characters" do
-      it "removes the code and keeps the delimiters" do
-        expect_offense(<<~ERB)
-          <p>日本語🍣</p>
-          <% 1 %>
-             ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
-
-        expect_correction(<<~ERB)
-          <p>日本語🍣</p>
-          <% %>
-          <%= b %>
-        ERB
-      end
-    end
-
-    context "when the tag has other code" do
-      it "keeps the tag" do
-        expect_offense(<<~ERB)
-          <% foo; 1 %>
-                  ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
-
-        expect_correction(<<~ERB)
-          <% foo; %>
-          <%= b %>
-        ERB
-      end
-    end
-
-    context "when the tag has a comment" do
-      it "keeps the tag" do
-        expect_offense(<<~ERB)
-          <% 1 # comment %>
-             ^ Lint/Void: Literal `1` used in void context.
-          <%= b %>
-        ERB
-
-        expect_correction(<<~ERB)
-          <% # comment %>
-          <%= b %>
-        ERB
-      end
+      expect_correction(<<~ERB)
+        <% # comment %>
+        <%= b %>
+      ERB
     end
   end
 

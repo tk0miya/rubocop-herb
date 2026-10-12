@@ -132,7 +132,8 @@ which output nothing, and removes them by autocorrection:
 An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removing `1` from `<% 1 %>`)
 keeps the delimiters of the tag, so that it does not break the template.
 This cop removes the empty tag left by it, as the statement is removed in Ruby files.
-The line of the tag is removed if the tag is alone on it.
+The line of the tag is removed if it has only empty tags.
+The whitespace before the tag is removed if the tag ends the line, so as not to leave trailing whitespace.
 The whitespace trimmed by the trim markers (`<%-` and `-%>`) is removed along with the tag.
 
 The cop replaces the `erb-no-empty-tags` rule of herb-lint, so `Herb/Linting` does not report the rule.

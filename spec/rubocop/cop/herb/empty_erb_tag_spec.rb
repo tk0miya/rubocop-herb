@@ -62,6 +62,86 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
     end
   end
 
+  context "when empty ERB tags are alone on their line" do
+    it "registers offenses and removes the line" do
+      expect_offense(<<~ERB)
+        <p>a</p>
+        <% %> <%# %>
+        ^^^^^ Remove the empty ERB tag.
+              ^^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>a</p>
+        <p>b</p>
+      ERB
+    end
+  end
+
+  context "when empty ERB tags end the line after HTML" do
+    it "registers offenses and removes the tags and the whitespace before them" do
+      expect_offense(<<~ERB)
+        <p>a</p> <% %>  <%# %>
+                 ^^^^^ Remove the empty ERB tag.
+                        ^^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>a</p>
+        <p>b</p>
+      ERB
+    end
+  end
+
+  context "when an empty ERB tag with a trim marker `-%>` ends the line after HTML" do
+    it "registers an offense and removes the tag and the newline trimmed by the marker" do
+      expect_offense(<<~ERB)
+        <p>a</p> <% -%>
+                 ^^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>a</p> <p>b</p>
+      ERB
+    end
+  end
+
+  context "when an empty ERB tag with a trim marker `-%>` is followed by an empty ERB tag at the line end" do
+    it "registers offenses and removes the tags and the whitespace before them" do
+      expect_offense(<<~ERB)
+        <p>a</p> <% -%> <% %>
+                 ^^^^^^ Remove the empty ERB tag.
+                        ^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>a</p>
+        <p>b</p>
+      ERB
+    end
+  end
+
+  context "when an empty ERB tag with a trim marker `<%-` follows another empty ERB tag" do
+    it "registers offenses and removes the tags only" do
+      expect_offense(<<~ERB)
+        <% %> <%- %>x
+        ^^^^^ Remove the empty ERB tag.
+              ^^^^^^ Remove the empty ERB tag.
+        <p>b</p>
+      ERB
+
+      # The space between the tags is rendered, as `<%-` trims only the indentation
+      expect_correction(<<~ERB)
+         x
+        <p>b</p>
+      ERB
+    end
+  end
+
   context "when an empty ERB tag spans multiple lines" do
     it "registers an offense and removes the lines" do
       expect_offense(<<~ERB)
