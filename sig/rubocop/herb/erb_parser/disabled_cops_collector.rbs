@@ -71,6 +71,13 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
+      # The tag opening of an output tag is rendered as `_ =` (e.g. `<%=foo%>` becomes `_ =foo;`),
+      # so Layout/SpaceAroundOperators reports the missing space after `=` if the code follows the tag opening
+      # without whitespace. The missing whitespace is reported by herb-lint (erb-require-whitespace-inside-tags).
+      # Called for every ERB node (e.g. `<%=yield%>` and `<%=form_with do |f|%>` as well as `<%=foo%>`)
+      # @rbs node: ::Herb::AST::Node
+      def visit_erb_node: (::Herb::AST::Node node) -> void
+
       private
 
       # Lint/DuplicateBranch compares the branches in the Ruby code, but some HTML is not rendered there

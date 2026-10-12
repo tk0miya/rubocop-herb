@@ -403,6 +403,19 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing output tags without whitespace after their tag openings" do
+    it "does not trigger Layout/SpaceAroundOperators" do
+      expect_no_offenses(<<~ERB)
+        <%=foo%>
+        <%==bar%>
+        <%=yield%>
+        <%=form_with do |f|%>
+          <%= f.text_field :name %>
+        <% end %>
+      ERB
+    end
+  end
+
   context "when analyzing block with text node inside" do
     it "does not trigger Style/NumberedParameters" do
       expect_no_offenses(<<~ERB)
@@ -1140,11 +1153,9 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   context "when a correction inserts code at the edges of the content of an ERB tag",
           rubocop_config: { "Style/MethodCallWithArgsParentheses" => { "Enabled" => true } } do
     it "corrects the offense" do
-      # Layout/SpaceAroundOperators is a false positive, as `<%=foo` is rendered as `_ =foo`
       expect_offense(<<~ERB)
         <%=foo 1%>
            ^^^^^ Style/MethodCallWithArgsParentheses: Use parentheses for method calls with arguments.
-          ^ Layout/SpaceAroundOperators: Surrounding space missing for operator `=`.
       ERB
 
       expect_correction(<<~ERB)
