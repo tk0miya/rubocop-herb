@@ -187,6 +187,72 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    # Escaped ERB tags (`<%%`) output the tag as text, so they are rendered like text nodes
+    describe "with an escaped ERB tag in an element without ERB" do
+      let(:source) { "<p><%% foo %></p>" }
+      let(:expected) { "p;               " }
+      let(:expected_hybrid) { "<p><%% foo %></p>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped ERB tag followed by an ERB tag" do
+      let(:source) { "<p><%% foo %><%= x %></p>" }
+      let(:expected) { "p; _a;       _ = x;  p;  " }
+      let(:expected_hybrid) { "<p><%% foo %>_ = x;  </p>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped output ERB tag" do
+      let(:source) { "<%%= foo %><%= x %>" }
+      let(:expected) { "_a;        _ = x;  " }
+      let(:expected_hybrid) { "<%%= foo %>_ = x;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped ERB tag closed with an escaped closing" do
+      let(:source) { "<%% foo %%><%= x %>" }
+      let(:expected) { "_a;        _ = x;  " }
+      let(:expected_hybrid) { "<%% foo %%>_ = x;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped ERB comment tag" do
+      let(:source) { "<%%# rubocop:disable Lint/Void %>\n<% 1 %>" }
+      let(:expected) { "_a;                              \n   1;  " }
+      let(:expected_hybrid) { "<%%# rubocop:disable Lint/Void %>\n   1;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped ERB block containing an ERB tag" do
+      let(:source) { "<%% items.each do |item| %><%= item %><%% end %>" }
+      let(:expected) { "_a;                        _ = item;  _a;       " }
+      let(:expected_hybrid) { "<%% items.each do |item| %>_ = item;  <%% end %>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped ERB tag containing multi-byte characters" do
+      let(:source) { "<p>あ<%% い %><%= x %></p>" }
+      # The escaped ERB tag is not restored to preserve character count (like text nodes)
+      let(:expected) { "p;  _a;     _ = x;  p;  " }
+      let(:expected_hybrid) { "<p> _a;     _ = x;  </p>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an escaped ERB tag in an HTML attribute" do
+      let(:source) { '<div class="<%% x %>" id="<%= y %>"></div>' }
+      let(:expected) { "div;        _a;           _ = y;    div;  " }
+      let(:expected_hybrid) { "div;        <%% x %>      _ = y;    </div>" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with execution tag without output" do
       let(:source) { "<div><% @counter += 1 %></div>" }
       let(:expected) { "div;    @counter += 1;  div;  " }

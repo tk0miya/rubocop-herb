@@ -30,6 +30,14 @@ RSpec.describe RuboCop::Herb::CorrectionValidator do
       it { is_expected.to be false }
     end
 
+    context "when the correction removes an escaped ERB tag" do
+      let(:source) { "<p><%% x %><%= y %></p>" }
+
+      before { corrector.remove(range(3, 11)) }
+
+      it { is_expected.to be false }
+    end
+
     context "when the correction moves HTML into an ERB tag" do
       let(:source) { "<% if a %><p>x</p><% end %>" }
 

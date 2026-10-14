@@ -71,21 +71,22 @@ module RuboCop
       end
 
       # Character ranges of ERB tags (from "<%" to "%>") sorted by position
-      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
-      # or closing, so its content is used instead
       def erb_tag_ranges #: Array[CharRange]
         ranges = erb_locations.values.map do |loc|
           node = loc.node #: erb_node
-          from = (node.tag_opening || node.content).not_nil!.range.from
-          to = (node.tag_closing || node.content).not_nil!.range.to
-          NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), source)
+          tag_char_range(node)
         end
         ranges.sort_by(&:from)
       end
 
+      # Escaped ERB tags (e.g. `<%% x %>`) are text, so they are recorded as tags like text nodes,
+      # not as ERB locations. Their children (e.g. the body of `<%% if x %>`) are visited as usual
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes(node) #: void
-        if erb_node?(node)
+        if ErbNode.escaped?(node)
+          erb = node #: erb_node
+          record_escaped_tag(erb)
+        elsif erb_node?(node)
           erb = node #: erb_node
           record_erb_location(erb)
         end
@@ -219,6 +220,26 @@ module RuboCop
         return if multibyte_chars?(text)
 
         tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Record tag info for escaped ERB tags
+      # Tags with multi-byte characters are skipped for the same reason as text nodes
+      # @rbs node: erb_node
+      def record_escaped_tag(node) #: void
+        range = tag_char_range(node)
+        return if multibyte_chars?(source.slice(range))
+
+        tags[range.from] = Tag.new(range:, restore_source: true)
+      end
+
+      # Character range of the ERB tag of the node (from "<%" to "%>")
+      # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
+      # or closing, so its content is used instead
+      # @rbs node: erb_node
+      def tag_char_range(node) #: CharRange
+        from = (node.tag_opening || node.content).not_nil!.range.from
+        to = (node.tag_closing || node.content).not_nil!.range.to
+        NodeRange.byte_range_to_char_range(::Herb::Range.new(from, to), source)
       end
 
       # Record tag info for HTML comments (without ERB)

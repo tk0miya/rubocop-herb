@@ -8,6 +8,8 @@ module RuboCop
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
 
+      include EscapedErbVisitor
+
       # The position to render the marker of a text node:
       # 3 characters in the line followed by at least 1 character (space or newline) for "_a;",
       # or 2 characters followed by a newline for "_a" (the newline terminates the statement)
@@ -96,6 +98,11 @@ module RuboCop
       # Renders a marker to indicate content presence
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
+
+      # Visit escaped ERB tags (e.g. `<%% x %>`), which are text
+      # Renders the tag marker ("_a;") over the tag opening (`<%%`) to indicate content presence (like text nodes)
+      # @rbs node: ::Herb::AST::Node
+      def visit_escaped_erb_node: (::Herb::AST::Node node) -> void
 
       # Visit HTML comment nodes (<!-- ... -->)
       # Comments containing ERB are processed normally (super visits children)

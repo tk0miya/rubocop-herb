@@ -181,6 +181,8 @@ The libraries count positions and newlines differently, so convert positions exp
 
 - **CharRange** (`lib/rubocop/herb/char_range.rb`): Data class storing a character-based (not byte-based) range
 - **ErbLocation** (`lib/rubocop/herb/erb_location.rb`): Location and metadata (type, node, range, line, column) of an ERB node
+- **ErbNode** (`lib/rubocop/herb/erb_node.rb`): Utility module for Herb AST nodes of ERB tags. `ErbNode.escaped?` checks for escaped ERB tags (`<%%`)
+- **EscapedErbVisitor** (`lib/rubocop/herb/escaped_erb_visitor.rb`): Mixin for Herb visitors to handle escaped ERB tags as text
 - **Tag** (`lib/rubocop/herb/tag.rb`): Data class storing tag range information for AST restoration
 
 ### Dependencies

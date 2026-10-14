@@ -2,6 +2,7 @@
 
 require "forwardable"
 require "herb"
+require_relative "escaped_erb_visitor"
 require_relative "node_range"
 
 module RuboCop
@@ -11,6 +12,7 @@ module RuboCop
     # with filtering applied.
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
+      include EscapedErbVisitor
 
       # The position to render the marker of a text node:
       # 3 characters in the line followed by at least 1 character (space or newline) for "_a;",
@@ -122,6 +124,15 @@ module RuboCop
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
         render_text_node(node)
+        super
+      end
+
+      # Visit escaped ERB tags (e.g. `<%% x %>`), which are text
+      # Renders the tag marker ("_a;") over the tag opening (`<%%`) to indicate content presence (like text nodes)
+      # @rbs node: ::Herb::AST::Node
+      def visit_escaped_erb_node(node) #: void
+        erb = node #: erb_node
+        render_tag_marker(byte_to_char_pos(erb.tag_opening.not_nil!.range.from))
         super
       end
 

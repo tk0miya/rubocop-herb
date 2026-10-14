@@ -562,6 +562,21 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with if branches containing HTML comments with escaped ERB tags" do
+      let(:code) { "<% if a %>\n  <!-- a<%% x %> -->\n<% else %>\n  <!-- b<%% x %> -->\n<% end %>" }
+
+      it "does not disable Lint/DuplicateBranch as the comments are rendered like comments without ERB" do
+        expect(subject).to eq({
+                                "Lint/ElseLayout" => [3..3],
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                "Style/EmptyElse" => [3..3],
+                                **conditional_cops(1..1),
+                                **end_alignment(5..5),
+                                **indentation_width(2..2, 4..4)
+                              })
+      end
+    end
+
     context "with HTML element containing ERB" do
       let(:code) { "<div class=\"a\">\n  <%= x %>\n</div>" }
 
@@ -586,6 +601,38 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Layout/SpaceAroundOperators" => [1..1],
                                 "Layout/BlockAlignment" => [3..3],
                                 **indentation_width(2..2)
+                              })
+      end
+    end
+
+    context "with escaped if tags" do
+      let(:code) { "<%% if a %>\n  <p>x</p>\n<%% else %>\n  y\n<%% end %>\n" }
+
+      it "disables nothing" do
+        expect(subject).to eq({})
+      end
+    end
+
+    context "with an escaped block containing a conditional" do
+      let(:code) { "<%% items.each do |item| %>\n  <% if item %>\n    <p>x</p>\n  <% end %>\n<%% end %>\n" }
+
+      it "disables the cops for the conditional only" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [2..2],
+                                **conditional_cops(2..2),
+                                **end_alignment(4..4),
+                                **indentation_width(3..3)
+                              })
+      end
+    end
+
+    context "with block body starting with an escaped ERB comment tag" do
+      let(:code) { "<% items.each do |item| %>\n  <%%# note %>\n  <%= item %>\n<% end %>\n" }
+
+      it "disables Layout/IndentationWidth from the escaped ERB comment tag as it is text" do
+        expect(subject).to eq({
+                                "Layout/BlockAlignment" => [4..4],
+                                **indentation_width(2..3)
                               })
       end
     end

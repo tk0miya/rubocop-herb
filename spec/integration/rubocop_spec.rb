@@ -812,6 +812,62 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing conditional branches containing the same escaped ERB tags" do
+    it "does not trigger Lint/DuplicateBranch and Style/IdenticalConditionalBranches" do
+      expect_no_offenses(<<~ERB)
+        <% if a %>
+          <%% foo %>
+        <% else %>
+          <%% foo %>
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing conditional branches with the same expression after different escaped ERB tags" do
+    it "does not autocorrect Style/IdenticalConditionalBranches as it drops the escaped ERB tags" do
+      expect_offense(<<~ERB)
+        <% if b %>
+          <%% x %> <%= y %>
+                   ^^^^^ Style/IdenticalConditionalBranches: Move `_ = y` out of the conditional.
+        <% else %>
+          <%% z %> <%= y %>
+                   ^^^^^ Style/IdenticalConditionalBranches: Move `_ = y` out of the conditional.
+        <% end %>
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing escaped ERB tags" do
+    it "does not check the code in them as they are text" do
+      expect_no_offenses(<<~ERB)
+        <p><%%= "hello" %></p>
+        <pre>
+          <%% if user %>
+            <%%= user.name %>
+          <%% end %>
+        </pre>
+      ERB
+    end
+  end
+
+  context "when analyzing a rubocop directive in an escaped ERB comment tag" do
+    it "does not apply the directive as it is text" do
+      expect_offense(<<~ERB)
+        <%%# rubocop:disable Style/StringLiterals %>
+        <%= "x" %>
+            ^^^ Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%%# rubocop:disable Style/StringLiterals %>
+        <%= 'x' %>
+      ERB
+    end
+  end
+
   context "when analyzing conditional branches differing only in text too short to be rendered in the Ruby code" do
     it "triggers Style/IdenticalConditionalBranches but not Lint/DuplicateBranch" do
       expect_offense(<<~ERB)

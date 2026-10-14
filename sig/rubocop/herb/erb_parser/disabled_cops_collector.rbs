@@ -6,7 +6,10 @@ module RuboCop
     # Some cops report false positives caused by the conversion
     # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
     # This collector finds such lines from the ERB structure.
+    # Escaped ERB tags (e.g. `<%% if a %>`) are text, so no cops are disabled for them.
     class DisabledCopsCollector < ::Herb::Visitor
+      include EscapedErbVisitor
+
       # Collect the disabled lines for each cop from a parse result
       # @rbs ast: ::Herb::ParseResult
       def self.collect: (::Herb::ParseResult ast) -> Hash[String, Array[Range[Integer]]]
@@ -116,12 +119,13 @@ module RuboCop
       # @rbs nodes: Array[::Herb::AST::Node]
       def disable_body_indentation: (Array[::Herb::AST::Node] nodes) -> void
 
-      # The line of the Ruby code in the first ERB tag (except the ones without code) in the nodes,
-      # including the ones in HTML elements
+      # The line of the Ruby code in the first ERB tag (except the ones without code and escaped ones) in the nodes,
+      # including the ones in HTML elements and in the bodies of escaped ERB tags
       # @rbs nodes: Array[::Herb::AST::Node]
       def first_erb_line: (Array[::Herb::AST::Node] nodes) -> Integer?
 
       # Whether the node is an ERB comment or an ERB tag containing only whitespace and Ruby comments
+      # Escaped ERB tags (e.g. `<%%# note %>`) are text, so they are content
       # @rbs node: ::Herb::AST::Node
       def codeless_erb?: (::Herb::AST::Node node) -> bool
 

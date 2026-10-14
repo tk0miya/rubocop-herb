@@ -74,6 +74,15 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
         end
       end
 
+      context "with an escaped ERB block containing an ERB tag" do
+        let(:code) { "<%% items.each do |item| %><%= item %><%% end %>" }
+
+        it "collects only the unescaped ERB tag" do
+          expect(erb_locations.keys).to eq [27]
+          expect(erb_locations.values.first.type).to eq(:output)
+        end
+      end
+
       context "with line and column information" do
         let(:code) { "text\n  <%= hello %>" }
 
@@ -177,6 +186,26 @@ RSpec.describe RuboCop::Herb::NodeLocationCollector do
           # open_tag contains ERB, so it should not be recorded
           # ERB at 12, text at 24, close_tag at 28
           expect(tags.keys.sort).to eq [12, 24, 28]
+        end
+      end
+
+      context "with escaped ERB tags" do
+        let(:code) { "<%% items.each do |item| %><%= item %><%% end %>" }
+
+        it "collects the escaped ERB tags as tags restoring the source" do
+          expect(tags.keys.sort).to eq [0, 27, 38]
+          expect(tags[0]).to eq RuboCop::Herb::Tag.new(range: RuboCop::Herb::CharRange.new(0, 27), restore_source: true)
+          expect(tags[38]).to eq RuboCop::Herb::Tag.new(range: RuboCop::Herb::CharRange.new(38, 48),
+                                                        restore_source: true)
+          expect(tags[27].restore_source).to be false # ERB
+        end
+      end
+
+      context "with an escaped ERB tag containing multi-byte characters" do
+        let(:code) { "<%% あ %><%= x %>" }
+
+        it "does not collect the escaped ERB tag" do
+          expect(tags.keys).to eq [8]
         end
       end
 

@@ -67,10 +67,15 @@ module RuboCop
       # Leading and trailing whitespace of each part is ignored as it is the layout of
       # the adjacent ERB tags.  This allows corrections removing ERB tags (e.g. merging
       # `else` and `if` into `elsif`) along with their indentation and newlines.
+      # Escaped ERB tags (e.g. `<%% x %>`) are text, so they are kept as HTML.
       # @rbs tokens: Array[::Herb::Token]
       def html_segments_of(tokens) #: Array[String]
         # ERB tokens are dropped as separators, so each chunk is an HTML part
-        chunks = tokens.chunk { erb_token?(_1) ? :_separator : :html }
+        escaped = false
+        chunks = tokens.chunk do |token|
+          escaped = token.value.start_with?(ErbNode::ESCAPED_TAG_OPENING) if token.type == "TOKEN_ERB_START"
+          erb_token?(token) && !escaped ? :_separator : :html
+        end
         chunks.map { _1.last.map(&:value).join.strip }.reject(&:empty?)
       end
 

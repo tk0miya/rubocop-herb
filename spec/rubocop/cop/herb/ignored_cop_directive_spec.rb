@@ -12,6 +12,14 @@ RSpec.describe RuboCop::Cop::Herb::IgnoredCopDirective do
     end
   end
 
+  context "when an escaped ERB comment tag containing a rubocop directive is followed by an ERB tag on the same line" do
+    it "does not register an offense as it is text" do
+      expect_no_offenses(<<~ERB)
+        <div><%%# rubocop:disable Lint/Void %><%= x %></div>
+      ERB
+    end
+  end
+
   context "when a multiline ERB comment containing a rubocop directive is followed by an ERB tag" do
     it "registers an offense at the directive" do
       expect_offense(<<~ERB)

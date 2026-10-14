@@ -37,6 +37,7 @@ module RuboCop
       # Check if the nodes contain HTML not rendered in the Ruby code (except whitespace):
       # text too short to place the marker (see RubyRenderer::TEXT_MARKER_POSITION),
       # HTML in open tags (e.g. attributes and their values) and HTML comments containing ERB
+      # (except escaped ERB tags, which are text)
       # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
       # the branch. HTML elements and tags are not because they are rendered and make the branch unique.
       # @rbs nodes: Array[::Herb::AST::Node]
@@ -56,10 +57,16 @@ module RuboCop
              ::Herb::AST::WhitespaceNode
           false
         when ::Herb::AST::HTMLCommentNode
-          node.children.any? { _1.type.start_with?("AST_ERB_") }
+          comment_with_erb?(node)
         else
           node.type.start_with?("AST_ERB_") ? unrendered_html?(node.compact_child_nodes) : true
         end
+      end
+
+      # Check if the HTML comment contains ERB (except escaped ERB tags, which are text)
+      # @rbs node: ::Herb::AST::HTMLCommentNode
+      def comment_with_erb?(node) #: bool
+        node.children.any? { _1.type.start_with?("AST_ERB_") && !ErbNode.escaped?(_1) }
       end
     end
   end

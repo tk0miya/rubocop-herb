@@ -1,0 +1,16 @@
+# Generated from lib/rubocop/herb/escaped_erb_visitor.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Mixin for Herb visitors that calls visit_escaped_erb_node instead of the visit method of the ERB node
+    # for escaped ERB tags (see ErbNode.escaped?). By default it visits their children.
+    # @rbs module-self ::Herb::Visitor
+    module EscapedErbVisitor : ::Herb::Visitor
+      # @rbs node: ::Herb::AST::Node
+      def visit_child_nodes: (::Herb::AST::Node node) -> void
+
+      # @rbs node: ::Herb::AST::Node
+      def visit_escaped_erb_node: (::Herb::AST::Node node) -> void
+    end
+  end
+end
