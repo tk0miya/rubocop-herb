@@ -704,6 +704,26 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing blocks whose end tags follow content on their lines" do
+    it "triggers Layout/BlockEndNewline only for the block in a single ERB tag" do
+      expect_offense(<<~ERB)
+        <% items.each do |item| %>
+          <p><%= item %></p><% end %>
+        <% users.each do |user|
+             user.save(x) end %>
+                          ^^^ Layout/BlockEndNewline: Expression at 4, 19 should be on its own line.
+      ERB
+
+      expect_correction(<<~ERB)
+        <% items.each do |item| %>
+          <p><%= item %></p><% end %>
+        <% users.each do |user|
+             user.save(x)
+           end %>
+      ERB
+    end
+  end
+
   context "when analyzing blocks whose end tags follow the HTML structure" do
     it "triggers Layout/BlockAlignment only for the block in a single ERB tag" do
       expect_offense(<<~ERB)

@@ -161,7 +161,7 @@ module RuboCop
         disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
         disable_single_line_block(node)
         end_node = node.end_node
-        disable_block_alignment(end_node) if end_node
+        disable_block_end_layout(end_node) if end_node
         disable_body_indentation(node.body)
         disable_duplicate_branch(Branches.of_rescue(node))
         super
@@ -217,11 +217,13 @@ module RuboCop
       end
 
       # The column of the end tag follows the HTML structure, and the block start is shifted by the output marker
-      # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`). Blocks written within a single ERB tag
-      # are still checked.
+      # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`), so Layout/BlockAlignment reports it.
+      # HTML before the end tag on its line (e.g. `<p>x</p><% end %>`) is rendered as an expression before `end`,
+      # so Layout/BlockEndNewline reports it, but line breaks before the end tag change the rendered whitespace.
+      # Blocks written within a single ERB tag are still checked.
       # @rbs end_node: ::Herb::AST::ERBEndNode
-      def disable_block_alignment(end_node) #: void
-        disable_cop("Layout/BlockAlignment", end_node)
+      def disable_block_end_layout(end_node) #: void
+        %w[Layout/BlockAlignment Layout/BlockEndNewline].each { disable_cop(_1, end_node) }
       end
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
