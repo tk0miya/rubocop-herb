@@ -704,6 +704,95 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing when and in tags that follow the HTML structure" do
+    it "triggers Layout/CaseIndentation only for the case in a single ERB tag" do
+      expect_offense(<<~ERB)
+        <span><% case a %>
+        <% when 1 %>
+          <%= foo %>
+        <% end %></span>
+        <% @b = case b %>
+        <% in 1 %>
+          <%= foo %>
+        <% end %>
+        <%
+          case c
+            when 1
+            ^^^^ Layout/CaseIndentation: Indent `when` as deep as `case`.
+              foo
+          end
+        %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <span><% case a %>
+        <% when 1 %>
+          <%= foo %>
+        <% end %></span>
+        <% @b = case b %>
+        <% in 1 %>
+          <%= foo %>
+        <% end %>
+        <%
+          case c
+          when 1
+            foo
+          end
+        %>
+      ERB
+    end
+  end
+
+  context "when analyzing rescue, ensure and end tags of begin that follow the HTML structure" do
+    it "triggers Layout/RescueEnsureAlignment and Layout/BeginEndAlignment only for the begin in a single ERB tag" do
+      expect_offense(<<~ERB)
+        <span><% begin %>
+          <%= foo %>
+        <% rescue A %>
+          <%= bar %>
+        <% ensure %>
+          <%= baz %>
+        <% end %></span>
+        <%= link_to root_path do %>
+          <%= foo %>
+        <% rescue A %>
+          <%= bar %>
+        <% end %>
+        <%
+          @c = begin
+                 foo
+               rescue A
+               ^^^^^^ Layout/RescueEnsureAlignment: `rescue` at 16, 7 is not aligned with `@c = begin` at 14, 2.
+                 bar
+               end
+               ^^^ Layout/BeginEndAlignment: `end` at 18, 7 is not aligned with `@c = begin` at 14, 2.
+        %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <span><% begin %>
+          <%= foo %>
+        <% rescue A %>
+          <%= bar %>
+        <% ensure %>
+          <%= baz %>
+        <% end %></span>
+        <%= link_to root_path do %>
+          <%= foo %>
+        <% rescue A %>
+          <%= bar %>
+        <% end %>
+        <%
+          @c = begin
+            foo
+          rescue A
+            bar
+          end
+        %>
+      ERB
+    end
+  end
+
   context "when analyzing blocks whose end tags follow content on their lines" do
     it "triggers Layout/BlockEndNewline only for the block in a single ERB tag" do
       expect_offense(<<~ERB)

@@ -194,6 +194,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Style/WhenThen" => [2..2],
                                 "Lint/EmptyWhen" => [2..2],
                                 "Style/ConditionalAssignment" => [1..1],
+                                "Layout/CaseIndentation" => [2..2],
                                 **end_alignment(4..4),
                                 **indentation_width(3..3)
                               })
@@ -208,6 +209,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Style/WhenThen" => [1..1],
                                 "Lint/EmptyWhen" => [1..1],
                                 "Style/ConditionalAssignment" => [1..1],
+                                "Layout/CaseIndentation" => [1..1],
                                 **end_alignment(3..3),
                                 **indentation_width(2..2)
                               })
@@ -221,6 +223,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({
                                 "Style/InPatternThen" => [2..2, 4..4],
                                 "Style/ConditionalAssignment" => [1..1],
+                                "Layout/CaseIndentation" => [2..2, 4..4],
                                 **end_alignment(6..6),
                                 **indentation_width(3..3, 5..5)
                               })
@@ -369,7 +372,12 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       let(:code) { "<% begin %>\n  <p>x</p>\n<% rescue %>\n  <p>error</p>\n<% end %>" }
 
       it "disables Lint/SuppressedException at the rescue tag" do
-        expect(subject).to eq({ "Lint/SuppressedException" => [3..3], **indentation_width(2..2, 4..4) })
+        expect(subject).to eq({
+                                "Lint/SuppressedException" => [3..3],
+                                "Layout/RescueEnsureAlignment" => [3..3],
+                                "Layout/BeginEndAlignment" => [5..5],
+                                **indentation_width(2..2, 4..4)
+                              })
       end
     end
 
@@ -377,7 +385,12 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       let(:code) { "<% begin %>\n  <%= a %>\n<% rescue A %>\n  <%= b %>\n<% rescue B %>\n  <p>error</p>\n<% end %>" }
 
       it "disables Lint/SuppressedException at the subsequent rescue tag" do
-        expect(subject).to eq({ "Lint/SuppressedException" => [5..5], **indentation_width(2..2, 4..4, 6..6) })
+        expect(subject).to eq({
+                                "Lint/SuppressedException" => [5..5],
+                                "Layout/RescueEnsureAlignment" => [3..3, 5..5],
+                                "Layout/BeginEndAlignment" => [7..7],
+                                **indentation_width(2..2, 4..4, 6..6)
+                              })
       end
     end
 
@@ -385,23 +398,36 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       let(:code) { "<% begin %>\n  <%= a %>\n<% ensure %>\n  <p>done</p>\n<% end %>" }
 
       it "disables Lint/EmptyEnsure at the ensure tag" do
-        expect(subject).to eq({ "Lint/EmptyEnsure" => [3..3], **indentation_width(2..2, 4..4) })
+        expect(subject).to eq({
+                                "Lint/EmptyEnsure" => [3..3],
+                                "Layout/RescueEnsureAlignment" => [3..3],
+                                "Layout/BeginEndAlignment" => [5..5],
+                                **indentation_width(2..2, 4..4)
+                              })
       end
     end
 
     context "with rescue and ensure clauses without any content" do
       let(:code) { "<% begin %>\n  <%= a %>\n<% rescue %>\n<% ensure %>\n<% end %>" }
 
-      it "disables only Layout/IndentationWidth at the body of begin" do
-        expect(subject).to eq(indentation_width(2..2))
+      it "disables only the layout cops" do
+        expect(subject).to eq({
+                                "Layout/RescueEnsureAlignment" => [3..3, 4..4],
+                                "Layout/BeginEndAlignment" => [5..5],
+                                **indentation_width(2..2)
+                              })
       end
     end
 
     context "with rescue and ensure clauses containing only ERB" do
       let(:code) { "<% begin %>\n  <%= a %>\n<% rescue %>\n  <%= b %>\n<% ensure %>\n  <%= c %>\n<% end %>" }
 
-      it "disables only Layout/IndentationWidth at the bodies" do
-        expect(subject).to eq(indentation_width(2..2, 4..4, 6..6))
+      it "disables only the layout cops" do
+        expect(subject).to eq({
+                                "Layout/RescueEnsureAlignment" => [3..3, 5..5],
+                                "Layout/BeginEndAlignment" => [7..7],
+                                **indentation_width(2..2, 4..4, 6..6)
+                              })
       end
     end
 
@@ -415,6 +441,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({
                                 "Style/WhenThen" => [2..2],
                                 "Style/ConditionalAssignment" => [1..1],
+                                "Layout/CaseIndentation" => [2..2],
                                 **else_alignment(4..4),
                                 **end_alignment(6..6),
                                 **block_end_layout(9..9),
@@ -507,6 +534,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/EmptyWhen" => [2..2],
                                 "Lint/EmptyInPattern" => [8..8, 10..10],
                                 "Style/EmptyElse" => [4..4],
+                                "Layout/CaseIndentation" => [2..2, 8..8, 10..10],
                                 **else_alignment(4..4),
                                 **end_alignment(6..6, 12..12),
                                 **indentation_width(3..3, 5..5, 9..9, 11..11)
@@ -525,6 +553,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/DuplicateBranch" => [5..5, 12..12],
                                 "Lint/SuppressedException" => [3..3, 5..5, 10..10],
                                 "Style/EmptyElse" => [12..12],
+                                "Layout/BeginEndAlignment" => [7..7],
+                                "Layout/RescueEnsureAlignment" => [3..3, 5..5, 10..10],
                                 **else_alignment(12..12),
                                 **block_end_layout(14..14),
                                 **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11, 13..13)
