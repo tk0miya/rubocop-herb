@@ -36,7 +36,8 @@ module RuboCop
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
         disable_conditional_cops(node)
         end_node = node.end_node
-        disable_end_alignment(end_node) if end_node # elsif nodes have no end tag
+        # elsif nodes have no end tag. The column of elsif tags follows the HTML structure as well as else tags
+        end_node ? disable_end_alignment(end_node) : disable_cop("Layout/ElseAlignment", node)
         disable_duplicate_branch(Branches.of_if(node)) if end_node # elsif nodes are a part of the outer if node
         disable_body_indentation(node.statements)
         super
@@ -47,8 +48,7 @@ module RuboCop
       def visit_erb_unless_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
         disable_conditional_cops(node)
-        end_node = node.end_node
-        disable_end_alignment(end_node) if end_node
+        disable_end_alignment(node.end_node)
         disable_duplicate_branch([node, node.else_clause].compact)
         disable_body_indentation(node.statements)
         super
@@ -59,8 +59,7 @@ module RuboCop
       def visit_erb_case_node(node) #: void
         disable_cop("Style/ConditionalAssignment", node)
         disable_duplicate_branch([*node.conditions, node.else_clause].compact)
-        end_node = node.end_node
-        disable_end_alignment(end_node) if end_node
+        disable_end_alignment(node.end_node)
         super
       end
 
@@ -69,16 +68,14 @@ module RuboCop
       def visit_erb_case_match_node(node) #: void
         disable_cop("Style/ConditionalAssignment", node)
         disable_duplicate_branch([*node.conditions, node.else_clause].compact)
-        end_node = node.end_node
-        disable_end_alignment(end_node) if end_node
+        disable_end_alignment(node.end_node)
         super
       end
 
       # The end tag of loops follows the HTML structure
       # @rbs node: ::Herb::AST::ERBWhileNode
       def visit_erb_while_node(node) #: void
-        end_node = node.end_node
-        disable_end_alignment(end_node) if end_node
+        disable_end_alignment(node.end_node)
         disable_body_indentation(node.statements)
         super
       end
@@ -86,8 +83,7 @@ module RuboCop
       # The end tag of loops follows the HTML structure
       # @rbs node: ::Herb::AST::ERBUntilNode
       def visit_erb_until_node(node) #: void
-        end_node = node.end_node
-        disable_end_alignment(end_node) if end_node
+        disable_end_alignment(node.end_node)
         disable_body_indentation(node.statements)
         super
       end
@@ -99,9 +95,11 @@ module RuboCop
         super
       end
 
-      # The body of begin is indented by the HTML structure
+      # The body of begin is indented by the HTML structure, and the end tag follows the HTML structure
       # @rbs node: ::Herb::AST::ERBBeginNode
       def visit_erb_begin_node(node) #: void
+        end_node = node.end_node
+        disable_cop("Layout/BeginEndAlignment", end_node) if end_node
         disable_body_indentation(node.statements)
         disable_duplicate_branch(Branches.of_rescue(node))
         super
@@ -111,6 +109,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
         disable_cop("Style/EmptyElse", node) if html_content?(node.statements)
+        # The column of the else tag follows the HTML structure (e.g. `<span><% if a %>` and `<% else %>`
+        # on the next line), not the opening tag. Conditionals written within a single ERB tag are still checked.
+        disable_cop("Layout/ElseAlignment", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -121,6 +122,8 @@ module RuboCop
         disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
         # A semicolon is rendered at the closing of the when tag (`when 1;`)
         disable_cop("Style/WhenThen", node)
+        # The column of the when tag follows the HTML structure, not the case tag
+        disable_cop("Layout/CaseIndentation", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -129,6 +132,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node(node) #: void
         disable_cop("Lint/SuppressedException", node) if html_content?(node.statements)
+        # The column of the rescue tag follows the HTML structure, not the begin tag or the block tag
+        disable_cop("Layout/RescueEnsureAlignment", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -137,6 +142,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node(node) #: void
         disable_cop("Lint/EmptyEnsure", node) if html_content?(node.statements)
+        # The column of the ensure tag follows the HTML structure, not the begin tag or the block tag
+        disable_cop("Layout/RescueEnsureAlignment", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -147,6 +154,8 @@ module RuboCop
         disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
         # A semicolon is rendered at the closing of the in tag (`in 1;`)
         disable_cop("Style/InPatternThen", node)
+        # The column of the in tag follows the HTML structure, not the case tag
+        disable_cop("Layout/CaseIndentation", node)
         disable_body_indentation(node.statements)
         super
       end
@@ -156,8 +165,7 @@ module RuboCop
       def visit_erb_block_node(node) #: void
         disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
         disable_single_line_block(node)
-        end_node = node.end_node
-        disable_block_alignment(end_node) if end_node
+        disable_block_end_layout(node.end_node)
         disable_body_indentation(node.body)
         disable_duplicate_branch(Branches.of_rescue(node))
         super
@@ -207,17 +215,19 @@ module RuboCop
 
       # The column of the end tag follows the HTML structure (e.g. `<p>x</p><% end %>`),
       # not the opening tag. Conditionals and loops written within a single ERB tag are still checked.
-      # @rbs end_node: ::Herb::AST::ERBEndNode
+      # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
       def disable_end_alignment(end_node) #: void
-        disable_cop("Layout/EndAlignment", end_node)
+        disable_cop("Layout/EndAlignment", end_node) if end_node
       end
 
       # The column of the end tag follows the HTML structure, and the block start is shifted by the output marker
-      # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`). Blocks written within a single ERB tag
-      # are still checked.
-      # @rbs end_node: ::Herb::AST::ERBEndNode
-      def disable_block_alignment(end_node) #: void
-        disable_cop("Layout/BlockAlignment", end_node)
+      # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`), so Layout/BlockAlignment reports it.
+      # HTML before the end tag on its line (e.g. `<p>x</p><% end %>`) is rendered as an expression before `end`,
+      # so Layout/BlockEndNewline reports it, but line breaks before the end tag change the rendered whitespace.
+      # Blocks written within a single ERB tag are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
+      def disable_block_end_layout(end_node) #: void
+        %w[Layout/BlockAlignment Layout/BlockEndNewline].each { disable_cop(_1, end_node) } if end_node
       end
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
