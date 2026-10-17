@@ -37,6 +37,13 @@ though whitespace around ERB tags (indentation and newlines) may change.
 A correction that cannot keep the HTML (e.g. swapping `if`/`else` branches containing HTML,
 or removing blank lines between HTML tags) is not applied. Such offenses are reported as not autocorrectable.
 
+### Line length
+
+`Layout/LineLength` checks only the lines with ERB tags.
+Lines without ERB tags are HTML only, whose length is left to
+[herb-format](https://herb-tools.dev/projects/formatter) as it wraps HTML (e.g. attributes) by itself.
+herb-format does not wrap the Ruby code in ERB tags, so RuboCop still checks the lines with ERB tags.
+
 ### Running herb-lint together (Herb/Linting cop)
 
 The `Herb/Linting` cop (enabled by default) runs [herb-lint](https://herb-tools.dev/projects/linter)

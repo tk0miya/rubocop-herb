@@ -111,6 +111,32 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing long lines without ERB tags" do
+    it "does not trigger Layout/LineLength" do
+      expect_no_offenses(<<~ERB)
+        <div class="#{"a" * 120}">x</div>
+      ERB
+    end
+  end
+
+  context "when analyzing long lines with ERB tags" do
+    it "triggers Layout/LineLength" do
+      expect_offense(<<~ERB)
+        <div class="#{"a" * 120}"><%= x %></div>
+        #{" " * 120}^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Layout/LineLength: Line is too long. [148/120]
+        <%= render partial_name, #{(1..12).map { "item#{_1}: #{_1}" }.join(", ")} %>
+        #{" " * 120}^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Layout/LineLength: Line is too long. [152/120]
+      ERB
+
+      expect_correction(<<~ERB)
+        <div class="#{"a" * 120}"><%= x %></div>
+        <%= render partial_name, item1: 1, item2: 2, item3: 3, item4: 4, item5: 5, item6: 6, item7: 7, item8: 8, item9: 9,
+                                 item10: 10, item11: 11, item12: 12
+        %>
+      ERB
+    end
+  end
+
   context "when analyzing ERB with multi-byte characters in comments" do
     it "does not trigger Layout/SpaceBeforeFirstArg" do
       expect_no_offenses(<<~ERB)
