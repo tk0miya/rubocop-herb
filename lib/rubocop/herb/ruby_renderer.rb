@@ -164,7 +164,7 @@ module RuboCop
         ruby_code[range.from, code.length] = code
 
         render_statement_end(node, code, range)
-        render_output_marker(node) if output_node?(node) && !code.strip.empty?
+        render_output_marker(node) if output_node?(node) && output_expression?(code)
       end
 
       # Terminate the statement of the code
@@ -209,15 +209,22 @@ module RuboCop
       end
 
       # Render `_ =` marker over the output tag opening (`<%=` or `<%==`) to avoid Lint/Void false positives
-      # The marker is rendered for every output tag with code, including the last statement of a conditional,
-      # because the HTML following the conditional puts it in void context.
-      # An empty output tag (e.g. `<%= %>`) has no value to assign, so no marker is rendered (`_ =;` is invalid Ruby)
+      # The marker is rendered for every output tag with an expression (see output_expression?), including
+      # the last statement of a conditional, because the HTML following the conditional puts it in void context.
       # The marker is placed at the end of the tag opening (`<%==` becomes ` _ =`) so that the space
       # between the tag opening and the code is kept as the space after `=`
       # @rbs node: erb_node
       def render_output_marker(node) #: void
         pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to) - 3
         ruby_code[pos, 3] = "_ ="
+      end
+
+      # Whether the code of an output tag has an expression to assign to the output marker
+      # Code with only whitespace and comments (e.g. `<%= %>` and `<%= # note %>`) has none, so it is rendered
+      # like a code tag (`<% # note %>`). herb-lint reports the comments in output tags (erb-comment-syntax)
+      # @rbs code: String
+      def output_expression?(code) #: bool
+        code.lines.any? { !_1.sub(/#.*/, "").strip.empty? }
       end
 
       # Render HTML open tag or close tag as Ruby code: "tag; "

@@ -143,13 +143,18 @@ module RuboCop
       def render_semicolon: (erb_node node, String code, CharRange range) -> void
 
       # Render `_ =` marker over the output tag opening (`<%=` or `<%==`) to avoid Lint/Void false positives
-      # The marker is rendered for every output tag with code, including the last statement of a conditional,
-      # because the HTML following the conditional puts it in void context.
-      # An empty output tag (e.g. `<%= %>`) has no value to assign, so no marker is rendered (`_ =;` is invalid Ruby)
+      # The marker is rendered for every output tag with an expression (see output_expression?), including
+      # the last statement of a conditional, because the HTML following the conditional puts it in void context.
       # The marker is placed at the end of the tag opening (`<%==` becomes ` _ =`) so that the space
       # between the tag opening and the code is kept as the space after `=`
       # @rbs node: erb_node
       def render_output_marker: (erb_node node) -> void
+
+      # Whether the code of an output tag has an expression to assign to the output marker
+      # Code with only whitespace and comments (e.g. `<%= %>` and `<%= # note %>`) has none, so it is rendered
+      # like a code tag (`<% # note %>`). herb-lint reports the comments in output tags (erb-comment-syntax)
+      # @rbs code: String
+      def output_expression?: (String code) -> bool
 
       # Render HTML open tag or close tag as Ruby code: "tag; "
       # The tag name and "; " always fit in the tag ("<tag>" or "</tag>")

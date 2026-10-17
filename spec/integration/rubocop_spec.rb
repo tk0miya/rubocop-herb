@@ -75,6 +75,15 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing an output tag with only a comment terminated by a newline in the tag" do
+    it "does not treat the following HTML as the value of the output tag" do
+      expect_no_offenses(<<~ERB)
+        <div><%= # note
+        %></div>
+      ERB
+    end
+  end
+
   context "when analyzing if block with output tag followed by non-output tag" do
     it "does not trigger Lint/Void" do
       expect_no_offenses(<<~ERB)
