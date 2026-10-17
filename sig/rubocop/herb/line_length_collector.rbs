@@ -1,0 +1,34 @@
+# Generated from lib/rubocop/herb/line_length_collector.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Collects the lines where Layout/LineLength should be disabled.
+    # Lines without ERB tags are HTML only, whose length is left to the formatter of Herb (herb-format)
+    # as it wraps HTML (e.g. attributes) by its own limit. Lines with ERB tags are still checked,
+    # as herb-format does not wrap the Ruby code in ERB tags.
+    class LineLengthCollector
+      COP_NAME: String
+
+      # Collect the disabled lines from a processed source
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def self.collect: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> Hash[String, Array[Range[Integer]]]
+
+      attr_reader processed_source: ::RuboCop::AST::ProcessedSource
+
+      attr_reader erb_tag_ranges: Array[CharRange]
+
+      # @rbs processed_source: ::RuboCop::AST::ProcessedSource
+      # @rbs parse_result: ParseResult
+      def initialize: (::RuboCop::AST::ProcessedSource processed_source, ParseResult parse_result) -> void
+
+      def collect: () -> Hash[String, Array[Range[Integer]]]
+
+      private
+
+      # Check if an ERB tag (or a part of a multi-line one) is at the line
+      # @rbs lineno: Integer
+      def erb_tag_at_line?: (Integer lineno) -> bool
+    end
+  end
+end

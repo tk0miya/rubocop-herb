@@ -30,8 +30,8 @@ module RuboCop
       end
 
       # Override comment_config to disable cops at the lines specified by the parse result,
-      # the lines of expressions that cannot be moved out of conditionals
-      # and the lines of trailing whitespace rendered by the conversion
+      # the lines of expressions that cannot be moved out of conditionals,
+      # the lines of trailing whitespace rendered by the conversion and the lines without ERB tags (for line length)
       def comment_config #: CommentConfig
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
@@ -52,7 +52,8 @@ module RuboCop
       def disabled_cops #: Hash[String, Array[Range[Integer]]]
         immovable_expressions = ImmovableExpressionCollector.collect(self, parse_result)
         rendered_trailing_whitespace = TrailingWhitespaceCollector.collect(self, parse_result)
-        [immovable_expressions, rendered_trailing_whitespace]
+        html_only_lines = LineLengthCollector.collect(self, parse_result)
+        [immovable_expressions, rendered_trailing_whitespace, html_only_lines]
           .reduce(parse_result.disabled_cops) do |disabled_cops, lines|
           disabled_cops.merge(lines) { |_cop, lines1, lines2| lines1 + lines2 }
         end
