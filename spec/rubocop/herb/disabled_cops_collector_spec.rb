@@ -22,6 +22,11 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       { "Layout/IndentationWidth" => ranges }
     end
 
+    # Layout/ElseAlignment disabled at the else and elsif tags written across ERB tags
+    def else_alignment(*ranges)
+      { "Layout/ElseAlignment" => ranges }
+    end
+
     # Layout/EndAlignment disabled at the end tags of conditionals and loops written across ERB tags
     def end_alignment(*ranges)
       { "Layout/EndAlignment" => ranges }
@@ -60,6 +65,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({
                                 "Lint/EmptyConditionalBody" => [3..3],
                                 **conditional_cops(1..1),
+                                **else_alignment(3..3),
                                 **end_alignment(5..5),
                                 **indentation_width(2..2, 4..4)
                               })
@@ -130,6 +136,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/DuplicateBranch" => [1..1],
                                 "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
+                                **else_alignment(1..1),
                                 **end_alignment(1..1),
                                 **indentation_width(1..1)
                               })
@@ -144,6 +151,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/ElseLayout" => [1..1],
                                 "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
+                                **else_alignment(1..1),
                                 **end_alignment(1..1),
                                 **indentation_width(1..1, 1..1)
                               })
@@ -166,6 +174,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/ElseLayout" => [3..3],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
+                                **else_alignment(3..3),
                                 **end_alignment(5..5),
                                 **indentation_width(2..2, 4..4)
                               })
@@ -401,6 +410,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({
                                 "Style/WhenThen" => [2..2],
                                 "Style/ConditionalAssignment" => [1..1],
+                                **else_alignment(4..4),
                                 **end_alignment(6..6),
                                 "Layout/BlockAlignment" => [9..9],
                                 **indentation_width(3..3, 5..5, 8..8)
@@ -418,6 +428,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/DuplicateBranch" => [3..3, 5..5],
                                 "Style/EmptyElse" => [5..5],
                                 **conditional_cops(1..1),
+                                **else_alignment(3..3, 5..5),
                                 **end_alignment(7..7),
                                 **indentation_width(2..2, 4..4, 6..6)
                               })
@@ -433,6 +444,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
+                                **else_alignment(3..3),
                                 **end_alignment(5..5),
                                 **indentation_width(2..2, 4..4)
                               })
@@ -450,6 +462,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Style/EmptyElse" => [1..1],
                                 "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
+                                **else_alignment(1..1),
                                 **end_alignment(1..1),
                                 **indentation_width(1..1, 1..1)
                               })
@@ -467,6 +480,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Style/EmptyElse" => [1..1],
                                 "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
+                                **else_alignment(1..1),
                                 **end_alignment(1..1),
                                 **indentation_width(1..1, 1..1)
                               })
@@ -488,6 +502,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/EmptyWhen" => [2..2],
                                 "Lint/EmptyInPattern" => [8..8, 10..10],
                                 "Style/EmptyElse" => [4..4],
+                                **else_alignment(4..4),
                                 **end_alignment(6..6, 12..12),
                                 **indentation_width(3..3, 5..5, 9..9, 11..11)
                               })
@@ -505,6 +520,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/DuplicateBranch" => [5..5, 12..12],
                                 "Lint/SuppressedException" => [3..3, 5..5, 10..10],
                                 "Style/EmptyElse" => [12..12],
+                                **else_alignment(12..12),
                                 "Layout/BlockAlignment" => [14..14],
                                 **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11, 13..13)
                               })
@@ -523,6 +539,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/EmptyConditionalBody" => [2..2, 6..6],
                                 "Lint/DuplicateBranch" => [5..5],
                                 **conditional_cops(1..1, 2..2, 6..6),
+                                **else_alignment(5..5),
                                 **end_alignment(9..9, 4..4, 8..8),
                                 **indentation_width(2..2, 3..3, 6..6, 7..7)
                               })
@@ -540,6 +557,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/ElseLayout" => [5..5, 10..10],
                                 "Lint/EmptyConditionalBody" => [1..1, 8..8],
                                 **conditional_cops(1..1, 8..8),
+                                **else_alignment(3..3, 5..5, 10..10),
                                 **end_alignment(7..7, 12..12),
                                 **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11)
                               })
@@ -556,6 +574,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/DuplicateBranch" => [3..3],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
+                                **else_alignment(3..3),
                                 **end_alignment(5..5),
                                 **indentation_width(2..2, 4..4)
                               })
@@ -571,6 +590,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
+                                **else_alignment(3..3),
                                 **end_alignment(5..5),
                                 **indentation_width(2..2, 4..4)
                               })

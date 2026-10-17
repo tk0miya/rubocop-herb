@@ -36,7 +36,8 @@ module RuboCop
         disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
         disable_conditional_cops(node)
         end_node = node.end_node
-        disable_end_alignment(end_node) if end_node # elsif nodes have no end tag
+        # elsif nodes have no end tag. The column of elsif tags follows the HTML structure as well as else tags
+        end_node ? disable_end_alignment(end_node) : disable_cop("Layout/ElseAlignment", node)
         disable_duplicate_branch(Branches.of_if(node)) if end_node # elsif nodes are a part of the outer if node
         disable_body_indentation(node.statements)
         super
@@ -111,6 +112,9 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
         disable_cop("Style/EmptyElse", node) if html_content?(node.statements)
+        # The column of the else tag follows the HTML structure (e.g. `<span><% if a %>` and `<% else %>`
+        # on the next line), not the opening tag. Conditionals written within a single ERB tag are still checked.
+        disable_cop("Layout/ElseAlignment", node)
         disable_body_indentation(node.statements)
         super
       end

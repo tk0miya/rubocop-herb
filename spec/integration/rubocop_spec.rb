@@ -655,6 +655,55 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing else and elsif tags that follow the HTML structure" do
+    it "triggers Layout/ElseAlignment only for the conditional in a single ERB tag" do
+      expect_offense(<<~ERB)
+        <span><% if a %>
+          <% foo %>
+        <% elsif b %>
+          <% bar %>
+        <% else %>
+          <% baz %>
+        <% end %></span>
+        <% @c = if c %>
+          <% foo %>
+        <% else %>
+          <% bar %>
+        <% end %>
+        <%
+          if d
+            foo
+           else
+           ^^^^ Layout/ElseAlignment: Align `else` with `if`.
+             bar
+          end
+        %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <span><% if a %>
+          <% foo %>
+        <% elsif b %>
+          <% bar %>
+        <% else %>
+          <% baz %>
+        <% end %></span>
+        <% @c = if c %>
+          <% foo %>
+        <% else %>
+          <% bar %>
+        <% end %>
+        <%
+          if d
+            foo
+          else
+            bar
+          end
+        %>
+      ERB
+    end
+  end
+
   context "when analyzing blocks whose end tags follow the HTML structure" do
     it "triggers Layout/BlockAlignment only for the block in a single ERB tag" do
       expect_offense(<<~ERB)
@@ -1429,22 +1478,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% # comment %>
         <%= b %>
       ERB
-    end
-  end
-
-  context "when an else tag is indented differently from its if tag" do
-    it "reports the offense as not correctable" do
-      expect_offense(<<~ERB)
-        <% if x %>
-          <% b %>
-            <% else %>
-               ^^^^ Layout/ElseAlignment: Align `else` with `if`.
-          <% c %>
-        <% end %>
-      ERB
-
-      expect(run_rubocop(last_source).map(&:correctable?)).to eq [false]
-      expect_no_corrections
     end
   end
 
