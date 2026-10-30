@@ -2,11 +2,10 @@
 
 module RuboCop
   module Herb
-    # Visitor that restores original HTML tag information in AST nodes
-    # and makes nodes rendered from HTML unique so that they never compare equal
+    # Visitor that makes nodes rendered from HTML unique so that they never compare equal
     # Uses Parser::AST::Processor to traverse and transform the AST
     class RuboCopASTTransformer < Parser::AST::Processor
-      # Transform AST to restore original HTML tag information
+      # Transform AST to make nodes rendered from HTML unique
       # @rbs ast: Parser::AST::Node
       # @rbs parse_result: ParseResult
       def self.transform: (Parser::AST::Node ast, ParseResult parse_result) -> Parser::AST::Node?
@@ -22,10 +21,6 @@ module RuboCop
 
       private
 
-      # Restore HTML location if this node matches an HTML tag
-      # @rbs node: Parser::AST::Node
-      def restore_html_location: (Parser::AST::Node node) -> Parser::AST::Node
-
       # Rename the method of a node rendered from HTML to be unique per position
       # so that HTML nodes never compare equal
       # (e.g. in Lint/DuplicateBranch and Style/IdenticalConditionalBranches)
@@ -35,11 +30,6 @@ module RuboCop
       # Check if the code at the position is rendered from HTML (i.e. outside of ERB tags)
       # @rbs pos: Integer
       def html_code?: (Integer pos) -> bool
-
-      # Build a new location map with HTML source range
-      # @rbs node: Parser::AST::Node
-      # @rbs tag: Tag
-      def build_html_location: (Parser::AST::Node node, Tag tag) -> Parser::Source::Map
     end
   end
 end

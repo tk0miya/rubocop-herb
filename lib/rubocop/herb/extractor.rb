@@ -39,7 +39,6 @@ module RuboCop
           restore_crlf(result.ruby_code),
           processed_source.ruby_version,
           processed_source.path,
-          hybrid_code: result.hybrid_code,
           parse_result: result.parse_result,
           parser_engine: processed_source.parser_engine
         ).tap do |ps|

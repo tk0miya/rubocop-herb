@@ -32,7 +32,6 @@ module RuboCop
           erb_locations: result.erb_locations,
           erb_positions: result.erb_positions,
           erb_tag_ranges: result.erb_tag_ranges,
-          tags: result.tags,
           disabled_cops: DisabledCopsCollector.collect(ast)
         )
       end

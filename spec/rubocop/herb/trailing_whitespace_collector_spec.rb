@@ -12,7 +12,6 @@ RSpec.describe RuboCop::Herb::TrailingWhitespaceCollector do
     let(:processed_source) do
       RuboCop::Herb::ProcessedSource.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
         parse_result: conversion_result.parse_result
       )
     end
@@ -44,8 +43,9 @@ RSpec.describe RuboCop::Herb::TrailingWhitespaceCollector do
     context "with HTML at the end of a line" do
       let(:code) { "<% a = 1 %><p>x</p>" }
 
-      it "disables nothing" do
-        expect(subject).to eq({})
+      # The text and the close tag following `p;` are rendered as whitespace
+      it "disables Layout/TrailingWhitespace at the line" do
+        expect(subject).to eq({ "Layout/TrailingWhitespace" => [1..1] })
       end
     end
   end

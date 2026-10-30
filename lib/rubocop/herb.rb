@@ -26,7 +26,6 @@ require_relative "herb/rubocop_ast_transformer"
 require_relative "herb/ruby_comment"
 require_relative "herb/ruby_renderer"
 require_relative "herb/source"
-require_relative "herb/tag"
 require_relative "herb/trailing_whitespace_collector"
 require_relative "herb/version"
 

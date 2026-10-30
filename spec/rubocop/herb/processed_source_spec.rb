@@ -1,98 +1,31 @@
 # frozen_string_literal: true
 
 RSpec.describe RuboCop::Herb::ProcessedSource do
-  def collect_send_sources(node)
-    sources = []
-    return sources unless node.respond_to?(:type)
+  def collect_method_names(node)
+    names = []
+    return names unless node.respond_to?(:type)
 
-    sources << node.source if node.type == :send
-    node.children.each { sources.concat(collect_send_sources(_1)) }
-    sources
+    names << node.method_name if node.type == :send
+    node.children.each { names.concat(collect_method_names(_1)) }
+    names
   end
 
-  describe "HTML AST restoration" do
-    let(:erb_source) { "<div><%= @name %></div>" }
+  describe "AST transformation" do
     let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
     let(:processed_source) do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
         parse_result: conversion_result.parse_result
       )
     end
 
-    it "restores original HTML source in send nodes as a RuboCop AST Node" do
-      expect(processed_source.ast).to be_a(RuboCop::AST::Node)
+    context "with HTML tags" do
+      let(:erb_source) { "<ul><li><%= item %></li></ul>" }
 
-      sources = collect_send_sources(processed_source.ast)
-      expect(sources).to eq(["<div>", "</div>"])
-    end
-  end
-
-  describe "with multiple HTML tags" do
-    let(:erb_source) { "<ul><li><%= item %></li></ul>" }
-    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
-    let(:processed_source) do
-      described_class.new(
-        conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
-        parse_result: conversion_result.parse_result
-      )
-    end
-
-    it "restores all HTML tags" do
-      sources = collect_send_sources(processed_source.ast)
-      expect(sources).to eq(["<ul>", "<li>", "item", "</li>", "</ul>"])
-    end
-  end
-
-  describe "with attributes" do
-    let(:erb_source) { '<div class="container"><%= content %></div>' }
-    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
-    let(:processed_source) do
-      described_class.new(
-        conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
-        parse_result: conversion_result.parse_result
-      )
-    end
-
-    it "restores full HTML tag including attributes" do
-      sources = collect_send_sources(processed_source.ast)
-      expect(sources).to eq(['<div class="container">', "content", "</div>"])
-    end
-  end
-
-  describe "with multi-byte characters in the Ruby code" do
-    let(:erb_source) { '<div class="日本"><%= t("あ") %></div>' }
-    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
-    let(:processed_source) do
-      described_class.new(
-        conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
-        parse_result: conversion_result.parse_result
-      )
-    end
-
-    it "restores full HTML tag including multi-byte characters" do
-      sources = collect_send_sources(processed_source.ast)
-      expect(sources).to eq(['<div class="日本">', 't("あ")', "</div>"])
-    end
-  end
-
-  describe "without HTML tags to restore" do
-    let(:erb_source) { "<%= @name %>" }
-    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
-    let(:processed_source) do
-      described_class.new(
-        conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
-        parse_result: conversion_result.parse_result
-      )
-    end
-
-    it "keeps original AST unchanged" do
-      expect(processed_source.ast).to be_a(RuboCop::AST::Node)
+      it "renames the methods rendered from HTML uniquely per position" do
+        expect(processed_source.ast).to be_a(RuboCop::AST::Node)
+        expect(collect_method_names(processed_source.ast)).to eq(%i[ul__html0 li__html4 item li__html19 ul__html24])
+      end
     end
   end
 
@@ -105,7 +38,6 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
     let(:processed_source) do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
         parse_result:
       )
     end

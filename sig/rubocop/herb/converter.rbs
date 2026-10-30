@@ -7,35 +7,19 @@ module RuboCop
       class Result < Data
         attr_reader ruby_code(): String
 
-        attr_reader hybrid_code(): String
-
         attr_reader parse_result(): ParseResult
 
-        def self.new: (String ruby_code, String hybrid_code, ParseResult parse_result) -> instance
-                    | (ruby_code: String, hybrid_code: String, parse_result: ParseResult) -> instance
+        def self.new: (String ruby_code, ParseResult parse_result) -> instance
+                    | (ruby_code: String, parse_result: ParseResult) -> instance
 
-        def self.members: () -> [ :ruby_code, :hybrid_code, :parse_result ]
+        def self.members: () -> [ :ruby_code, :parse_result ]
 
-        def members: () -> [ :ruby_code, :hybrid_code, :parse_result ]
+        def members: () -> [ :ruby_code, :parse_result ]
       end
 
       # @rbs path: String
       # @rbs code: String
       def convert: (String path, String code) -> Result
-
-      private
-
-      # Generate hybrid code by restoring original HTML at tag positions
-      # Only restores tags with restore_source: true
-      # @rbs ruby_code: String
-      # @rbs parse_result: ParseResult
-      def generate_hybrid_code: (String ruby_code, ParseResult parse_result) -> String
-
-      # Character ranges of the tags with restore_source: true in ascending order
-      # Tags can be nested (e.g. an element restored as a whole contains its child elements and text),
-      # so only the outermost ones are returned
-      # @rbs parse_result: ParseResult
-      def restorable_ranges: (ParseResult parse_result) -> Array[CharRange]
     end
   end
 end
