@@ -2,7 +2,7 @@
 
 module RuboCop
   module Herb
-    # Visitor that collects ERB locations and HTML tags in a single AST traversal.
+    # Visitor that collects ERB locations in a single AST traversal.
     class NodeLocationCollector < ::Herb::Visitor
       NODE_TYPE_MAP: untyped
 
@@ -14,17 +14,15 @@ module RuboCop
 
         attr_reader erb_tag_ranges(): Array[CharRange]
 
-        attr_reader tags(): Hash[Integer, Tag]
+        def self.new: (Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Array[CharRange] erb_tag_ranges) -> instance
+                    | (erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_tag_ranges: Array[CharRange]) -> instance
 
-        def self.new: (Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Array[CharRange] erb_tag_ranges, Hash[Integer, Tag] tags) -> instance
-                    | (erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_tag_ranges: Array[CharRange], tags: Hash[Integer, Tag]) -> instance
+        def self.members: () -> [ :erb_locations, :erb_positions, :erb_tag_ranges ]
 
-        def self.members: () -> [ :erb_locations, :erb_positions, :erb_tag_ranges, :tags ]
-
-        def members: () -> [ :erb_locations, :erb_positions, :erb_tag_ranges, :tags ]
+        def members: () -> [ :erb_locations, :erb_positions, :erb_tag_ranges ]
       end
 
-      # Collect ERB locations and tags from a parse result
+      # Collect ERB locations from a parse result
       # @rbs source: Source
       # @rbs ast: ::Herb::ParseResult
       def self.collect: (Source source, ::Herb::ParseResult ast) -> Result
@@ -35,49 +33,16 @@ module RuboCop
 
       attr_reader erb_positions: Array[Integer]
 
-      attr_reader tags: Hash[Integer, Tag]
-
-      attr_reader element_tags: Set[::Herb::AST::Node?]
-
       # @rbs source: Source
       def initialize: (source: Source) -> void
 
       # Character ranges of ERB tags (from "<%" to "%>") sorted by position
       def erb_tag_ranges: () -> Array[CharRange]
 
-      # Escaped ERB tags (e.g. `<%% x %>`) are text, so they are recorded as tags like text nodes,
-      # not as ERB locations. Their children (e.g. the body of `<%% if x %>`) are visited as usual
+      # Escaped ERB tags (e.g. `<%% x %>`) are text, so they are not recorded as ERB locations.
+      # Their children (e.g. the body of `<%% if x %>`) are visited as usual
       # @rbs node: ::Herb::AST::Node
       def visit_child_nodes: (::Herb::AST::Node node) -> void
-
-      # Visit HTML element nodes and collect tag info
-      # super is called first to traverse children and collect ERB locations,
-      # then we check if this element contains ERB to decide which tags to record
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def visit_html_element_node: (::Herb::AST::HTMLElementNode node) -> void
-
-      # Visit HTML open tag nodes not wrapped by an element and collect tag info
-      # (e.g. an open tag without the close tag, or open tags in the branches of a conditional)
-      # Tags of an element are recorded by visit_html_element_node
-      # Open tags containing ERB are not recorded for the same reason as in record_html_element_tag
-      # @rbs node: ::Herb::AST::HTMLOpenTagNode
-      def visit_html_open_tag_node: (::Herb::AST::HTMLOpenTagNode node) -> void
-
-      # Visit HTML close tag nodes not wrapped by an element and collect tag info
-      # (e.g. a close tag in the branches of a conditional)
-      # @rbs node: ::Herb::AST::HTMLCloseTagNode
-      def visit_html_close_tag_node: (::Herb::AST::HTMLCloseTagNode node) -> void
-
-      # Visit HTML text nodes and collect tag info
-      # @rbs node: ::Herb::AST::HTMLTextNode
-      def visit_html_text_node: (::Herb::AST::HTMLTextNode node) -> void
-
-      # Visit HTML comment nodes and collect tag info
-      # super is called first to traverse children and collect ERB locations,
-      # then we check if this comment contains ERB to decide whether to record tag info.
-      # Comments containing ERB are not recorded (they are visited normally to traverse children)
-      # @rbs node: ::Herb::AST::HTMLCommentNode
-      def visit_html_comment_node: (::Herb::AST::HTMLCommentNode node) -> void
 
       private
 
@@ -97,44 +62,11 @@ module RuboCop
       # @rbs node: erb_node
       def determine_type: (erb_node node) -> ErbLocation::erb_node_type
 
-      # Check if a node contains ERB nodes (within its byte range)
-      # @rbs node: ::Herb::AST::Node
-      def contains_erb?: (::Herb::AST::Node node) -> bool
-
-      # Record tag info for HTML elements
-      # For elements with ERB: record open_tag (if it doesn't contain ERB) and close_tag
-      # For elements without ERB: record the whole element
-      # @rbs node: ::Herb::AST::HTMLElementNode
-      def record_html_element_tag: (::Herb::AST::HTMLElementNode node) -> void
-
-      # Record tag info for text nodes
-      # Text nodes with multi-byte characters are skipped
-      # @rbs node: ::Herb::AST::HTMLTextNode
-      def record_text_node_tag: (::Herb::AST::HTMLTextNode node) -> void
-
-      # Record tag info for escaped ERB tags
-      # Tags with multi-byte characters are skipped for the same reason as text nodes
-      # @rbs node: erb_node
-      def record_escaped_tag: (erb_node node) -> void
-
       # Character range of the ERB tag of the node (from "<%" to "%>")
       # A node split from an ERB tag (e.g. `<% else; end %>`) or an unclosed ERB tag lacks its tag opening
       # or closing, so its content is used instead
       # @rbs node: erb_node
       def tag_char_range: (erb_node node) -> CharRange
-
-      # Record tag info for HTML comments (without ERB)
-      # Comments with multi-byte characters are skipped
-      # @rbs node: ::Herb::AST::HTMLCommentNode
-      def record_html_comment_tag: (::Herb::AST::HTMLCommentNode node) -> void
-
-      # Record tag info for AST restoration
-      # @rbs node: ::Herb::AST::Node
-      def record_tag: (::Herb::AST::Node node) -> void
-
-      # Check if text contains multi-byte characters
-      # @rbs text: String
-      def multibyte_chars?: (String text) -> bool
     end
   end
 end

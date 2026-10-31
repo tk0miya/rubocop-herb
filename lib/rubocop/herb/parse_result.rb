@@ -14,7 +14,6 @@ module RuboCop
       :erb_locations,   #: Hash[Integer, ErbLocation]
       :erb_positions,   #: Array[Integer] -- start positions of the ERB locations in ascending order
       :erb_tag_ranges,  #: Array[CharRange] -- character ranges of ERB tags (from "<%" to "%>") sorted by position
-      :tags,            #: Hash[Integer, Tag]
       :disabled_cops    #: Hash[String, Array[Range[Integer]]] -- line ranges where each cop is disabled
     )
 

@@ -4,11 +4,9 @@ require "rubocop"
 
 module RuboCop
   module Herb
-    # ProcessedSource subclass that restores original HTML tag information in AST
-    # After parsing Ruby code, it uses RuboCopASTTransformer visitor to replace locations
-    # of HTML tag nodes with their original HTML source
+    # ProcessedSource subclass that transforms AST after parsing with RuboCopASTTransformer
+    # to make nodes rendered from HTML unique
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
-      attr_reader :hybrid_code #: String
       attr_reader :parse_result #: ParseResult
       attr_reader :ast #: RuboCop::AST::Node?
 
@@ -19,12 +17,10 @@ module RuboCop
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
-      # @rbs hybrid_code: String
       # @rbs parse_result: ParseResult
       # @rbs parser_engine: Symbol
       def initialize(ruby_code, ruby_version, path = nil,
-                     hybrid_code:, parse_result:, parser_engine: :default) #: void
-        @hybrid_code = hybrid_code
+                     parse_result:, parser_engine: :default) #: void
         @parse_result = parse_result
         super(ruby_code, ruby_version, path, parser_engine:)
       end
@@ -66,24 +62,7 @@ module RuboCop
       # @rbs prism_result: untyped
       def parse(ruby_code, ruby_version, parser_engine, prism_result) #: void
         super
-        transform_ast if ast && parse_result.tags.any?
-      end
-
-      def transform_ast #: void
-        return unless ast
-
-        replace_buffer_source(hybrid_code)
-        @ast = RuboCopASTTransformer.transform(ast, parse_result)
-      end
-
-      # Replace the source of the buffer, which is immutable once populated.
-      # The buffer also keeps a UTF-32 copy of non-ASCII source to slice it (`@slice_source`),
-      # so it is cleared and repopulated in the same way as RuboCop populates the buffer.
-      # @rbs source: String
-      def replace_buffer_source(source) #: void
-        buffer.instance_variable_set(:@source, nil)
-        buffer.instance_variable_set(:@slice_source, nil)
-        buffer.source = source
+        @ast = RuboCopASTTransformer.transform(ast, parse_result) if ast
       end
     end
   end

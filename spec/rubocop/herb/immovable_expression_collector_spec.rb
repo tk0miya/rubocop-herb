@@ -12,7 +12,6 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
     let(:processed_source) do
       RuboCop::Herb::ProcessedSource.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
-        hybrid_code: conversion_result.hybrid_code,
         parse_result: conversion_result.parse_result
       )
     end

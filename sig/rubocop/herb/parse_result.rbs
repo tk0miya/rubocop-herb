@@ -16,16 +16,14 @@ module RuboCop
 
       attr_reader erb_tag_ranges(): Array[CharRange]
 
-      attr_reader tags(): Hash[Integer, Tag]
-
       attr_reader disabled_cops(): Hash[String, Array[Range[Integer]]]
 
-      def self.new: (Source source, ::Herb::ParseResult ast, Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Array[CharRange] erb_tag_ranges, Hash[Integer, Tag] tags, Hash[String, Array[Range[Integer]]] disabled_cops) -> instance
-                  | (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_tag_ranges: Array[CharRange], tags: Hash[Integer, Tag], disabled_cops: Hash[String, Array[Range[Integer]]]) -> instance
+      def self.new: (Source source, ::Herb::ParseResult ast, Hash[Integer, ErbLocation] erb_locations, Array[Integer] erb_positions, Array[CharRange] erb_tag_ranges, Hash[String, Array[Range[Integer]]] disabled_cops) -> instance
+                  | (source: Source, ast: ::Herb::ParseResult, erb_locations: Hash[Integer, ErbLocation], erb_positions: Array[Integer], erb_tag_ranges: Array[CharRange], disabled_cops: Hash[String, Array[Range[Integer]]]) -> instance
 
-      def self.members: () -> [ :source, :ast, :erb_locations, :erb_positions, :erb_tag_ranges, :tags, :disabled_cops ]
+      def self.members: () -> [ :source, :ast, :erb_locations, :erb_positions, :erb_tag_ranges, :disabled_cops ]
 
-      def members: () -> [ :source, :ast, :erb_locations, :erb_positions, :erb_tag_ranges, :tags, :disabled_cops ]
+      def members: () -> [ :source, :ast, :erb_locations, :erb_positions, :erb_tag_ranges, :disabled_cops ]
     end
 
     # Methods are defined by reopening the class (not in a Data.define block)

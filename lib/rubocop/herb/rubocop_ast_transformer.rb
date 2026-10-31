@@ -4,11 +4,10 @@ require "parser"
 
 module RuboCop
   module Herb
-    # Visitor that restores original HTML tag information in AST nodes
-    # and makes nodes rendered from HTML unique so that they never compare equal
+    # Visitor that makes nodes rendered from HTML unique so that they never compare equal
     # Uses Parser::AST::Processor to traverse and transform the AST
     class RuboCopASTTransformer < Parser::AST::Processor
-      # Transform AST to restore original HTML tag information
+      # Transform AST to make nodes rendered from HTML unique
       # @rbs ast: Parser::AST::Node
       # @rbs parse_result: ParseResult
       def self.transform(ast, parse_result) #: Parser::AST::Node?
@@ -26,23 +25,10 @@ module RuboCop
       # Process send nodes which represent HTML tags (e.g., div, p)
       # @rbs node: Parser::AST::Node
       def on_send(node) #: Parser::AST::Node
-        new_node = super
-        uniquify_html_method_name(restore_html_location(new_node))
+        uniquify_html_method_name(super)
       end
 
       private
-
-      # Restore HTML location if this node matches an HTML tag
-      # @rbs node: Parser::AST::Node
-      def restore_html_location(node) #: Parser::AST::Node
-        return node unless node.location&.expression
-
-        tag = parse_result.tags[node.location.expression.begin_pos]
-        return node unless tag
-
-        location = build_html_location(node, tag)
-        node.updated(nil, nil, location:)
-      end
 
       # Rename the method of a node rendered from HTML to be unique per position
       # so that HTML nodes never compare equal
@@ -61,21 +47,6 @@ module RuboCop
       def html_code?(pos) #: bool
         range = parse_result.erb_tag_ranges.bsearch { _1.to > pos }
         range.nil? || pos < range.from
-      end
-
-      # Build a new location map with HTML source range
-      # @rbs node: Parser::AST::Node
-      # @rbs tag: Tag
-      def build_html_location(node, tag) #: Parser::Source::Map
-        buffer = node.location.expression.source_buffer
-        range = Parser::Source::Range.new(buffer, tag.range.from, tag.range.to)
-
-        case node.location
-        when Parser::Source::Map::Send
-          Parser::Source::Map::Send.new(nil, range, nil, nil, range)
-        else
-          Parser::Source::Map.new(range)
-        end
       end
     end
   end
