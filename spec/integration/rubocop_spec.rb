@@ -5,6 +5,14 @@ require "spec_helper"
 RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   include_context "with the whole RuboCop"
 
+  context "when analyzing a file whose name contains a locale", file_name: "show.en-US.html.erb" do
+    it "does not trigger Naming/FileName" do
+      expect_no_offenses(<<~ERB)
+        <div><%= x %></div>
+      ERB
+    end
+  end
+
   context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag" do
     it "applies the directive" do
       expect_no_offenses(<<~ERB)

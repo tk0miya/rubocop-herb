@@ -17,6 +17,10 @@ require "yaml"
 # The `rubocop_config` metadata is merged into the default configuration, e.g. to enable a cop disabled by default:
 #
 #   context "with a cop disabled by default", rubocop_config: { "Style/Foo" => { "Enabled" => true } } do
+#
+# The `file_name` metadata changes the name of the linted file (default: `test.html.erb`):
+#
+#   context "with a file name containing a locale", file_name: "show.en-US.html.erb" do
 RSpec.shared_context "with the whole RuboCop" do
   before { RuboCop::Herb::Configuration.setup({}) }
 
@@ -66,7 +70,7 @@ RSpec.shared_context "with the whole RuboCop" do
       config.close
 
       runner = RuboCop::Lsp::StdinRunner.new(RuboCop::ConfigStore.new.tap { _1.options_config = config.path })
-      runner.run("test.html.erb", source, options)
+      runner.run(RSpec.current_example.metadata.fetch(:file_name, "test.html.erb"), source, options)
       runner
     end
   ensure

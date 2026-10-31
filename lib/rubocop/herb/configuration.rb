@@ -16,6 +16,7 @@ module RuboCop
         "Layout/LeadingEmptyLines", # ERB files may not start with Ruby code
         "Layout/TrailingEmptyLines", # ERB files may not end with Ruby code
         "Metrics/BlockLength", # ERB blocks often contain substantial HTML content
+        "Naming/FileName", # ERB file names may contain locales or variants (e.g. show.en-US.html.erb)
         "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
         "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
       ].freeze #: Array[String]
