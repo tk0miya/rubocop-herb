@@ -168,25 +168,16 @@ module RuboCop
       end
 
       # Terminate the statement of the code
-      # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered.
-      # But if ERB tags or HTML follow the tag on the same line, the comment would comment them out,
-      # so it is replaced with spaces and a semicolon is rendered after the code before it
+      # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered
+      # (it would break a directive in the comment). The comment comments out the ERB tags and HTML
+      # following it on the same line, as ERB does (reported by Herb/CommentedOutCode cop)
       # @rbs node: erb_node
       # @rbs code: String
       # @rbs range: CharRange -- character range of the code
       def render_statement_end(node, code, range) #: void
-        comment = RubyComment.trailing_range(node, source)
-        return render_semicolon(node, code, range) unless comment
-        return unless followed_by_content?(node)
+        return if RubyComment.trailing_range(node, source)
 
-        render_whitespace(comment)
-        render_semicolon(node, code[0...(comment.from - range.from)].to_s, CharRange.new(range.from, comment.from))
-      end
-
-      # Render spaces over the range of ruby_code
-      # @rbs range: CharRange
-      def render_whitespace(range) #: void
-        ruby_code[range.from, range.to - range.from] = " " * (range.to - range.from)
+        render_semicolon(node, code, range)
       end
 
       # Render a semicolon after the code to terminate the statement

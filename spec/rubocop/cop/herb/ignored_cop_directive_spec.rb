@@ -112,47 +112,4 @@ RSpec.describe RuboCop::Cop::Herb::IgnoredCopDirective do
       ERB
     end
   end
-
-  context "when a Ruby comment containing a rubocop directive at the end of an ERB tag is followed by an ERB tag" do
-    it "registers an offense at the directive" do
-      expect_offense(<<~ERB)
-        <% x = 1 # rubocop:disable Lint/UselessAssignment %><%= y %>
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ #{described_class::MSG}
-      ERB
-    end
-  end
-
-  context "when a Ruby comment containing a rubocop directive at the end of an ERB tag is not followed by an ERB tag" do
-    it "does not register an offense" do
-      expect_no_offenses(<<~ERB)
-        <% x = 1 # rubocop:disable Lint/UselessAssignment %>
-        <%= y %>
-      ERB
-    end
-  end
-
-  context "when an ordinary Ruby comment at the end of an ERB tag is followed by an ERB tag" do
-    it "does not register an offense" do
-      expect_no_offenses(<<~ERB)
-        <% x = 1 # comment %><%= y %>
-      ERB
-    end
-  end
-
-  context "when a string containing a rubocop directive in an ERB tag is followed by an ERB tag" do
-    it "does not register an offense" do
-      expect_no_offenses(<<~ERB)
-        <%= "# rubocop:disable Lint/Void" %><%= y %>
-      ERB
-    end
-  end
-
-  context "when a Ruby comment containing a rubocop directive with multi-byte characters is followed by an ERB tag" do
-    it "registers an offense at the directive" do
-      expect_offense(<<~ERB)
-        <%= "あ" # rubocop:disable Lint/Void -- 日本語 %><%= y %>
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ #{described_class::MSG}
-      ERB
-    end
-  end
 end

@@ -1,0 +1,37 @@
+# Generated from lib/rubocop/cop/herb/commented_out_code.rb with RBS::Inline
+
+module RuboCop
+  module Cop
+    module Herb
+      # Checks for Ruby comments at the end of the code in ERB tags followed by ERB tags or HTML on the same line.
+      #
+      # ERB compiles a template into Ruby code keeping its lines, so such a comment comments out
+      # the following ERB tags and HTML. The template outputs nothing for them,
+      # or fails with a syntax error (e.g. when `<% end %>` is commented out).
+      #
+      # @example
+      #   # bad
+      #   <% name = user.name # the full name %><%= name %>
+      #
+      #   # good
+      #   <% name = user.name # the full name %>
+      #   <%= name %>
+      #
+      #   # good
+      #   <% name = user.name %><%# the full name %><%= name %>
+      class CommentedOutCode < Base
+        MSG: ::String
+
+        def on_new_investigation: () -> void
+
+        # Investigate also a file with syntax errors (e.g. caused by `<% end %>` commented out),
+        # for which RuboCop calls on_other_file instead of on_new_investigation
+        def on_other_file: () -> void
+
+        private
+
+        def investigate: () -> void
+      end
+    end
+  end
+end

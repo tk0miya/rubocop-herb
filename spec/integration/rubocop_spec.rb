@@ -21,16 +21,26 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
-    it "checks the following ERB tag" do
+  context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag followed by HTML" do
+    it "triggers Herb/CommentedOutCode, which tells why the directive is malformed" do
       expect_offense(<<~ERB)
-        <%= x # comment %><%= y==1 %>
-                               ^^ Layout/SpaceAroundOperators: Surrounding space missing for operator `==`.
+        <% x = 1 # rubocop:disable Lint/UselessAssignment %><div></div>
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Herb/CommentedOutCode: This Ruby comment comments out the ERB tags and HTML following it on the same line. Place them on a separate line or use an ERB comment (`<%# %>`).
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/CopDirectiveSyntax: Malformed directive comment detected. Cop names must be separated by commas. Comment in the directive must start with `--`.
       ERB
 
-      expect_correction(<<~ERB)
-        <%= x # comment %><%= y == 1 %>
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
+    it "triggers Herb/CommentedOutCode and does not check the following ERB tag commented out as ERB does" do
+      expect_offense(<<~ERB)
+        <%= x # comment %><%= y==1 %>
+              ^^^^^^^^^ Herb/CommentedOutCode: This Ruby comment comments out the ERB tags and HTML following it on the same line. Place them on a separate line or use an ERB comment (`<%# %>`).
       ERB
+
+      expect_no_corrections
     end
   end
 
@@ -1278,10 +1288,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   end
 
   context "when analyzing a control flow ERB tag with a trailing Ruby comment followed by its end tag" do
-    it "does not trigger Lint/Syntax" do
-      expect_no_offenses(<<~ERB)
-        <% if x # comment %>a<% end %>
-      ERB
+    it "triggers Lint/Syntax and Herb/CommentedOutCode as the end tag is commented out as ERB does" do
+      # The message of Lint/Syntax spans multiple lines, which annotations cannot express
+      offenses = run_rubocop("<% if x # comment %>a<% end %>\n")
+      expect(offenses.map { [_1.cop_name, _1.column] }).to eq [["Herb/CommentedOutCode", 8], ["Lint/Syntax", 30]]
     end
   end
 

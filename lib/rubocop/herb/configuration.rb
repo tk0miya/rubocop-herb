@@ -40,6 +40,7 @@ module RuboCop
             "AllCops" => { "Include" => globs },
             "Herb/Linting" => herb_lint_config(globs),
             "Herb/IgnoredCopDirective" => ignored_cop_directive_config(globs),
+            "Herb/CommentedOutCode" => commented_out_code_config(globs),
             "Herb/EmptyErbTag" => empty_erb_tag_config(globs)
           }
           EXCLUDED_COPS.each do |cop|
@@ -65,8 +66,19 @@ module RuboCop
         # @rbs globs: Array[String]
         def ignored_cop_directive_config(globs) #: Hash[String, untyped]
           {
-            "Description" => "Checks for rubocop directives ignored by rubocop-herb " \
+            "Description" => "Checks for rubocop directives in ERB comments ignored by rubocop-herb " \
                              "because ERB tags or HTML follow them on the same line.",
+            "Enabled" => true,
+            "Include" => globs
+          }
+        end
+
+        # Default configuration of Herb/CommentedOutCode cop (enabled)
+        # @rbs globs: Array[String]
+        def commented_out_code_config(globs) #: Hash[String, untyped]
+          {
+            "Description" => "Checks for Ruby comments in ERB tags commenting out " \
+                             "the ERB tags and HTML following them on the same line.",
             "Enabled" => true,
             "Include" => globs
           }

@@ -29,6 +29,7 @@ require_relative "herb/source"
 require_relative "herb/trailing_whitespace_collector"
 require_relative "herb/version"
 
+require_relative "cop/herb/commented_out_code"
 require_relative "cop/herb/empty_erb_tag"
 require_relative "cop/herb/linting"
 require_relative "cop/herb/ignored_cop_directive"

@@ -89,7 +89,6 @@ rubocop-herb converts an ERB comment to a Ruby comment so that RuboCop processes
 (including `<%# rubocop:disable %>` directives).
 But rubocop-herb cannot convert an ERB comment followed by ERB tags or HTML on the same line,
 because the Ruby comment would comment out the following code; rubocop-herb ignores such a comment.
-The same applies to a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`).
 This is harmless for ordinary comments, but rubocop directives in such a comment have no effect.
 The `Herb/IgnoredCopDirective` cop (enabled by default) reports rubocop directives
 ignored by rubocop-herb because ERB tags or HTML follow them on the same line:
@@ -101,13 +100,6 @@ ignored by rubocop-herb because ERB tags or HTML follow them on the same line:
 <%# good %>
 <%# rubocop:disable Lint/Void %>
 <%= user.name %>
-
-<%# bad: rubocop-herb ignores this directive %>
-<% name = user.name # rubocop:disable Lint/UselessAssignment %><%= user.email %>
-
-<%# good %>
-<% name = user.name # rubocop:disable Lint/UselessAssignment %>
-<%= user.email %>
 ```
 
 To disable the cop, configure it in `.rubocop.yml`:
@@ -119,6 +111,35 @@ Herb/IgnoredCopDirective:
 
 It does not support autocorrection, because inserting a line break may change the rendered whitespace
 and the indentation of the following code depends on the surrounding HTML.
+
+### Herb/CommentedOutCode cop
+
+ERB compiles a template into Ruby code keeping its lines, so a Ruby comment at the end of the code
+in an ERB tag (e.g. `<% x # comment %>`) comments out the ERB tags and HTML following it on the same line.
+The template outputs nothing for them, or fails with a syntax error (e.g. when `<% end %>` is commented out).
+rubocop-herb renders such a comment as is, as ERB does, so RuboCop does not check the code commented out.
+The `Herb/CommentedOutCode` cop (enabled by default) reports such comments:
+
+```erb
+<%# bad: the comment comments out `<%= name %>` %>
+<% name = user.name # the full name %><%= name %>
+
+<%# good %>
+<% name = user.name # the full name %>
+<%= name %>
+
+<%# good %>
+<% name = user.name %><%# the full name %><%= name %>
+```
+
+To disable the cop, configure it in `.rubocop.yml`:
+
+```yaml
+Herb/CommentedOutCode:
+  Enabled: false
+```
+
+It does not support autocorrection, because inserting a line break may change the rendered whitespace.
 
 ### Herb/EmptyErbTag cop
 
