@@ -30,6 +30,32 @@ RSpec.describe RuboCop::Herb::CorrectionValidator do
       it { is_expected.to be false }
     end
 
+    context "when the correction removes the closing delimiter of an ERB comment" do
+      # The comment swallows the following tag
+      let(:source) { "<%# note %>\n<% x %>" }
+
+      before { corrector.remove(range(9, 11)) }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction removes `#` of an ERB comment" do
+      # The text of the comment becomes code
+      let(:source) { "<%# x %>" }
+
+      before { corrector.remove(range(2, 3)) }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction changes code containing `<%` in an ERB tag" do
+      let(:source) { %(<%= "<%"+x %>) }
+
+      before { corrector.replace(range(8, 9), " + ") }
+
+      it { is_expected.to be true }
+    end
+
     context "when the correction removes an escaped ERB tag" do
       let(:source) { "<p><%% x %><%= y %></p>" }
 
