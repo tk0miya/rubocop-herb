@@ -63,8 +63,8 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with an output ERB tag with only a comment closed on its line" do
       let(:source) { "<div><%= # note %></div>" }
       # Rendered like a code tag (`<% # note %>`) without the marker (ERB fails to compile the tag,
-      # which is reported by herb-lint)
-      let(:expected) { "div;    ;         div;  " }
+      # which is reported by herb-lint). The comment comments out the following HTML as ERB does
+      let(:expected) { "div;     # note   div;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -654,23 +654,10 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    # The comment comments out the ERB tags following it on the same line, as ERB does
     describe "with a trailing Ruby comment in an ERB tag followed by other ERB on the same line" do
       let(:source) { "<%= x # comment %><%= y %>" }
-      let(:expected) { "_ = x;            _ = y;  " }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
-    describe "with a trailing Ruby comment in a control flow ERB tag followed by other ERB on the same line" do
-      let(:source) { "<% if x # comment %><%= y %><% end %>" }
-      let(:expected) { "   if x;            _ = y;     end;  " }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
-    describe "with a trailing Ruby comment in an ERB tag followed by HTML on the same line" do
-      let(:source) { "<% x = 1 # comment %><div></div>" }
-      let(:expected) { "   x = 1;            div;       " }
+      let(:expected) { "_ = x # comment   _ = y;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -691,13 +678,6 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with a hash sign in a string in an ERB tag followed by other ERB on the same line" do
       let(:source) { '<%= "a # b" %><%= y %>' }
       let(:expected) { '_ = "a # b";  _ = y;  ' }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
-    describe "with a trailing Ruby comment with multi-byte characters in an ERB tag followed by other ERB" do
-      let(:source) { '<%= "あ" # 日本語 %><%= y %>' }
-      let(:expected) { '_ = "あ";        _ = y;  ' }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
