@@ -9,16 +9,24 @@ module RuboCop
     # It may also move the code of output tags into other tags, as output tags are rendered as `_ = code`
     # (e.g. `<% unless a %><%= x %><% else %><%= y %><% end %>` into `<% _ = a ? y : x %>`),
     # which stops rendering the result of the code.
+    # A correction may also remove the closing delimiter of an ERB tag rendered as whitespace
+    # (e.g. at the end of an ERB comment rendered as a Ruby comment), so that the tag swallows the following tags,
+    # or remove `#` of `<%#`, so that the text of an ERB comment becomes code.
     # A correction is accepted only if applying it to the original ERB source keeps
-    # the HTML parts as they are, keeps the number of output tags and does not introduce new parse errors.
+    # the HTML parts as they are, keeps the number of output tags, does not make ERB tags swallow other tags,
+    # does not increase the number of ERB tags with code and does not introduce new parse errors.
     class CorrectionValidator
       ERB_TOKEN_TYPES: Array[String]
 
       attr_reader parse_result: ParseResult
 
-      @html_segments: Array[String]?
+      @code_tag_count: Integer?
+
+      @swallowed_tag_count: Integer?
 
       @output_tag_count: Integer?
+
+      @html_segments: Array[String]?
 
       # @rbs parse_result: ParseResult
       def initialize: (ParseResult parse_result) -> void
@@ -37,6 +45,19 @@ module RuboCop
       def html_segments: () -> Array[String]
 
       def output_tag_count: () -> Integer
+
+      def swallowed_tag_count: () -> Integer
+
+      def code_tag_count: () -> Integer
+
+      # The number of ERB tags except comments (`<%#`), which ERB comments turn into if `#` is removed
+      # @rbs tokens: Array[::Herb::Token]
+      def code_tag_count_of: (Array[::Herb::Token] tokens) -> Integer
+
+      # The number of tag openings (`<%`) in the contents of ERB tags, which are swallowed tags
+      # (or `<%` written in the code, e.g. in a string)
+      # @rbs tokens: Array[::Herb::Token]
+      def swallowed_tag_count_of: (Array[::Herb::Token] tokens) -> Integer
 
       # @rbs code: String
       def tokens_of: (String code) -> Array[::Herb::Token]

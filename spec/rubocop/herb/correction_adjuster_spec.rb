@@ -40,6 +40,65 @@ RSpec.describe RuboCop::Herb::CorrectionAdjuster do
       it { is_expected.to eq "<% %>\n<p>a</p>" }
     end
 
+    context "when the correction edits an ERB comment to the end of the line" do
+      # e.g. Lint/RedundantCopDisableDirective removing one of the cops with the whitespace after it,
+      # which also covers the closing delimiter rendered as whitespace
+      let(:source) { "<%# rubocop:disable Lint/Void, Lint/UselessAssignment %>\n<p>a</p>" }
+
+      before { corrector.remove(range(29, 56)) }
+
+      it { is_expected.to eq "<%# rubocop:disable Lint/Void %>\n<p>a</p>" }
+    end
+
+    context "when the correction replaces an ERB comment to the end of the line" do
+      # e.g. Style/DirectiveScope rewriting the directive, whose text keeps the whitespace at the end of the comment
+      let(:source) { "<%# rubocop:disable Lint/Void %>\n<p>a</p>" }
+
+      before { corrector.replace(range(2, 32), "# rubocop:disable-next Lint/Void   ") }
+
+      it { is_expected.to eq "<%# rubocop:disable-next Lint/Void %>\n<p>a</p>" }
+    end
+
+    context "when the correction replaces a whole ERB comment with ` # ` along with the delimiters around it" do
+      # e.g. Lint/RedundantCopDisableDirective removing an unnecessary directive, which regards the closing delimiter
+      # rendered as whitespace as more text in the comment
+      let(:source) { "<%= x %><%# rubocop:disable Lint/Void %>\n<%= y %>" }
+
+      before { corrector.replace(range(6, 40), " # ") }
+
+      it { is_expected.to eq "<%= x %>\n<%= y %>" }
+    end
+
+    context "when the correction replaces a whole ERB comment on its own line with ` # ` to the next line" do
+      let(:source) { "<div>\n\n  <%# rubocop:disable Lint/Void %>\n  <%= x %>\n</div>" }
+
+      before { corrector.replace(range(11, 42), " # ") }
+
+      it "removes the line of the ERB comment, keeping the indentation of the next line" do
+        expect(subject).to eq "<div>\n\n  <%= x %>\n</div>"
+      end
+    end
+
+    context "when the correction replaces a whole ERB comment following HTML with ` # ` along with the HTML" do
+      # The HTML is rendered as whitespace in the Ruby code
+      let(:source) { "<p>a</p> <%# rubocop:disable Lint/Void %>\n<%= x %>" }
+
+      before { corrector.replace(range(2, 41), " # ") }
+
+      it "removes the ERB comment with the whitespace before it, keeping the HTML" do
+        expect(subject).to eq "<p>a</p>\n<%= x %>"
+      end
+    end
+
+    context "when the correction replaces whitespace over an ERB comment followed by an ERB tag on the same line" do
+      # The comment is rendered as whitespace, not as a Ruby comment, so it is not regarded as removed
+      let(:source) { "<% foo(a,\n %><%# c %><% b) %>\n" }
+
+      before { corrector.replace(range(10, 24), "       ") }
+
+      it { is_expected.to be_nil }
+    end
+
     context "when the correction stays inside an ERB tag" do
       let(:source) { "<% 1 %>" }
 

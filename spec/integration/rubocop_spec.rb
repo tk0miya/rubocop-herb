@@ -21,6 +21,119 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing an unnecessary disable directive in an ERB comment on its own line" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment" do
+      expect_offense(<<~ERB)
+        <div>
+          <%# rubocop:disable-next Lint/Void %>
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+          <%= x %>
+        </div>
+      ERB
+
+      expect_correction(<<~ERB)
+        <div>
+          <%= x %>
+        </div>
+      ERB
+    end
+  end
+
+  context "when analyzing an unnecessary disable directive in an ERB comment following an ERB tag" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment, keeping the ERB tag" do
+      expect_offense(<<~ERB)
+        <%= x %><%# rubocop:disable Lint/Void %>
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+        <%= y %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= x %>
+        <%= y %>
+      ERB
+    end
+  end
+
+  context "when analyzing an unnecessary disable directive in an ERB comment following HTML" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment, keeping the HTML" do
+      expect_offense(<<~ERB)
+        <div>
+          <p>a</p> <%# rubocop:disable Lint/Void %>
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+          <%= x %>
+        </div>
+      ERB
+
+      expect_correction(<<~ERB)
+        <div>
+          <p>a</p>
+          <%= x %>
+        </div>
+      ERB
+    end
+  end
+
+  context "when analyzing a disable directive in an ERB comment with an unnecessary cop among others" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the cop, keeping the closing delimiter" do
+      expect_offense(<<~ERB)
+        <%# rubocop:disable-next Lint/UselessAssignment, Lint/Void %>
+                                                         ^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+        <% x = 1 %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%# rubocop:disable-next Lint/UselessAssignment %>
+        <% x = 1 %>
+      ERB
+    end
+  end
+
+  context "when analyzing an unnecessary disable directive followed by more text in an ERB comment after an ERB tag" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the directive, keeping the ERB tags" do
+      expect_offense(<<~ERB)
+        <%= x %> <%# rubocop:disable Lint/Void # keep %>
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/CopDirectiveSyntax: Malformed directive comment detected. Cop names must be separated by commas. Comment in the directive must start with `--`.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= x %> <%# # keep %>
+      ERB
+    end
+  end
+
+  context "when analyzing an unnecessary disable directive on the first line of a multi-line ERB comment" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the directive, keeping the comment" do
+      expect_offense(<<~ERB)
+        <%# rubocop:disable-next Lint/Void
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+          more %>
+        <%= x %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%#  more %>
+        <%= x %>
+      ERB
+    end
+  end
+
+  context "when analyzing an unnecessary disable directive in an ERB comment followed by another ERB comment" do
+    it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment with the whitespace after it" do
+      expect_offense(<<~ERB)
+        <%# rubocop:disable-next Lint/Void %> <%# other %>
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/RedundantCopDisableDirective: Unnecessary disabling of `Lint/Void`.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/CopDirectiveSyntax: Malformed directive comment detected. Cop names must be separated by commas. Comment in the directive must start with `--`.
+        <%= x %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%# other %>
+        <%= x %>
+      ERB
+    end
+  end
+
   context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag followed by HTML" do
     it "triggers Herb/CommentedOutCode, which tells why the directive is malformed" do
       expect_offense(<<~ERB)
