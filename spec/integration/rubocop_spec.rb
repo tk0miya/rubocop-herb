@@ -22,11 +22,10 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   end
 
   context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag followed by HTML" do
-    it "triggers Herb/CommentedOutCode, which tells why the directive is malformed" do
+    it "triggers Herb/CommentedOutCode, but applies the directive without Lint/CopDirectiveSyntax" do
       expect_offense(<<~ERB)
         <% x = 1 # rubocop:disable Lint/UselessAssignment %><div></div>
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Herb/CommentedOutCode: This Ruby comment comments out the ERB tags and HTML following it on the same line. Place them on a separate line or use an ERB comment (`<%# %>`).
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/CopDirectiveSyntax: Malformed directive comment detected. Cop names must be separated by commas. Comment in the directive must start with `--`.
       ERB
 
       expect_no_corrections

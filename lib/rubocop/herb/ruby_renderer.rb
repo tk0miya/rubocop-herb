@@ -29,6 +29,7 @@ module RuboCop
 
       attr_reader :ruby_code #: String
       attr_reader :parse_result #: ParseResult
+      attr_reader :commented_out_ranges #: Array[CharRange] -- ranges of the code commented out by trailing comments
 
       # @rbs!
       #   def source: () -> Source
@@ -43,6 +44,7 @@ module RuboCop
       def initialize(parse_result) #: void
         @parse_result = parse_result
         @ruby_code = bleach_code(parse_result.code)
+        @commented_out_ranges = []
 
         super()
       end
@@ -52,6 +54,7 @@ module RuboCop
       def visit_document_node(node) #: void
         super
         render_comments
+        render_commented_out_code
       end
 
       # @rbs!
@@ -170,14 +173,29 @@ module RuboCop
       # Terminate the statement of the code
       # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered
       # (it would break a directive in the comment). The comment comments out the ERB tags and HTML
-      # following it on the same line, as ERB does (reported by Herb/CommentedOutCode cop)
+      # following it on the same line, as ERB does (reported by Herb/CommentedOutCode cop);
+      # the HTML is rendered as spaces later (see render_commented_out_code)
       # @rbs node: erb_node
       # @rbs code: String
       # @rbs range: CharRange -- character range of the code
       def render_statement_end(node, code, range) #: void
-        return if RubyComment.trailing_range(node, source)
+        unless RubyComment.trailing_range(node, source)
+          render_semicolon(node, code, range)
+          return
+        end
 
-        render_semicolon(node, code, range)
+        tag_closing = node.tag_closing
+        commented_out_ranges << rest_of_line(tag_closing.range.to) if tag_closing
+      end
+
+      # Character range from the byte position to the end of its line
+      # The newline is searched by byte position, as String#index with a character position
+      # scans the code from its start
+      # @rbs byte_pos: Integer
+      def rest_of_line(byte_pos) #: CharRange
+        code = parse_result.code
+        line_end = code.byteindex("\n", byte_pos) || code.bytesize
+        CharRange.new(byte_to_char_pos(byte_pos), byte_to_char_pos(line_end))
       end
 
       # Render a semicolon after the code to terminate the statement
@@ -264,6 +282,35 @@ module RuboCop
         erb_comment_nodes.each do |node|
           render_erb_comment_node(node) unless followed_by_content?(node)
         end
+      end
+
+      # Render the HTML commented out by trailing comments as spaces,
+      # so that its markers do not get into the comments (e.g. `div;` breaking a directive in the comment)
+      # The ERB tags commented out are kept as rendered
+      def render_commented_out_code #: void
+        commented_out_ranges.each do |range|
+          pos = range.from
+          erb_tag_ranges_in(range).each do |tag|
+            render_whitespace(pos, tag.from)
+            pos = tag.to
+          end
+          render_whitespace(pos, range.to)
+        end
+      end
+
+      # Character ranges of the ERB tags starting in the range
+      # @rbs range: CharRange
+      def erb_tag_ranges_in(range) #: Array[CharRange]
+        tags = parse_result.erb_tag_ranges
+        index = tags.bsearch_index { _1.from >= range.from } || tags.size
+        tags[index..].not_nil!.take_while { _1.from < range.to }
+      end
+
+      # Render spaces from the position to the other one (nothing if `to` is not after `from`)
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def render_whitespace(from, to) #: void
+        ruby_code[from...to] = " " * (to - from) if from < to
       end
 
       # @rbs node: ::Herb::AST::ERBCommentNode
