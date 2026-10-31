@@ -9,6 +9,10 @@ module RuboCop
     # the delimiters of its ERB tag.  The adjuster trims a replacement starting (or ending)
     # outside ERB tags to the content of the ERB tag it ends (or starts) in, if the trimmed part
     # is whitespace in the Ruby code (#trim), so that the correction keeps the delimiters.
+    #
+    # An ERB comment rendered as a Ruby comment continues over its closing delimiter rendered as whitespace,
+    # so the corrections of rubocop directives in it (e.g. Lint/RedundantCopDisableDirective) are also adjusted
+    # to keep the delimiters (`<%#` and `%>`) of the comment, or to remove the whole ERB tag.
     class CorrectionAdjuster
       # The content of an ERB tag and its character range
       class Content < Data
@@ -44,6 +48,8 @@ module RuboCop
 
       attr_reader ruby_code: String
 
+      @comment_contents: Array[CharRange]?
+
       @contents: Array[Content]?
 
       # @rbs parse_result: ParseResult
@@ -65,6 +71,14 @@ module RuboCop
       # @rbs location: ErbLocation
       def content_of: (ErbLocation location) -> Content?
 
+      # Contents of the ERB comments rendered as Ruby comments
+      # The ones followed by ERB tags or HTML on the same line are rendered as whitespace, so they are not adjusted
+      def comment_contents: () -> Array[CharRange]
+
+      # The ERB tag of the content of an ERB comment
+      # @rbs content: CharRange
+      def erb_tag_of: (CharRange content) -> CharRange
+
       # The content in which a replacement starting at the position starts
       # A replacement starting at the end of a content starts outside it
       # @rbs pos: Integer
@@ -82,6 +96,58 @@ module RuboCop
       # replacement would change the whitespace inside the tag instead
       # @rbs replacement: Replacement
       def trim_replacement: (Replacement replacement) -> Replacement
+
+      # Turn the replacement of a whole ERB comment rendered as a Ruby comment, along with the whitespace around it,
+      # into the removal of the ERB tag (see #comment_tag_removal).
+      # Lint/RedundantCopDisableDirective removes an unnecessary directive along with the whitespace around it,
+      # which also covers the delimiters of the adjacent ERB tags and the HTML rendered as whitespace.
+      # It replaces the directive with ` # ` instead if the comment has more text, which the closing delimiter
+      # rendered as whitespace looks like
+      # @rbs replacement: Replacement
+      def trim_comment_removal: (Replacement replacement) -> Replacement?
+
+      # The range to remove the ERB tag of a comment, decided from the ERB source:
+      # the whole line if the line has only the tag (and whitespace), the tag with the whitespace after it
+      # if the tag starts the line (keeping the indentation), or the tag with the whitespace before it
+      # @rbs tag: CharRange
+      def comment_tag_removal: (CharRange tag) -> CharRange
+
+      # The text before and after the tag in the line
+      # @rbs tag: CharRange
+      # @rbs line: CharRange
+      def surroundings: (CharRange tag, CharRange line) -> [ String, String ]
+
+      # @rbs text: String
+      def blank?: (String text) -> bool
+
+      # The range of the line of the ERB source with the tag (with the newline)
+      # @rbs tag: CharRange
+      def line_of: (CharRange tag) -> CharRange
+
+      # The content of the ERB comment replaced as a whole along with whitespace, with whitespace or `#`
+      # @rbs replacement: Replacement
+      def comment_content_replaced: (Replacement replacement) -> CharRange?
+
+      # Trim the replacement starting in an ERB comment rendered as a Ruby comment and running to the end of the line
+      # (e.g. Lint/RedundantCopDisableDirective removing one of the cops in a directive with the whitespace after it)
+      # to the end of the comment (before the whitespace at its end), as the Ruby comment continues over
+      # the closing delimiter rendered as whitespace.
+      # The replacement starts at `#` of `<%#` at the earliest; a removal of the whole tag starts before it
+      # @rbs replacement: Replacement
+      def trim_comment_edit: (Replacement replacement) -> Replacement?
+
+      # Keep `#` of `<%#` of an ERB comment rendered as a Ruby comment in a replacement covering it,
+      # unless the replacement covers the whole ERB tag. The replacement starts after `#` and drops `#` at the start
+      # of its text, which may also start with the whitespace before the comment rendered from the delimiters
+      # and the HTML before it (e.g. Lint/RedundantCopDisableDirective replacing a directive followed by more text
+      # in the comment with ` # `, and removing a directive on the first line of a multi-line comment).
+      # Otherwise the comment would become a code tag or a part of the ERB tag before it
+      # @rbs replacement: Replacement
+      def keep_comment_opening: (Replacement replacement) -> Replacement
+
+      # The content of the ERB comment the replacement starts in (or at `#` of `<%#`) and goes beyond the end of
+      # @rbs replacement: Replacement
+      def comment_content_edited_to_end: (Replacement replacement) -> CharRange?
 
       # @rbs replacement: Replacement
       # @rbs from: Integer
