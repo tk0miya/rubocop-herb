@@ -163,24 +163,13 @@ module RuboCop
         range = NodeRange.byte_range_to_char_range(node.content.not_nil!.range, source)
         ruby_code[range.from, code.length] = code
 
-        render_statement_end(node, code, range)
+        render_semicolon(node, code, range)
         render_output_marker(node) if output_node?(node) && output_expression?(code)
       end
 
-      # Terminate the statement of the code
-      # A trailing comment terminates the statement at the end of the line, so no semicolon is rendered
-      # (it would break a directive in the comment). The comment comments out the ERB tags and HTML
-      # following it on the same line, as ERB does (reported by Herb/CommentedOutCode cop)
-      # @rbs node: erb_node
-      # @rbs code: String
-      # @rbs range: CharRange -- character range of the code
-      def render_statement_end(node, code, range) #: void
-        return if RubyComment.trailing_range(node, source)
-
-        render_semicolon(node, code, range)
-      end
-
       # Render a semicolon after the code to terminate the statement
+      # A trailing Ruby comment (e.g. `<% x # comment %>`) gets the semicolon inside the comment, and comments out
+      # the ERB tags and HTML following it on the same line, as ERB does (reported by Herb/CommentedOutCode cop)
       # A node split from an ERB tag (e.g. `<% else; end %>`) has no tag closing; the following node
       # continues in the same tag, so the code is kept as written
       # The code followed by a newline (e.g. `%>` on its own line) is already terminated by the newline,

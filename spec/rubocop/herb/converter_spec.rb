@@ -640,7 +640,7 @@ RSpec.describe RuboCop::Herb::Converter do
     # Ruby comments at the end of the code in ERB tags
     describe "with a trailing Ruby comment in an ERB tag" do
       let(:source) { "<% x = 1 # comment %>" }
-      let(:expected) { "   x = 1 # comment   " }
+      let(:expected) { "   x = 1 # comment;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -648,7 +648,7 @@ RSpec.describe RuboCop::Herb::Converter do
     # The comment comments out the ERB tags following it on the same line, as ERB does
     describe "with a trailing Ruby comment in an ERB tag followed by other ERB on the same line" do
       let(:source) { "<% x = 1 # comment %><%= y %>" }
-      let(:expected) { "   x = 1 # comment   _ = y;  " }
+      let(:expected) { "   x = 1 # comment;  _ = y;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
