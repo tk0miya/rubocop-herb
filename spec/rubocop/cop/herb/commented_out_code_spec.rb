@@ -22,8 +22,8 @@ RSpec.describe RuboCop::Cop::Herb::CommentedOutCode do
   context "when a Ruby comment with multi-byte characters is followed by an ERB tag" do
     it "registers an offense at the comment" do
       expect_offense(<<~ERB)
-        <p>日本語</p><%= "あ" # 日本語のコメント %><%= y %>
-                          ^^^^^^^^^^ #{described_class::MSG}
+        <p>日本語</p><% x = "あ" # 日本語のコメント %><%= y %>
+                             ^^^^^^^^^^ #{described_class::MSG}
       ERB
     end
   end

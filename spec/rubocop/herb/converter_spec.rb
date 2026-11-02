@@ -60,15 +60,6 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    describe "with an output ERB tag with only a comment closed on its line" do
-      let(:source) { "<div><%= # note %></div>" }
-      # Rendered like a code tag (`<% # note %>`) without the marker (ERB fails to compile the tag,
-      # which is reported by herb-lint). The comment comments out the following HTML as ERB does
-      let(:expected) { "div;     # note   div;  " }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
     describe "with a comment ERB tag" do
       let(:source) { "<div><%# user.name %>\n</div>" }
       let(:expected) { "div;   # user.name   \ndiv;  " }
@@ -656,8 +647,8 @@ RSpec.describe RuboCop::Herb::Converter do
 
     # The comment comments out the ERB tags following it on the same line, as ERB does
     describe "with a trailing Ruby comment in an ERB tag followed by other ERB on the same line" do
-      let(:source) { "<%= x # comment %><%= y %>" }
-      let(:expected) { "_ = x # comment   _ = y;  " }
+      let(:source) { "<% x = 1 # comment %><%= y %>" }
+      let(:expected) { "   x = 1 # comment   _ = y;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end

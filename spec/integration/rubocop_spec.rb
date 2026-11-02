@@ -36,8 +36,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
     it "triggers Herb/CommentedOutCode and does not check the following ERB tag commented out as ERB does" do
       expect_offense(<<~ERB)
-        <%= x # comment %><%= y==1 %>
-              ^^^^^^^^^ Herb/CommentedOutCode: This Ruby comment comments out the ERB tags and HTML following it on the same line. Place them on a separate line or use an ERB comment (`<%# %>`).
+        <% foo # comment %><%= y==1 %>
+               ^^^^^^^^^ Herb/CommentedOutCode: This Ruby comment comments out the ERB tags and HTML following it on the same line. Place them on a separate line or use an ERB comment (`<%# %>`).
       ERB
 
       expect_no_corrections

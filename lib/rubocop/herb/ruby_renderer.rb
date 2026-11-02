@@ -211,8 +211,8 @@ module RuboCop
       end
 
       # Whether the code of an output tag has an expression to assign to the output marker
-      # Code with only whitespace and comments (e.g. `<%= %>` and `<%= # note %>`) has none, so it is rendered
-      # like a code tag (`<% # note %>`). herb-lint reports the comments in output tags (erb-comment-syntax)
+      # Code with only whitespace and comments (e.g. `<%= %>` and `<%= # note` followed by a newline and `%>`)
+      # has none, so it is rendered like a code tag. herb-lint reports the comments in output tags (erb-comment-syntax)
       # @rbs code: String
       def output_expression?(code) #: bool
         code.lines.any? { !_1.sub(/#.*/, "").strip.empty? }
