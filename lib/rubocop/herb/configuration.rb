@@ -77,8 +77,8 @@ module RuboCop
         # @rbs globs: Array[String]
         def commented_out_code_config(globs) #: Hash[String, untyped]
           {
-            "Description" => "Checks for Ruby comments in ERB tags commenting out " \
-                             "the ERB tags and HTML following them on the same line.",
+            "Description" => "Checks for Ruby comments at the end of the code in ERB tags, " \
+                             "which comment out the code ERB appends after the code.",
             "Enabled" => true,
             "Include" => globs
           }

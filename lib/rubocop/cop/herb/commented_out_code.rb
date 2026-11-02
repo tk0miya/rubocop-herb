@@ -5,25 +5,38 @@ require "rubocop"
 module RuboCop
   module Cop
     module Herb
-      # Checks for Ruby comments at the end of the code in ERB tags followed by ERB tags or HTML on the same line.
+      # Checks for Ruby comments at the end of the code in ERB tags (e.g. `<% x # comment %>`).
       #
-      # ERB compiles a template into Ruby code keeping its lines, so such a comment comments out
-      # the following ERB tags and HTML. The template outputs nothing for them,
-      # or fails with a syntax error (e.g. when `<% end %>` is commented out).
+      # ERB compiles a template into Ruby code keeping its lines, and appends code after the code of
+      # each ERB tag, so such a comment comments out the code appended.
+      # In an output tag (`<%=` and `<%==`), it comments out the code ERB appends to output the result,
+      # so the template fails with a syntax error.
+      # In other tags, it comments out the ERB tags and HTML placed after it on the same line:
+      # the template outputs nothing for them, or fails with a syntax error (e.g. when `<% end %>` is commented out).
+      # A comment followed by a newline in the tag (`%>` on the next line) is not reported.
       #
       # @example
       #   # bad
+      #   <%= user.name # the full name %>
+      #
+      #   # bad
       #   <% name = user.name # the full name %><%= name %>
       #
-      #   # good
+      #   # bad (breaks when ERB tags or HTML are placed after it)
       #   <% name = user.name # the full name %>
-      #   <%= name %>
       #
       #   # good
-      #   <% name = user.name %><%# the full name %><%= name %>
+      #   <% name = user.name %><%# the full name %>
+      #
+      #   # good
+      #   <% name = user.name # the full name
+      #   %>
       class CommentedOutCode < Base
-        MSG = "This Ruby comment comments out the ERB tags and HTML following it on the same line. " \
-              "Place them on a separate line or use an ERB comment (`<%# %>`)."
+        OUTPUT_TAG_MSG = "Ruby code in an output tag should not end with a comment because it causes a syntax error. " \
+                         "Use an ERB comment (`<%# %>`) or put `%>` on the next line."
+        CODE_TAG_MSG = "Ruby code in an ERB tag should not end with a comment because it comments out " \
+                       "any ERB tags and HTML placed after it on the same line. " \
+                       "Use an ERB comment (`<%# %>`) or put `%>` on the next line."
 
         def on_new_investigation #: void
           investigate
@@ -46,11 +59,20 @@ module RuboCop
             next if location.comment?
 
             node = location.node #: ::RuboCop::Herb::erb_node
-            next unless parse_result.followed_by_content?(node)
-
             range = ::RuboCop::Herb::RubyComment.trailing_range(node, parse_result.source)
-            add_offense(Parser::Source::Range.new(source.buffer, range.from, range.to)) if range
+            next unless range
+
+            add_offense(Parser::Source::Range.new(source.buffer, range.from, range.to), message: message(node))
           end
+        end
+
+        # The message for the ERB tag of the node
+        # The tag opening is checked instead of the node type, as an output tag with a block
+        # (e.g. `<%= form_with do |f| %>`) is a block node
+        # @rbs node: ::RuboCop::Herb::erb_node
+        def message(node) #: String
+          output_tag = ::RuboCop::Herb::ErbLocation::OUTPUT_TAG_OPENINGS.include?(node.tag_opening&.value)
+          output_tag ? OUTPUT_TAG_MSG : CODE_TAG_MSG
         end
       end
     end

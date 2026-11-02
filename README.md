@@ -114,22 +114,35 @@ and the indentation of the following code depends on the surrounding HTML.
 
 ### Herb/CommentedOutCode cop
 
-ERB compiles a template into Ruby code keeping its lines, so a Ruby comment at the end of the code
-in an ERB tag (e.g. `<% x # comment %>`) comments out the ERB tags and HTML following it on the same line.
-The template outputs nothing for them, or fails with a syntax error (e.g. when `<% end %>` is commented out).
+ERB compiles a template into Ruby code keeping its lines, and appends code after the code of each ERB tag.
+So a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`) comments out the code appended:
+
+- In an output tag (`<%=` and `<%==`), it comments out the code ERB appends to output the result,
+  so the template fails with a syntax error.
+- In other tags, it comments out the ERB tags and HTML placed after it on the same line.
+  The template outputs nothing for them, or fails with a syntax error (e.g. when `<% end %>` is commented out).
+  Even if nothing follows it now, the template breaks once ERB tags or HTML are placed after it.
+
 rubocop-herb renders such a comment as is, as ERB does, so RuboCop does not check the code commented out.
-The `Herb/CommentedOutCode` cop (enabled by default) reports such comments:
+The `Herb/CommentedOutCode` cop (enabled by default) reports such comments, except those followed by a newline
+in the tag (`%>` on the next line):
 
 ```erb
+<%# bad: the template fails with a syntax error %>
+<%= user.name # the full name %>
+
 <%# bad: the comment comments out `<%= name %>` %>
 <% name = user.name # the full name %><%= name %>
 
-<%# good %>
+<%# bad: it breaks once ERB tags or HTML are placed after it %>
 <% name = user.name # the full name %>
-<%= name %>
 
 <%# good %>
 <% name = user.name %><%# the full name %><%= name %>
+
+<%# good %>
+<% name = user.name # the full name
+%><%= name %>
 ```
 
 To disable the cop, configure it in `.rubocop.yml`:
