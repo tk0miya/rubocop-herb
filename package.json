@@ -3,6 +3,6 @@
   "private": true,
   "description": "Node.js packages used to test the Herb/Linting cop",
   "devDependencies": {
-    "@herb-tools/linter": "0.11.0"
+    "@herb-tools/linter": "0.11.1"
   }
 }
