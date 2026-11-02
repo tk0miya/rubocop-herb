@@ -112,7 +112,7 @@ Herb/IgnoredCopDirective:
 It does not support autocorrection, because inserting a line break may change the rendered whitespace
 and the indentation of the following code depends on the surrounding HTML.
 
-### Herb/CommentedOutCode cop
+### Herb/TrailingRubyComment cop
 
 ERB compiles a template into Ruby code keeping its lines, and appends code after the code of each ERB tag.
 So a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`) comments out the code appended:
@@ -124,7 +124,7 @@ So a Ruby comment at the end of the code in an ERB tag (e.g. `<% x # comment %>`
   Even if nothing follows it now, the template breaks once ERB tags or HTML are placed after it.
 
 rubocop-herb renders such a comment as is, as ERB does, so RuboCop does not check the code commented out.
-The `Herb/CommentedOutCode` cop (enabled by default) reports such comments, except those followed by a newline
+The `Herb/TrailingRubyComment` cop (enabled by default) reports such comments, except those followed by a newline
 in the tag (`%>` on the next line):
 
 ```erb
@@ -148,7 +148,7 @@ in the tag (`%>` on the next line):
 To disable the cop, configure it in `.rubocop.yml`:
 
 ```yaml
-Herb/CommentedOutCode:
+Herb/TrailingRubyComment:
   Enabled: false
 ```
 

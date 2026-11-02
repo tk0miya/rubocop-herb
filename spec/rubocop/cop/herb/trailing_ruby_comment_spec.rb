@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe RuboCop::Cop::Herb::CommentedOutCode do
+RSpec.describe RuboCop::Cop::Herb::TrailingRubyComment do
   include_context "with ERB source"
 
   context "when a Ruby comment at the end of an output tag is not followed by anything" do

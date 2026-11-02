@@ -31,7 +31,7 @@ module RuboCop
       #   # good
       #   <% name = user.name # the full name
       #   %>
-      class CommentedOutCode < Base
+      class TrailingRubyComment < Base
         OUTPUT_TAG_MSG = "Ruby code in an output tag should not end with a comment because it causes a syntax error. " \
                          "Use an ERB comment (`<%# %>`) or put `%>` on the next line."
         CODE_TAG_MSG = "Ruby code in an ERB tag should not end with a comment because it comments out " \
