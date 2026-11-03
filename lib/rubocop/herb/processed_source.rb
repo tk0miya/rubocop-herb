@@ -33,6 +33,24 @@ module RuboCop
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
 
+      # The node of the AST before the transformation at the same place as the given node of the transformed AST
+      # (e.g. `(send nil :div)` for `(send nil :div__html0)`), or nil if the node is not in the transformed AST.
+      # The node is found by the path of child indices from the root, as both ASTs have the same structure
+      # @rbs node: RuboCop::AST::Node
+      def untransformed_node(node) #: RuboCop::AST::Node?
+        indices = [] #: Array[Integer]
+        while (parent = node.parent)
+          index = parent.children.index { _1.equal?(node) }
+          return nil unless index
+
+          indices.unshift(index)
+          node = parent
+        end
+        return nil unless node.equal?(ast)
+
+        indices.reduce(untransformed_ast) { |current, index| current&.children&.[](index) } #: RuboCop::AST::Node?
+      end
+
       # Validator to discard autocorrections that would break the ERB template
       def correction_validator #: CorrectionValidator
         @correction_validator ||= CorrectionValidator.new(parse_result)
@@ -45,6 +63,8 @@ module RuboCop
       end
 
       private
+
+      attr_reader :untransformed_ast #: RuboCop::AST::Node?
 
       def disabled_cops #: Hash[String, Array[Range[Integer]]]
         immovable_expressions = ImmovableExpressionCollector.collect(self, parse_result)
@@ -63,6 +83,7 @@ module RuboCop
       # @rbs prism_result: untyped
       def parse(ruby_code, ruby_version, parser_engine, prism_result) #: void
         super
+        @untransformed_ast = ast
         @ast = RuboCopASTTransformer.transform(ast, parse_result) if ast
       end
     end

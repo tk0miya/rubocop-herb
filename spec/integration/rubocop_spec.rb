@@ -1757,6 +1757,54 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # These cops verify their corrections by reparsing the corrected source (RuboCop::Cop::ReparsedEquivalence)
+  context "when analyzing code checked by reparsing its correction in a template with HTML" do
+    it "triggers the cops and corrects the code as in a template without HTML" do
+      expect_offense(<<~ERB)
+        <div>
+          <%= link_to root_path() %>
+                               ^^ Style/MethodCallWithoutArgsParentheses: Do not use parentheses for method calls with no arguments.
+          <%= (a == b) ? 1 : 2 %>
+              ^^^^^^^^^^^^^^^^ Style/TernaryParentheses: Omit parentheses for ternary conditions.
+          <%= (foo) %>
+              ^^^^^ Style/RedundantParentheses: Don't use parentheses around a method call.
+          <% x = bar(1, \\
+                        ^ Style/RedundantLineContinuation: Redundant line continuation.
+                     2) %>
+          <%= x %>
+        </div>
+      ERB
+
+      expect_correction(<<~ERB)
+        <div>
+          <%= link_to root_path %>
+          <%= a == b ? 1 : 2 %>
+          <%= foo %>
+          <% x = bar(1,
+                     2) %>
+          <%= x %>
+        </div>
+      ERB
+    end
+  end
+
+  context "when analyzing code checked by reparsing its correction in a method definition with HTML" do
+    it "triggers the cop and corrects the code" do
+      expect_offense(<<~ERB)
+        <% def foo %>
+             <p><%= bar() %></p>
+                       ^^ Style/MethodCallWithoutArgsParentheses: Do not use parentheses for method calls with no arguments.
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% def foo %>
+             <p><%= bar %></p>
+        <% end %>
+      ERB
+    end
+  end
+
   # Written in string literals, as annotations would not line up with CR escaped in heredocs
   context "with CR in the source" do
     context "when analyzing ERB with CRLF line endings" do
