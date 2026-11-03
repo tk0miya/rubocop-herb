@@ -175,11 +175,14 @@ module RuboCop
       # The code followed by a newline (e.g. `%>` on its own line) is already terminated by the newline,
       # so the whitespace after the code is kept as written to keep the lines of the source
       # (and the trailing whitespace of the line)
+      # An empty tag (e.g. `<% %>`) has no statement to terminate, so no semicolon is rendered
+      # (a semicolon after the whitespace rendered from the delimiters would trigger Layout/SpaceBeforeSemicolon)
       # @rbs node: erb_node
       # @rbs code: String
       # @rbs range: CharRange
       def render_semicolon(node, code, range) #: void
         return unless node.tag_closing
+        return if code.strip.empty?
 
         trailing_spaces = code[code.rstrip.length..].to_s
         return if trailing_spaces.include?("\n")
