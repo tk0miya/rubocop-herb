@@ -1,4 +1,4 @@
-# Generated from lib/rubocop/cop/herb/commented_out_code.rb with RBS::Inline
+# Generated from lib/rubocop/cop/herb/trailing_ruby_comment.rb with RBS::Inline
 
 module RuboCop
   module Cop
@@ -29,7 +29,7 @@ module RuboCop
       #   # good
       #   <% name = user.name # the full name
       #   %>
-      class CommentedOutCode < Base
+      class TrailingRubyComment < Base
         OUTPUT_TAG_MSG: ::String
 
         CODE_TAG_MSG: ::String

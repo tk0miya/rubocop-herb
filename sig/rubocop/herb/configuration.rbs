@@ -26,9 +26,9 @@ module RuboCop
       # @rbs globs: Array[String]
       private def self.ignored_cop_directive_config: (Array[String] globs) -> Hash[String, untyped]
 
-      # Default configuration of Herb/CommentedOutCode cop (enabled)
+      # Default configuration of Herb/TrailingRubyComment cop (enabled)
       # @rbs globs: Array[String]
-      private def self.commented_out_code_config: (Array[String] globs) -> Hash[String, untyped]
+      private def self.trailing_ruby_comment_config: (Array[String] globs) -> Hash[String, untyped]
 
       # Default configuration of Herb/EmptyErbTag cop
       # @rbs globs: Array[String]

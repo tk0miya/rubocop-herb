@@ -40,7 +40,7 @@ module RuboCop
             "AllCops" => { "Include" => globs },
             "Herb/Linting" => herb_lint_config(globs),
             "Herb/IgnoredCopDirective" => ignored_cop_directive_config(globs),
-            "Herb/CommentedOutCode" => commented_out_code_config(globs),
+            "Herb/TrailingRubyComment" => trailing_ruby_comment_config(globs),
             "Herb/EmptyErbTag" => empty_erb_tag_config(globs)
           }
           EXCLUDED_COPS.each do |cop|
@@ -73,9 +73,9 @@ module RuboCop
           }
         end
 
-        # Default configuration of Herb/CommentedOutCode cop (enabled)
+        # Default configuration of Herb/TrailingRubyComment cop (enabled)
         # @rbs globs: Array[String]
-        def commented_out_code_config(globs) #: Hash[String, untyped]
+        def trailing_ruby_comment_config(globs) #: Hash[String, untyped]
           {
             "Description" => "Checks for Ruby comments at the end of the code in ERB tags, " \
                              "which comment out the code ERB appends after the code.",

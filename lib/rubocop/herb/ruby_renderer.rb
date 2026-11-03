@@ -169,7 +169,7 @@ module RuboCop
 
       # Render a semicolon after the code to terminate the statement
       # A trailing Ruby comment (e.g. `<% x # comment %>`) gets the semicolon inside the comment, and comments out
-      # the ERB tags and HTML following it on the same line, as ERB does (reported by Herb/CommentedOutCode cop)
+      # the ERB tags and HTML following it on the same line, as ERB does (reported by Herb/TrailingRubyComment cop)
       # A node split from an ERB tag (e.g. `<% else; end %>`) has no tag closing; the following node
       # continues in the same tag, so the code is kept as written
       # The code followed by a newline (e.g. `%>` on its own line) is already terminated by the newline,
