@@ -47,7 +47,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with an empty output ERB tag" do
       let(:source) { "<div><%= %></div>" }
-      let(:expected) { "div;    ;  div;  " }
+      let(:expected) { "div;       div;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end

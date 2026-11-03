@@ -1697,6 +1697,21 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing an empty ERB tag following an output tag on the same line after another empty ERB tag" do
+    it "triggers only Herb/EmptyErbTag and keeps the output tag" do
+      expect_offense(<<~ERB)
+        <% %>
+        ^^^^^ Herb/EmptyErbTag: Remove the empty ERB tag.
+        <%= b %><% %>
+                ^^^^^ Herb/EmptyErbTag: Remove the empty ERB tag.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= b %>
+      ERB
+    end
+  end
+
   context "when analyzing an empty ERB tag on the last line without a newline" do
     # Written in a string literal, as heredocs end with a newline
     let(:source) { "<p>a</p>\n<% %>" }
