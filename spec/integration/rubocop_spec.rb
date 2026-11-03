@@ -1637,18 +1637,51 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when HTML has consecutive blank lines" do
-    it "reports the offense as not correctable" do
-      expect_offense(<<~ERB)
+  context "when analyzing consecutive blank lines outside ERB tags" do
+    it "does not trigger the cops checking blank lines" do
+      expect_no_offenses(<<~ERB)
         <p>a</p>
 
 
+        <div
+          class="x"
+
+
+          id="y"></div>
+
+
+        <% foo do %>
+
+
+          <%= a %>
+
+
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing consecutive blank lines in an ERB tag" do
+    it "triggers Layout/EmptyLines" do
+      expect_offense(<<~ERB)
+        <%
+          a = 1
+
+
         ^{} Layout/EmptyLines: Extra blank line detected.
-        <p>b</p>
+          b = 2
+        %>
+        <%= a + b %>
       ERB
 
-      expect(run_rubocop(last_source).map(&:correctable?)).to eq [false]
-      expect_no_corrections
+      expect_correction(<<~ERB)
+        <%
+          a = 1
+
+          b = 2
+        %>
+        <%= a + b %>
+      ERB
     end
   end
 
