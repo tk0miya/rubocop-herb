@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RuboCop::Herb::LineLengthCollector do
+RSpec.describe RuboCop::Herb::HtmlOnlyLineCollector do
   describe ".collect" do
     subject { described_class.collect(processed_source, conversion_result.parse_result) }
 

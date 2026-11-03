@@ -1,4 +1,4 @@
-# Generated from lib/rubocop/herb/line_length_collector.rb with RBS::Inline
+# Generated from lib/rubocop/herb/html_only_line_collector.rb with RBS::Inline
 
 module RuboCop
   module Herb
@@ -6,7 +6,7 @@ module RuboCop
     # Lines without ERB tags are HTML only, whose length is left to the formatter of Herb (herb-format)
     # as it wraps HTML (e.g. attributes) by its own limit. Lines with ERB tags are still checked,
     # as herb-format does not wrap the Ruby code in ERB tags.
-    class LineLengthCollector
+    class HtmlOnlyLineCollector
       COP_NAME: String
 
       # Collect the disabled lines from a processed source

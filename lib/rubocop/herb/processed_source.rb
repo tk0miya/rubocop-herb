@@ -48,7 +48,7 @@ module RuboCop
       def disabled_cops #: Hash[String, Array[Range[Integer]]]
         immovable_expressions = ImmovableExpressionCollector.collect(self, parse_result)
         rendered_trailing_whitespace = TrailingWhitespaceCollector.collect(self, parse_result)
-        html_only_lines = LineLengthCollector.collect(self, parse_result)
+        html_only_lines = HtmlOnlyLineCollector.collect(self, parse_result)
         [immovable_expressions, rendered_trailing_whitespace, html_only_lines]
           .reduce(parse_result.disabled_cops) do |disabled_cops, lines|
           disabled_cops.merge(lines) { |_cop, lines1, lines2| lines1 + lines2 }
