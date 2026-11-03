@@ -27,7 +27,8 @@ module RuboCop
 
       # Override comment_config to disable cops at the lines specified by the parse result,
       # the lines of expressions that cannot be moved out of conditionals,
-      # the lines of trailing whitespace rendered by the conversion and the lines without ERB tags (for line length)
+      # the lines of trailing whitespace rendered by the conversion
+      # and the lines without ERB tags (for line length and blank lines)
       def comment_config #: CommentConfig
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
