@@ -7,6 +7,7 @@
 # CommentConfig#cop_enabled_at_line? before reporting the startup error.
 # Herb/IgnoredCopDirective cop detects rubocop directives with DirectiveComment::DIRECTIVE_COMMENT_REGEXP.
 # CorrectionValidator and CopCorrectionGuard create Corrector objects.
+# ReparsedEquivalenceAdapter is prepended to Cop::ReparsedEquivalence (rubocop 1.92.0+).
 
 module RuboCop
   module ConfigFinder
@@ -29,6 +30,9 @@ module RuboCop
 
     class Corrector
       def initialize: (Parser::Source::Buffer | AST::ProcessedSource | Base source) -> void
+    end
+
+    module ReparsedEquivalence
     end
   end
 end
