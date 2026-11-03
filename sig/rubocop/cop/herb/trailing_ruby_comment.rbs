@@ -44,6 +44,16 @@ module RuboCop
 
         def investigate: () -> void
 
+        # Character range of the Ruby comment at the end of the code in the ERB tag (e.g. `<% x # comment %>`)
+        # A comment followed by a newline (e.g. `%>` on its own line) is not a trailing comment
+        # @rbs node: ::RuboCop::Herb::erb_node
+        # @rbs source: ::RuboCop::Herb::Source
+        def trailing_range: (::RuboCop::Herb::erb_node node, ::RuboCop::Herb::Source source) -> ::RuboCop::Herb::CharRange?
+
+        # Location of the Ruby comment at the end of the code, followed only by spaces on the same line
+        # @rbs code: String
+        def trailing_comment: (String code) -> Prism::Location?
+
         # The message for the ERB tag of the node
         # The tag opening is checked instead of the node type, as an output tag with a block
         # (e.g. `<%= form_with do |f| %>`) is a block node

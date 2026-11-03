@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "prism"
 require "rubocop"
 
 module RuboCop
@@ -59,11 +60,34 @@ module RuboCop
             next if location.comment?
 
             node = location.node #: ::RuboCop::Herb::erb_node
-            range = ::RuboCop::Herb::RubyComment.trailing_range(node, parse_result.source)
+            range = trailing_range(node, parse_result.source)
             next unless range
 
             add_offense(Parser::Source::Range.new(source.buffer, range.from, range.to), message: message(node))
           end
+        end
+
+        # Character range of the Ruby comment at the end of the code in the ERB tag (e.g. `<% x # comment %>`)
+        # A comment followed by a newline (e.g. `%>` on its own line) is not a trailing comment
+        # @rbs node: ::RuboCop::Herb::erb_node
+        # @rbs source: ::RuboCop::Herb::Source
+        def trailing_range(node, source) #: ::RuboCop::Herb::CharRange?
+          content = node.content
+          return unless content
+
+          comment = trailing_comment(content.value)
+          return unless comment
+
+          # Prism's location of a comment includes the spaces after it
+          from = source.byte_to_char_pos(content.range.from) + comment.start_character_offset
+          ::RuboCop::Herb::CharRange.new(from, from + comment.slice.rstrip.length)
+        end
+
+        # Location of the Ruby comment at the end of the code, followed only by spaces on the same line
+        # @rbs code: String
+        def trailing_comment(code) #: Prism::Location?
+          location = Prism.parse_comments(code).last&.location
+          location if location && code.byteslice(location.end_offset..).to_s.match?(/\A[ \t]*\z/)
         end
 
         # The message for the ERB tag of the node
