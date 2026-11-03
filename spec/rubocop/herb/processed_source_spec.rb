@@ -29,6 +29,43 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
     end
   end
 
+  describe "#untransformed_node" do
+    subject { processed_source.untransformed_node(node) }
+
+    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
+    let(:processed_source) do
+      described_class.new(
+        conversion_result.ruby_code, 3.3, "test.html.erb",
+        parse_result: conversion_result.parse_result
+      )
+    end
+    let(:erb_source) { "<div><% def foo %><p><%= bar %></p><% end %></div>" }
+
+    context "with the root node" do
+      let(:node) { processed_source.ast }
+
+      it "returns the root node before the transformation" do
+        expect(collect_method_names(subject)).to eq(%i[div p bar p div])
+      end
+    end
+
+    context "with a node in the transformed AST" do
+      let(:node) { processed_source.ast.each_descendant(:def).first }
+
+      it "returns the node at the same place before the transformation" do
+        expect(subject.type).to eq :def
+        expect(subject.source_range).to eq node.source_range
+        expect(collect_method_names(subject)).to eq(%i[p bar p])
+      end
+    end
+
+    context "with a node not in the transformed AST" do
+      let(:node) { RuboCop::AST::ProcessedSource.new("div", 3.3).ast }
+
+      it { is_expected.to be_nil }
+    end
+  end
+
   describe "#comment_config" do
     subject { processed_source.comment_config }
 
