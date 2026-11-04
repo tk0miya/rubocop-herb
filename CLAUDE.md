@@ -167,7 +167,6 @@ The libraries count positions and newlines differently, so convert positions exp
 
 - **Herb/EmptyErbTag cop** (`lib/rubocop/cop/herb/empty_erb_tag.rb`): Reports empty `<% %>` tags and `<%# %>` comments and removes them by autocorrection (with their lines if they are alone on them or with other empty tags only, with the whitespace before them if they end the line, and with the whitespace trimmed by `<%-` and `-%>`). Removes the tags left empty by corrections removing the whole code of a tag (e.g. `Lint/Void` turns `<% 1 %>` into `<% %>`, as `CorrectionAdjuster` keeps the delimiters), through RuboCop's autocorrection loop.
 - **Herb/IgnoredCopDirective cop** (`lib/rubocop/cop/herb/ignored_cop_directive.rb`): Reports rubocop directives (e.g. `rubocop:disable`) in ERB comments followed by ERB tags or HTML on the same line. rubocop-herb ignores such a comment because it would comment out the following code, so the directive has no effect. Ordinary comments are not reported because ignoring them is harmless. No autocorrection because inserting a line break may change the rendered whitespace
-- **Herb/TrailingRubyComment cop** (`lib/rubocop/cop/herb/trailing_ruby_comment.rb`): Reports Ruby comments at the end of the code in ERB tags (e.g. `<% x # comment %>`), found with Prism, except those followed by a newline in the tag. ERB appends code after the code of each tag keeping its lines, so such a comment comments out the code appended to output the result of an output tag (a syntax error), or the ERB tags and HTML placed after a code tag on the same line; `RubyRenderer` renders it as is (with the semicolon in the comment, which breaks a directive in it), as ERB does. The message tells output tags from other tags. Also reports in files with syntax errors (e.g. `<% end %>` commented out) via `on_other_file`. No autocorrection because inserting a line break may change the rendered whitespace
 
 #### Utilities
 
@@ -184,7 +183,6 @@ The libraries count positions and newlines differently, so convert positions exp
     Do not add an upper bound.
 - `lint_roller` (>= 1.1.0): RuboCop plugin framework for registering extractors
 - `not_nilable`: Provides `#not_nil!` for unwrapping nilable values with type narrowing
-- `prism`: Ruby parser used to find Ruby comments at the end of the code in ERB tags
 - `rubocop` (>= 1.90.0): The linter itself; 1.90.0 is required because `CommentConfig` overrides `cop_enabled_at_lines?`, introduced in that version
 
 ### Configuration Options
