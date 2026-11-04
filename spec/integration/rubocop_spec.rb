@@ -13,29 +13,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing a rubocop directive in a trailing Ruby comment of an ERB tag" do
-    it "triggers Herb/TrailingRubyComment, which tells why the directive is malformed" do
-      expect_offense(<<~ERB)
-        <% x = 1 # rubocop:disable Lint/UselessAssignment %>
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Herb/TrailingRubyComment: Ruby code in an ERB tag should not end with a comment because it comments out any ERB tags and HTML placed after it on the same line. Use an ERB comment (`<%# %>`) or put `%>` on the next line.
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Lint/CopDirectiveSyntax: Malformed directive comment detected. Cop names must be separated by commas. Comment in the directive must start with `--`.
-      ERB
-
-      expect_no_corrections
-    end
-  end
-
-  context "when analyzing an ERB tag following an ERB tag with a trailing Ruby comment on the same line" do
-    it "triggers Herb/TrailingRubyComment and does not check the following ERB tag commented out as ERB does" do
-      expect_offense(<<~ERB)
-        <% foo # comment %><%= y==1 %>
-               ^^^^^^^^^ Herb/TrailingRubyComment: Ruby code in an ERB tag should not end with a comment because it comments out any ERB tags and HTML placed after it on the same line. Use an ERB comment (`<%# %>`) or put `%>` on the next line.
-      ERB
-
-      expect_no_corrections
-    end
-  end
-
   context "when analyzing a block whose body is an ERB comment followed by HTML on the same line" do
     it "triggers Lint/UnusedBlockArgument as for the body without the comment" do
       expect_offense(<<~ERB)
@@ -921,7 +898,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         <% end %>
         <% unless t %>
           <% # comment %>
-             ^^^^^^^^^ Herb/TrailingRubyComment: Ruby code in an ERB tag should not end with a comment because it comments out any ERB tags and HTML placed after it on the same line. Use an ERB comment (`<%# %>`) or put `%>` on the next line.
               <%= t %>
         <% end %>
         <div class="a">
@@ -1280,14 +1256,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing a control flow ERB tag with a trailing Ruby comment followed by its end tag" do
-    it "triggers Lint/Syntax and Herb/TrailingRubyComment as the end tag is commented out as ERB does" do
-      # The message of Lint/Syntax spans multiple lines, which annotations cannot express
-      offenses = run_rubocop("<% if x # comment %>a<% end %>\n")
-      expect(offenses.map { [_1.cop_name, _1.column] }).to eq [["Herb/TrailingRubyComment", 8], ["Lint/Syntax", 30]]
-    end
-  end
-
   context "when analyzing ERB tags split into multiple nodes" do
     it "processes the file without extractor errors" do
       expect_offense(<<~ERB)
@@ -1616,22 +1584,6 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
 
       expect_correction(<<~ERB)
         <% foo; %>
-        <%= b %>
-      ERB
-    end
-  end
-
-  context "when a literal is followed by a comment in an ERB tag" do
-    it "removes the literal and keeps the tag" do
-      expect_offense(<<~ERB)
-        <% 1 # comment %>
-           ^ Lint/Void: Literal `1` used in void context.
-             ^^^^^^^^^ Herb/TrailingRubyComment: Ruby code in an ERB tag should not end with a comment because it comments out any ERB tags and HTML placed after it on the same line. Use an ERB comment (`<%# %>`) or put `%>` on the next line.
-        <%= b %>
-      ERB
-
-      expect_correction(<<~ERB)
-        <% # comment %>
         <%= b %>
       ERB
     end

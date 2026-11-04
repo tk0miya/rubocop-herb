@@ -637,42 +637,6 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # Ruby comments at the end of the code in ERB tags
-    describe "with a trailing Ruby comment in an ERB tag" do
-      let(:source) { "<% x = 1 # comment %>" }
-      let(:expected) { "   x = 1 # comment;  " }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
-    # The comment comments out the ERB tags following it on the same line, as ERB does
-    describe "with a trailing Ruby comment in an ERB tag followed by other ERB on the same line" do
-      let(:source) { "<% x = 1 # comment %><%= y %>" }
-      let(:expected) { "   x = 1 # comment;  _ = y;  " }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
-    describe "with a trailing Ruby comment in an ERB tag followed by a newline" do
-      let(:source) do
-        ["<% x = 1 # comment",
-         "%><%= y %>"].join("\n")
-      end
-      let(:expected) do
-        ["   x = 1 # comment",
-         "  _ = y;  "].join("\n")
-      end
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
-    describe "with a hash sign in a string in an ERB tag followed by other ERB on the same line" do
-      let(:source) { '<%= "a # b" %><%= y %>' }
-      let(:expected) { '_ = "a # b";  _ = y;  ' }
-
-      it_behaves_like "a Ruby code extractor for ERB"
-    end
-
     # Comment ERB tags
     describe "with a comment ERB tag on its own line" do
       let(:source) do

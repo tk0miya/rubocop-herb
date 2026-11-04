@@ -33,7 +33,6 @@ require_relative "herb/version"
 require_relative "cop/herb/empty_erb_tag"
 require_relative "cop/herb/linting"
 require_relative "cop/herb/ignored_cop_directive"
-require_relative "cop/herb/trailing_ruby_comment"
 
 module RuboCop
   module Herb
