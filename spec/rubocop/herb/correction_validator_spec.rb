@@ -147,4 +147,55 @@ RSpec.describe RuboCop::Herb::CorrectionValidator do
       it { is_expected.to be true }
     end
   end
+
+  describe "#line_breaks_in_code?" do
+    subject { described_class.new(conversion_result.parse_result).line_breaks_in_code?(corrector) }
+
+    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", source) }
+    let(:buffer) { Parser::Source::Buffer.new("test.html.erb", source: conversion_result.ruby_code) }
+    let(:corrector) { RuboCop::Cop::Corrector.new(buffer) }
+    let(:source) { "<%= foo(a, b) %> <p>x</p>\n<%# a b %>" }
+
+    # @rbs pos: Integer
+    def position(pos) #: Parser::Source::Range
+      Parser::Source::Range.new(buffer, pos, pos)
+    end
+
+    context "when the correction breaks a line in the code of an ERB tag" do
+      before { corrector.insert_before(position(10), "\n") }
+
+      it { is_expected.to be true }
+    end
+
+    context "when the correction breaks a line before the closing delimiter of an ERB tag" do
+      # e.g. after the semicolon rendered at the closing delimiter
+      before { corrector.insert_before(position(14), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction breaks a line after the tag opening of an ERB tag" do
+      before { corrector.insert_before(position(4), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction breaks a line in HTML" do
+      before { corrector.insert_before(position(19), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction breaks a line in an ERB comment" do
+      before { corrector.insert_before(position(31), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction does not break lines" do
+      before { corrector.insert_before(position(19), " ") }
+
+      it { is_expected.to be true }
+    end
+  end
 end

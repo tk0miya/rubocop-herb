@@ -97,6 +97,23 @@ module RuboCop
       # @rbs replacement: Replacement
       def trim_replacement: (Replacement replacement) -> Replacement
 
+      # Drop the whitespace at the start of the text of the replacements starting right after the tag opening
+      # of an ERB tag and the whitespace after it (or after the code removed by the previous replacement),
+      # which would double the whitespace there
+      # (e.g. Style/CombinableLoops removing `end` and inserting ` end` turns `<% end %>` into `<%  end %>`).
+      # A replacement of whitespace only (e.g. re-indenting the code) is kept as is
+      # @rbs replacements: Array[Replacement]
+      def drop_space_after_opening: (Array[Replacement] replacements) -> Array[Replacement]
+
+      # The start of the replacement, or the start of the previous replacement if it removes the code right before it
+      # @rbs replacement: Replacement
+      # @rbs previous: Replacement?
+      def start_of: (Replacement replacement, Replacement? previous) -> Integer
+
+      # Whether the position is right after the tag opening of an ERB tag and the whitespace after it
+      # @rbs pos: Integer
+      def after_opening?: (Integer pos) -> bool
+
       # Turn the replacement of a whole ERB comment rendered as a Ruby comment, along with the whitespace around it,
       # into the removal of the ERB tag (see #comment_tag_removal).
       # Lint/RedundantCopDisableDirective removes an unnecessary directive along with the whitespace around it,

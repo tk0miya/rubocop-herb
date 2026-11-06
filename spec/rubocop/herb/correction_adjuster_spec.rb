@@ -162,5 +162,41 @@ RSpec.describe RuboCop::Herb::CorrectionAdjuster do
 
       it { is_expected.to be_nil }
     end
+
+    context "when the correction replaces code right after the tag opening with text starting with whitespace" do
+      # e.g. Style/CombinableLoops removing `end` and inserting ` end`
+      let(:source) { "<% end %>" }
+
+      before do
+        corrector.remove(range(3, 6))
+        corrector.insert_before(range(6, 6), " end")
+      end
+
+      it { is_expected.to eq "<% end %>" }
+    end
+
+    context "when the correction inserts text starting with whitespace right after the tag opening" do
+      let(:source) { "<%= x %>" }
+
+      before { corrector.insert_before(range(4, 4), " y") }
+
+      it { is_expected.to eq "<%= yx %>" }
+    end
+
+    context "when the correction inserts text starting with whitespace after code" do
+      let(:source) { "<% x %>" }
+
+      before { corrector.insert_before(range(4, 4), " y") }
+
+      it { is_expected.to be_nil }
+    end
+
+    context "when the correction inserts only whitespace right after the tag opening" do
+      let(:source) { "<% x %>" }
+
+      before { corrector.insert_before(range(3, 3), "  ") }
+
+      it { is_expected.to be_nil }
+    end
   end
 end

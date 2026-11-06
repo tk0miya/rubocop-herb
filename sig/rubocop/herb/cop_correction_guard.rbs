@@ -8,6 +8,11 @@ module RuboCop
     # A discarded offense is reported as not autocorrectable.
     # Cops inspecting files other than ERB templates, and the cops of rubocop-herb, are not affected.
     module CopCorrectionGuard
+      # Cops whose corrections are accepted only if they break lines in the code of ERB tags
+      # (see CorrectionValidator#line_breaks_in_code?), as breaking a line elsewhere moves `%>` to the next line
+      # or changes the rendered whitespace instead of shortening the line
+      LINE_BREAKING_COPS: Array[String]
+
       def processed_source: () -> ::RuboCop::AST::ProcessedSource?
 
       def cop_name: () -> String

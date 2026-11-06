@@ -34,7 +34,18 @@ module RuboCop
       # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
       def valid?: (::RuboCop::Cop::Corrector corrector) -> bool
 
+      # Whether every line break inserted by the corrector is in the code of an ERB tag,
+      # with code on both sides of it in the tag (e.g. between the arguments of a method call),
+      # not after the tag opening, before the closing delimiter, in comments or in HTML
+      # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
+      def line_breaks_in_code?: (::RuboCop::Cop::Corrector corrector) -> bool
+
       private
+
+      # Whether the range is in the content of an ERB tag (except comments) with code on both sides of it
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def in_code?: (Integer from, Integer to) -> bool
 
       # Apply the corrector to the original ERB source
       # The converted Ruby code keeps the character positions of the ERB source,

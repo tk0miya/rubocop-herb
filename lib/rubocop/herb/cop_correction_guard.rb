@@ -10,6 +10,11 @@ module RuboCop
     # A discarded offense is reported as not autocorrectable.
     # Cops inspecting files other than ERB templates, and the cops of rubocop-herb, are not affected.
     module CopCorrectionGuard
+      # Cops whose corrections are accepted only if they break lines in the code of ERB tags
+      # (see CorrectionValidator#line_breaks_in_code?), as breaking a line elsewhere moves `%>` to the next line
+      # or changes the rendered whitespace instead of shortening the line
+      LINE_BREAKING_COPS = %w[Layout/LineLength].freeze #: Array[String]
+
       # @rbs!
       #   def processed_source: () -> ::RuboCop::AST::ProcessedSource?
       #   def cop_name: () -> String
@@ -49,6 +54,8 @@ module RuboCop
       # @rbs candidate: ::RuboCop::Cop::Corrector
       def acceptable_correction(source, candidate) #: ::RuboCop::Cop::Corrector?
         validator = source.correction_validator
+        return if LINE_BREAKING_COPS.include?(cop_name) && !validator.line_breaks_in_code?(candidate)
+
         trimmed = source.correction_adjuster.trim(candidate)
         [trimmed, candidate].compact.find { validator.valid?(_1) }
       end

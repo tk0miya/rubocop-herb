@@ -240,8 +240,96 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       expect_correction(<<~ERB)
         <div class="#{"a" * 120}"><%= x %></div>
         <%= render partial_name, item1: 1, item2: 2, item3: 3, item4: 4, item5: 5, item6: 6, item7: 7, item8: 8, item9: 9,
-                                 item10: 10, item11: 11, item12: 12
-        %>
+                                 item10: 10, item11: 11, item12: 12 %>
+      ERB
+    end
+  end
+
+  context "when analyzing a long line with an ERB tag followed by HTML" do
+    it "triggers Layout/LineLength and breaks the line in the ERB tag, keeping the closing delimiter" do
+      expect_offense(<<~ERB)
+        <p>
+          <%= render 'x', a: 1, #{"b" * 37}: 2, #{"c" * 35}: 3 %> <span>hello</span>
+        #{" " * 120}^^^^^^ Layout/LineLength: Line is too long. [126/120]
+        </p>
+      ERB
+
+      expect_correction(<<~ERB)
+        <p>
+          <%= render 'x', a: 1, #{"b" * 37}: 2,
+                          #{"c" * 35}: 3 %> <span>hello</span>
+        </p>
+      ERB
+    end
+  end
+
+  context "when analyzing a long line with a semicolon written in an ERB tag" do
+    it "triggers Layout/LineLength and breaks the line after the semicolon" do
+      expect_offense(<<~ERB)
+        <% a = 1; #{"b" * 110} = a %><%= #{"b" * 110} %>
+        #{" " * 120}#{"^" * 124} Layout/LineLength: Line is too long. [244/120]
+      ERB
+
+      expect_correction(<<~ERB)
+        <% a = 1;
+         #{"b" * 110} = a %><%= #{"b" * 110} %>
+      ERB
+    end
+  end
+
+  context "when analyzing a long line with a semicolon in HTML text" do
+    it "triggers Layout/LineLength and breaks the line in the ERB tag, not at the semicolon in the text" do
+      expect_offense(<<~ERB)
+        <%= x %>ab; text <%= render 'x', a: 1, #{"b" * 40}: 2, #{"c" * 40}: 3 %>
+        #{" " * 120}^^^^^^^^^^ Layout/LineLength: Line is too long. [130/120]
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= x %>ab; text <%= render 'x', a: 1, #{"b" * 40}: 2,
+                                         #{"c" * 40}: 3 %>
+      ERB
+    end
+  end
+
+  context "when analyzing a multi-line ERB comment with nothing after the tag opening on its first line" do
+    it "does not trigger Layout/EmptyComment" do
+      expect_no_offenses(<<~ERB)
+        <div>
+          <%#
+            note
+          %>
+          <%= x %>
+        </div>
+      ERB
+    end
+  end
+
+  context "when analyzing a magic comment in an ERB comment" do
+    it "does not trigger Layout/EmptyLineAfterMagicComment, as the blank line would be output" do
+      expect_no_offenses(<<~ERB)
+        <%# encoding: utf-8 -%>
+        <%= x %>
+      ERB
+    end
+  end
+
+  context "when analyzing loops written across ERB tags over the same collection" do
+    it "triggers Style/CombinableLoops and combines them, keeping the whitespace in the end tag" do
+      expect_offense(<<~ERB)
+        <% items.each do |item| %>
+          <%= item %>
+        <% end %>
+        <% items.each do |item| %>
+           ^^^^^^^^^^^^^^^^^^^^^^^ Style/CombinableLoops: Combine this loop with the previous loop.
+          <%= item.name %>
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% items.each do |item| %>
+          <%= item %>
+          <%= item.name %>
+        <% end %>
       ERB
     end
   end

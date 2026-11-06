@@ -4,10 +4,12 @@
 # RuboCop::Herb::CommentConfig overrides CommentConfig#cop_enabled_at_lines? and
 # calls Cop::Base#cop_name, so declare them here.
 # Herb/Linting cop resolves herb-lint from ConfigFinder.project_root and checks
-# CommentConfig#cop_enabled_at_line? before reporting the startup error.
+# CommentConfig#cop_enabled_at_line? before reporting the startup error. It reports offenses in empty files
+# with Cop::Base#add_global_offense.
 # Herb/IgnoredCopDirective cop detects rubocop directives with DirectiveComment::DIRECTIVE_COMMENT_REGEXP.
 # CorrectionValidator and CopCorrectionGuard create Corrector objects.
 # ReparsedEquivalenceAdapter is prepended to Cop::ReparsedEquivalence (rubocop 1.92.0+).
+# LineLengthAdapter is prepended to Cop::Layout::LineLength.
 
 module RuboCop
   module ConfigFinder
@@ -26,6 +28,7 @@ module RuboCop
   module Cop
     class Base
       def cop_name: () -> String
+      def add_global_offense: (?String? message, ?severity: Symbol?) -> void
     end
 
     class Corrector
@@ -33,6 +36,11 @@ module RuboCop
     end
 
     module ReparsedEquivalence
+    end
+
+    module Layout
+      class LineLength < Base
+      end
     end
   end
 end

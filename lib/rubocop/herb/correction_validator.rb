@@ -45,7 +45,29 @@ module RuboCop
         ::Herb.parse(corrected).errors.size <= parse_result.ast.errors.size
       end
 
+      # Whether every line break inserted by the corrector is in the code of an ERB tag,
+      # with code on both sides of it in the tag (e.g. between the arguments of a method call),
+      # not after the tag opening, before the closing delimiter, in comments or in HTML
+      # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
+      def line_breaks_in_code?(corrector) #: bool
+        corrector.as_replacements.all? do |range, text|
+          !text.include?("\n") || in_code?(range.begin_pos, range.end_pos)
+        end
+      end
+
       private
+
+      # Whether the range is in the content of an ERB tag (except comments) with code on both sides of it
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def in_code?(from, to) #: bool
+        tag = parse_result.erb_tag_ranges.bsearch { _1.to > from }
+        return false unless tag && tag.from < from && to < tag.to
+
+        before = parse_result.slice(CharRange.new(tag.from, from))
+        after = parse_result.slice(CharRange.new(to, tag.to))
+        before.match?(/\A<%[-=]*+\s*+[^#\s]/) && after.match?(/\A\s*+(?!-?%>\z)\S/)
+      end
 
       # Apply the corrector to the original ERB source
       # The converted Ruby code keeps the character positions of the ERB source,

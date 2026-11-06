@@ -1,0 +1,30 @@
+# Generated from lib/rubocop/herb/line_length_adapter.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Prepended to RuboCop::Cop::Layout::LineLength to break lines only at the semicolons written in ERB templates.
+    # The cop prefers breaking a line after a semicolon to breaking it in an expression (e.g. between arguments),
+    # but the conversion renders semicolons at the closing delimiters of ERB tags (`<%= x %>` becomes `_ = x;  `),
+    # so the cop would move `%>` to the next line instead of shortening the line.
+    # The corrections breaking lines outside the code of ERB tags are rejected by CopCorrectionGuard.
+    module LineLengthAdapter
+      def processed_source: () -> ::RuboCop::AST::ProcessedSource?
+
+      def breakable_range_by_line_index: () -> Hash[Integer, ::Parser::Source::Range]
+
+      def breakable_range_after_semicolon: (::RuboCop::AST::Token) -> ::Parser::Source::Range?
+
+      private
+
+      # @rbs source: ::RuboCop::AST::ProcessedSource
+      def check_for_breakable_semicolons: (::RuboCop::AST::ProcessedSource source) -> void
+
+      # Whether the semicolon at the position is written in an ERB tag
+      # The semicolons rendered from HTML text (e.g. `_a;` for `ab; text`) may land on a semicolon in the text,
+      # so the position must be in an ERB tag
+      # @rbs parse_result: ParseResult
+      # @rbs pos: Integer
+      def written_semicolon?: (ParseResult parse_result, Integer pos) -> bool
+    end
+  end
+end
