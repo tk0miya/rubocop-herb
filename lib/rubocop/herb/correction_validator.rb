@@ -12,8 +12,12 @@ module RuboCop
     # It may also move the code of output tags into other tags, as output tags are rendered as `_ = code`
     # (e.g. `<% unless a %><%= x %><% else %><%= y %><% end %>` into `<% _ = a ? y : x %>`),
     # which stops rendering the result of the code.
+    # A correction may also remove the closing delimiter of an ERB tag rendered as whitespace
+    # (e.g. at the end of an ERB comment rendered as a Ruby comment), so that the tag swallows the following tags,
+    # or remove `#` of `<%#`, so that the text of an ERB comment becomes code.
     # A correction is accepted only if applying it to the original ERB source keeps
-    # the HTML parts as they are, keeps the number of output tags and does not introduce new parse errors.
+    # the HTML parts as they are, keeps the number of output tags, does not make ERB tags swallow other tags,
+    # does not increase the number of ERB tags with code and does not introduce new parse errors.
     class CorrectionValidator
       ERB_TOKEN_TYPES = %w[TOKEN_ERB_START TOKEN_ERB_CONTENT TOKEN_ERB_END].freeze #: Array[String]
 
@@ -21,6 +25,8 @@ module RuboCop
 
       # @rbs @html_segments: Array[String]?
       # @rbs @output_tag_count: Integer?
+      # @rbs @swallowed_tag_count: Integer?
+      # @rbs @code_tag_count: Integer?
 
       # @rbs parse_result: ParseResult
       def initialize(parse_result) #: void
@@ -33,6 +39,8 @@ module RuboCop
         tokens = tokens_of(corrected)
         return false unless html_segments_of(tokens) == html_segments
         return false unless output_tag_count_of(tokens) == output_tag_count
+        return false if swallowed_tag_count_of(tokens) > swallowed_tag_count
+        return false if code_tag_count_of(tokens) > code_tag_count
 
         ::Herb.parse(corrected).errors.size <= parse_result.ast.errors.size
       end
@@ -56,6 +64,27 @@ module RuboCop
 
       def output_tag_count #: Integer
         @output_tag_count ||= output_tag_count_of(tokens_of(parse_result.code))
+      end
+
+      def swallowed_tag_count #: Integer
+        @swallowed_tag_count ||= swallowed_tag_count_of(tokens_of(parse_result.code))
+      end
+
+      def code_tag_count #: Integer
+        @code_tag_count ||= code_tag_count_of(tokens_of(parse_result.code))
+      end
+
+      # The number of ERB tags except comments (`<%#`), which ERB comments turn into if `#` is removed
+      # @rbs tokens: Array[::Herb::Token]
+      def code_tag_count_of(tokens) #: Integer
+        tokens.count { _1.type == "TOKEN_ERB_START" && !_1.value.match?(/\A<%-?#/) }
+      end
+
+      # The number of tag openings (`<%`) in the contents of ERB tags, which are swallowed tags
+      # (or `<%` written in the code, e.g. in a string)
+      # @rbs tokens: Array[::Herb::Token]
+      def swallowed_tag_count_of(tokens) #: Integer
+        tokens.sum { _1.type == "TOKEN_ERB_CONTENT" ? _1.value.scan("<%").size : 0 }
       end
 
       # @rbs code: String
