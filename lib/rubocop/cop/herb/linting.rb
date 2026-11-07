@@ -14,6 +14,9 @@ module RuboCop
       # (reported once, not for every file).
       # herb-lint is configured by `.herb.yml` in the project root as usual.
       #
+      # The offenses autocorrectable by herb-lint (`herb-lint --fix`) are autocorrected by `rubocop -a`.
+      # The unsafe ones (`herb-lint --fix-unsafely`) are autocorrected only by `rubocop -A`.
+      #
       # @example
       #   # bad
       #   <img src="logo.png">
@@ -21,6 +24,8 @@ module RuboCop
       #   # good
       #   <img src="logo.png" alt="Logo">
       class Linting < Base
+        extend AutoCorrector
+
         SEVERITIES = {
           "error" => :error,
           "warning" => :warning,
@@ -60,13 +65,14 @@ module RuboCop
 
         private
 
+        attr_reader :options #: Hash[Symbol, untyped] -- options of RuboCop; Base has no reader for them
+
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
         def lint(source, path) #: void
-          herb_lint_offenses(source, path).each do |offense|
-            add_offense_at(offense_range(offense), "[#{offense.rule}] #{offense.message}",
-                           SEVERITIES.fetch(offense.severity, :convention))
-          end
+          # The fixes applied so far in this investigation
+          applied = ::RuboCop::Cop::Corrector.new(source.buffer)
+          herb_lint_offenses(source, path).each { report(_1, applied) }
         rescue ::RuboCop::Herb::HerbLintClient::StartupError => e
           # Do not consume the report on a file where it would be suppressed by a disable comment
           return unless source.comment_config.cop_enabled_at_line?(self, 1)
@@ -78,25 +84,68 @@ module RuboCop
                          :error)
         end
 
+        # Reports the offense of herb-lint with its fix
+        # @rbs offense: ::RuboCop::Herb::HerbLintClient::Offense
+        # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
+        def report(offense, applied) #: void
+          add_offense_at(offense_range(offense), "[#{offense.rule}] #{offense.message}",
+                         SEVERITIES.fetch(offense.severity, :convention)) do |corrector|
+            fix = offense.fix
+            correct_with(corrector, fix, applied) if fix
+          end
+        end
+
         # Adds an offense at the range, or to the whole file if the file is empty
         # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
         # reports a global offense for it
         # @rbs range: Parser::Source::Range
         # @rbs message: String
         # @rbs severity: Symbol
-        def add_offense_at(range, message, severity) #: void
+        # @rbs &block: ? (::RuboCop::Cop::Corrector) -> void
+        def add_offense_at(range, message, severity, &block) #: void
           if processed_source.buffer.source.empty?
             add_global_offense(message, severity:)
+          elsif block # Steep does not accept passing a nil block to add_offense
+            add_offense(range, message:, severity:, &block)
           else
             add_offense(range, message:, severity:)
           end
+        end
+
+        # Corrects the source with the fix of herb-lint.
+        # herb-lint fixes each offense on the source as it is, so the fixes of the offenses may overlap
+        # (e.g. both the opening and closing tags of an element are replaced to fix the case of its name).
+        # A fix clobbering the fixes applied before is skipped (the offense is reported as not corrected),
+        # and is applied in the next iteration of autocorrection, where herb-lint reports it again if it remains.
+        # @rbs corrector: ::RuboCop::Cop::Corrector
+        # @rbs fix: ::RuboCop::Herb::HerbLintClient::Fix
+        # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
+        def correct_with(corrector, fix, applied) #: void
+          buffer = corrector.source_buffer
+          return unless fix.end_pos <= buffer.source.length
+
+          candidate = ::RuboCop::Cop::Corrector.new(buffer)
+          candidate.replace(Parser::Source::Range.new(buffer, fix.begin_pos, fix.end_pos), fix.replacement)
+          # Corrections are applied only when autocorrecting; otherwise they only mark offenses as correctable
+          applied.merge!(candidate) if autocorrect?
+          corrector.merge!(candidate)
+        rescue ::Parser::ClobberingError
+          nil
         end
 
         # Offenses of herb-lint except the rules replaced by other Herb cops
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
         def herb_lint_offenses(source, path) #: Array[::RuboCop::Herb::HerbLintClient::Offense]
-          client.lint(path, source.parse_result.code).reject { REPLACED_RULES.include?(_1.rule) }
+          client.lint(path, source.parse_result.code, unsafe_fixes: unsafe_fixes?)
+                .reject { REPLACED_RULES.include?(_1.rule) }
+        end
+
+        # Whether to fix offenses with the unsafe fixes of herb-lint (`herb-lint --fix-unsafely`).
+        # They are applied by `rubocop -A` but not by `rubocop -a`, as the unsafe corrections of RuboCop cops are.
+        # Without autocorrection, they mark the offenses correctable (e.g. for quick fixes of `rubocop --lsp`).
+        def unsafe_fixes? #: bool
+          !options.fetch(:safe_autocorrect, false)
         end
 
         def client #: ::RuboCop::Herb::HerbLintClient

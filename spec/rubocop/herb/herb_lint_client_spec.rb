@@ -60,9 +60,83 @@ RSpec.describe RuboCop::Herb::HerbLintClient do
             message: "Missing required `alt` attribute on `<img>` tag. " \
                      "Add `alt=\"\"` for decorative images or `alt=\"description\"` for informative images.",
             severity: "warning",
-            start_line: 2, start_column: 10, end_line: 2, end_column: 13
+            start_line: 2, start_column: 10, end_line: 2, end_column: 13, fix: nil
           )
         ]
+      end
+    end
+
+    context "when the file has autocorrectable herb-lint offenses" do
+      let(:source) { "<p>日本語😀<IMG src=\"logo.png\" alt=\"\"></p>\n" }
+
+      it "returns offenses with the fixes at character-based positions" do
+        expect(subject).to eq [
+          described_class::Offense.new(
+            rule: "html-tag-name-lowercase",
+            message: "Opening tag name `<IMG>` should be lowercase. Use `<img>` instead.",
+            severity: "error",
+            start_line: 1, start_column: 8, end_line: 1, end_column: 11,
+            fix: described_class::Fix.new(begin_pos: 8, end_pos: 11, replacement: "img")
+          )
+        ]
+      end
+    end
+
+    context "when the file has herb-lint offenses autocorrectable only unsafely" do
+      subject { client.lint(File.join(project_root, path), source, unsafe_fixes:).map { [_1.rule, _1.fix] } }
+
+      let(:source) { "<p>Tom & Jerry</p>\n" }
+
+      context "without unsafe fixes" do
+        let(:unsafe_fixes) { false }
+
+        it "returns offenses without the fixes" do
+          expect(subject).to eq [["html-no-unescaped-entities", nil]]
+        end
+      end
+
+      context "with unsafe fixes" do
+        let(:unsafe_fixes) { true }
+
+        it "returns offenses with the unsafe fixes" do
+          expect(subject).to eq [
+            ["html-no-unescaped-entities",
+             described_class::Fix.new(begin_pos: 8, end_pos: 8, replacement: "amp;")]
+          ]
+        end
+      end
+    end
+
+    context "when the default external encoding is not UTF-8" do
+      let(:source) { "<p><%= \"日本語\" %></p>\n" }
+
+      around do |example|
+        default_external = Encoding.default_external
+        verbose = $VERBOSE
+        $VERBOSE = nil # Silence the warning on setting the default external encoding
+        Encoding.default_external = Encoding::US_ASCII
+        example.run
+      ensure
+        Encoding.default_external = default_external
+        $VERBOSE = verbose
+      end
+
+      it "talks with the server in UTF-8" do
+        expect(subject.map { [_1.message, _1.fix&.replacement] }).to eq [
+          ["Avoid outputting string literal `\"日本語\"`. Use `日本語` instead.", "日本語"]
+        ]
+      end
+    end
+
+    context "when a rule reported once per run is reported" do
+      subject do
+        %w[a.html.erb b.html.erb a.html.erb].map { client.lint(File.join(project_root, _1), "<p></p>\n").map(&:rule) }
+      end
+
+      let(:project_root) { File.expand_path("../../fixtures/herb_lint_no_framework", __dir__) }
+
+      it "reports it only on the first file, including when it is linted again (e.g. autocorrection)" do
+        expect(subject).to eq [["herb-config-framework-option"], [], ["herb-config-framework-option"]]
       end
     end
 

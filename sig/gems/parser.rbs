@@ -6,8 +6,12 @@
 # CorrectionValidator and CopCorrectionGuard merge and apply corrections with
 # the methods of TreeRewriter below, and CorrectionAdjuster reads the replacements
 # of corrections with `#as_replacements`.
+# Herb/Linting cop rescues ClobberingError raised by merging overlapping corrections.
 
 module Parser
+  class ClobberingError < RuntimeError
+  end
+
   module Source
     class TreeRewriter
       attr_reader source_buffer: Buffer
