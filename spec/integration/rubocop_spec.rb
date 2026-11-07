@@ -268,6 +268,19 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing a multi-line ERB comment with nothing after the tag opening on its first line" do
+    it "does not trigger Layout/EmptyComment" do
+      expect_no_offenses(<<~ERB)
+        <div>
+          <%#
+            note
+          %>
+          <%= x %>
+        </div>
+      ERB
+    end
+  end
+
   context "when analyzing a magic comment in an ERB comment" do
     it "does not trigger Layout/EmptyLineAfterMagicComment, as the blank line would be output" do
       expect_no_offenses(<<~ERB)
