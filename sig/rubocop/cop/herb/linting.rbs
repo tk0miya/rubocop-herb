@@ -37,6 +37,14 @@ module RuboCop
         # @rbs path: String -- absolute path of the file
         def lint: (::RuboCop::Herb::ProcessedSource source, String path) -> void
 
+        # Adds an offense at the range, or to the whole file if the file is empty
+        # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
+        # reports a global offense for it
+        # @rbs range: Parser::Source::Range
+        # @rbs message: String
+        # @rbs severity: Symbol
+        def add_offense_at: (Parser::Source::Range range, String message, Symbol severity) -> void
+
         # Offenses of herb-lint except the rules replaced by other Herb cops
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file

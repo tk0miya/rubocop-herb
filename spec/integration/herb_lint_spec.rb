@@ -176,5 +176,19 @@ RSpec.describe "Lint with Herb/Linting cop", type: :feature do
         expect(results).to eq [[], [startup_error(node_command)]]
       end
     end
+
+    context "when the template is empty" do
+      let(:node_command) { "no-such-node-empty-file" }
+
+      # Formatters fail to read the source line of an offense at a range in an empty file
+      it "reports the error to the whole file" do
+        runner.run(path, "", {})
+        offenses = runner.offenses.map { [_1.cop_name, _1.location, _1.message] }
+        expect(offenses).to eq [
+          ["Herb/Linting", RuboCop::Cop::Offense::NO_LOCATION, startup_error(node_command).last],
+          ["Lint/EmptyFile", RuboCop::Cop::Offense::NO_LOCATION, "Lint/EmptyFile: Empty file detected."]
+        ]
+      end
+    end
   end
 end

@@ -64,18 +64,32 @@ module RuboCop
         # @rbs path: String -- absolute path of the file
         def lint(source, path) #: void
           herb_lint_offenses(source, path).each do |offense|
-            add_offense(offense_range(offense), message: "[#{offense.rule}] #{offense.message}",
-                                                severity: SEVERITIES.fetch(offense.severity, :convention))
+            add_offense_at(offense_range(offense), "[#{offense.rule}] #{offense.message}",
+                           SEVERITIES.fetch(offense.severity, :convention))
           end
         rescue ::RuboCop::Herb::HerbLintClient::StartupError => e
           # Do not consume the report on a file where it would be suppressed by a disable comment
           return unless source.comment_config.cop_enabled_at_line?(self, 1)
           return unless client.report_startup_error_on?(path)
 
-          add_offense(source.buffer.line_range(1),
-                      message: "herb-lint is not available: #{e.message}. Set up herb-lint " \
-                               "(`npm install --save-dev @herb-tools/linter`) or disable Herb/Linting cop.",
-                      severity: :error)
+          add_offense_at(source.buffer.line_range(1),
+                         "herb-lint is not available: #{e.message}. Set up herb-lint " \
+                         "(`npm install --save-dev @herb-tools/linter`) or disable Herb/Linting cop.",
+                         :error)
+        end
+
+        # Adds an offense at the range, or to the whole file if the file is empty
+        # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
+        # reports a global offense for it
+        # @rbs range: Parser::Source::Range
+        # @rbs message: String
+        # @rbs severity: Symbol
+        def add_offense_at(range, message, severity) #: void
+          if processed_source.buffer.source.empty?
+            add_global_offense(message, severity:)
+          else
+            add_offense(range, message:, severity:)
+          end
         end
 
         # Offenses of herb-lint except the rules replaced by other Herb cops
