@@ -46,7 +46,7 @@ module RuboCop
       # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
       def trim(corrector) #: ::RuboCop::Cop::Corrector?
         original = replacements_of(corrector)
-        trimmed = original.map { trim_replacement(_1) }
+        trimmed = drop_space_after_opening(original.map { trim_replacement(_1) })
         return if trimmed == original
 
         build_corrector(corrector.source_buffer, trimmed)
@@ -129,6 +129,40 @@ module RuboCop
         else
           trim_to(replacement, to: from_content.not_nil!.range.to)
         end
+      end
+
+      # Drop the whitespace at the start of the text of the replacements starting right after the tag opening
+      # of an ERB tag and the whitespace after it (or after the code removed by the previous replacement),
+      # which would double the whitespace there
+      # (e.g. Style/CombinableLoops removing `end` and inserting ` end` turns `<% end %>` into `<%  end %>`).
+      # A replacement of whitespace only (e.g. re-indenting the code) is kept as is
+      # @rbs replacements: Array[Replacement]
+      def drop_space_after_opening(replacements) #: Array[Replacement]
+        [nil, *replacements].each_cons(2).map do |previous, replacement|
+          replacement = replacement.not_nil!
+          next replacement unless replacement.text.match?(/\A[ \t]+\S/)
+          next replacement unless after_opening?(start_of(replacement, previous))
+
+          replacement.with(text: replacement.text.lstrip)
+        end
+      end
+
+      # The start of the replacement, or the start of the previous replacement if it removes the code right before it
+      # @rbs replacement: Replacement
+      # @rbs previous: Replacement?
+      def start_of(replacement, previous) #: Integer
+        return replacement.from unless previous && previous.to == replacement.from && previous.text.empty?
+
+        previous.from
+      end
+
+      # Whether the position is right after the tag opening of an ERB tag and the whitespace after it
+      # @rbs pos: Integer
+      def after_opening?(pos) #: bool
+        tag = parse_result.erb_tag_ranges.bsearch { _1.to > pos }
+        return false unless tag && tag.from < pos
+
+        parse_result.slice(CharRange.new(tag.from, pos)).match?(/\A<%[-=]*[ \t]+\z/)
       end
 
       # Turn the replacement of a whole ERB comment rendered as a Ruby comment, along with the whitespace around it,
