@@ -1,0 +1,30 @@
+# Generated from lib/rubocop/herb/herb_format_client.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Client of the herb-format server (herb_format_server.cjs).
+    class HerbFormatClient < NodeServerClient
+      # The script of the herb-format server
+      SERVER_SCRIPT: String
+
+      # @rbs override
+      def self.server_scripts: ...
+
+      # Returns the fixes turning the source into the one formatted by herb-format,
+      # one for each changed part of the lines (empty if the source is formatted,
+      # or herb-format does not format the file).
+      # Raises StartupError if the server fails to start.
+      # @rbs path: String -- absolute path of the file
+      # @rbs source: String -- content of the file
+      def format: (String path, String source) -> Array[NodeServerClient::Fix]
+
+      private
+
+      # @rbs override
+      def tool_name: ...
+
+      # @rbs override
+      def server_script: ...
+    end
+  end
+end

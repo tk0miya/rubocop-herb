@@ -15,7 +15,10 @@ require_relative "herb/erb_node"
 require_relative "herb/erb_parser"
 require_relative "herb/escaped_erb_visitor"
 require_relative "herb/extractor"
+require_relative "herb/node_server_client"
+require_relative "herb/herb_format_client"
 require_relative "herb/herb_lint_client"
+require_relative "herb/herb_tool_cop"
 require_relative "herb/immovable_expression_collector"
 require_relative "herb/html_only_line_collector"
 require_relative "herb/node_range"
@@ -31,8 +34,9 @@ require_relative "herb/trailing_whitespace_collector"
 require_relative "herb/version"
 
 require_relative "cop/herb/empty_erb_tag"
-require_relative "cop/herb/linting"
+require_relative "cop/herb/formatting"
 require_relative "cop/herb/ignored_cop_directive"
+require_relative "cop/herb/linting"
 
 module RuboCop
   module Herb

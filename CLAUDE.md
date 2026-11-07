@@ -15,7 +15,7 @@ When using Claude Code on the web (claude.ai/code), the environment is automatic
 ```bash
 # Setup
 bin/setup                    # Install dependencies
-npm ci                       # Install Node.js packages (herb-lint, used by the tests of Herb/Linting cop)
+npm ci                       # Install Node.js packages (herb-lint and herb-format, used by the tests of Herb/Linting and Herb/Formatting cops)
 
 # Development
 bin/rake                     # Run all checks (tests + linting)
@@ -157,11 +157,17 @@ The libraries count positions and newlines differently, so convert positions exp
 - **ReparsedEquivalenceAdapter** (`lib/rubocop/herb/reparsed_equivalence_adapter.rb`): Module prepended to `RuboCop::Cop::ReparsedEquivalence` (rubocop 1.92.0+) that compares the reparsed AST of a correction with the AST before the transformation by `RuboCopASTTransformer`. Without it, the cops verifying their corrections by reparsing (e.g. `Style/RedundantParentheses`, `Style/MethodCallWithoutArgsParentheses` and `Style/TernaryParentheses`) drop their offenses or corrections in templates with HTML, as the reparsed AST never equals the transformed one
 - **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, and the default configuration of the Herb cops
 
-#### herb-lint Integration
+#### Herb Tools Integration (herb-lint and herb-format)
 
 - **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses (except the rules replaced by other Herb cops, e.g. `erb-no-empty-tags` by `Herb/EmptyErbTag`). Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Autocorrects the offenses with the fixes of herb-lint (the unsafe ones of `herb-lint --fix-unsafely` only with `rubocop -A`); a fix overlapping the ones applied before is left to the next iteration of autocorrection. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
-- **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it. Receives offenses with their fixes (replacements of the source in character offsets)
-- **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol). Fixes each autocorrectable offense separately with `Linter#autofix` and returns the smallest replacement turning the source into the fixed one
+- **Herb/Formatting cop** (`lib/rubocop/cop/herb/formatting.rb`): Runs herb-format (`@herb-tools/formatter`) on HTML+ERB files, reports each part changed by the formatting as an offense, and formats the files by autocorrection (unsafe, as herb-format is in experimental preview and changes the whitespace in HTML). Enabled by default, but does nothing unless the formatter is enabled in `.herb.yml` (`formatter.enabled`, searched from the project root upwards as Herb tools do); the cop checks it in Ruby so that it spawns no Node.js process (and requires no Node.js) when the formatter is disabled. If herb-format is not available while enabled, it reports an error once
+- **HerbToolCop** (`lib/rubocop/herb/herb_tool_cop.rb`): Mixin of the Herb/Linting and Herb/Formatting cops: the checksum of the result cache (Node.js, the server scripts and the configuration files of the tool), the report of the startup error, and the correction with the fixes of the tool
+- **NodeServerClient** (`lib/rubocop/herb/node_server_client.rb`): Base class of the clients of the Node.js servers. Spawns the server once per process and class (lazily, so that forked workers of `rubocop --parallel` spawn their own one), remembers its startup error, and respawns it when the checksum of the configuration changes
+- **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Client of the herb-lint server. Receives offenses with their fixes (replacements of the source in character offsets)
+- **HerbFormatClient** (`lib/rubocop/herb/herb_format_client.rb`): Client of the herb-format server. Receives the fixes turning the source into the formatted one
+- **Node.js servers** (`lib/rubocop/herb/node_server.cjs`): Shared parts of the servers: the JSON Lines protocol over stdin/stdout, the resolution of the packages from the project, and the smallest replacement between two strings in code points
+- **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Loads herb-lint from the project and lints files. Fixes each autocorrectable offense separately with `Linter#autofix` and returns the smallest replacement turning the source into the fixed one
+- **herb-format server** (`lib/rubocop/herb/herb_format_server.cjs`): Loads herb-format (with the rewriters configured in `.herb.yml`, loaded from the directory of `.herb.yml` as the herb-format CLI does) from the project and formats files. Passes absolute paths to `isFormatterEnabledForPath`, as the patterns of `.herb.yml` are relative to its directory, which may be above the project root. Splits the differences into fixes by the lines matched ignoring the whitespace around them (so that a reindented line is a fix by itself), joining the fixes touching each other. Returns no fixes for files herb-format skips or whose formatted source has more parse errors
 
 #### Other Cops
 
