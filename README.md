@@ -78,13 +78,17 @@ herb-lint is configured with `.herb.yml` in the project root as usual
 Offenses are reported as `[rule-name] message`, and the severities of herb-lint are mapped to
 RuboCop's ones as follows: `error` → `error`, `warning` → `warning`, `info` → `convention`, `hint` → `refactor`.
 
+The offenses autocorrectable by herb-lint are autocorrected by RuboCop with the fixes of herb-lint:
+`rubocop -a` applies the ones `herb-lint --fix` applies, and `rubocop -A` also applies the unsafe ones
+`herb-lint --fix-unsafely` applies (e.g. `html-no-unescaped-entities`).
+To disable the autocorrection, set `AutoCorrect: false` for the cop.
+
 A Node.js process is spawned once per RuboCop process and reused for all files,
 so the startup cost of Node.js (a few hundred milliseconds) is paid only once.
 With `rubocop --parallel`, each worker process spawns its own one.
 
 Limitations:
 
-- Autocorrection of herb-lint is not supported. Run `herb-lint --fix` instead.
 - The `erb-no-empty-tags` rule is not reported, as the `Herb/EmptyErbTag` cop reports and autocorrects it.
 - herb-lint does not run on files where the Ruby code has syntax errors.
 - Rules that analyze other templates (e.g. partials and their callers) run without the project-wide analysis,

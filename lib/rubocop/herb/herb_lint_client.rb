@@ -18,8 +18,17 @@ module RuboCop
       # Raised when herb-lint is not available (e.g. Node.js or @herb-tools/linter is not installed)
       class StartupError < Error; end
 
+      # The autofix of herb-lint for an offense, as a replacement of the source.
+      # Positions are 0-based character offsets of the source given to `#lint`.
+      Fix = Data.define(
+        :begin_pos,   #: Integer
+        :end_pos,     #: Integer
+        :replacement  #: String
+      )
+
       # An offense reported by herb-lint.
       # Lines are 1-based and columns are 0-based character offsets.
+      # The fix is nil if the offense is not autocorrectable.
       Offense = Data.define(
         :rule,          #: String
         :message,       #: String
@@ -27,7 +36,8 @@ module RuboCop
         :start_line,    #: Integer
         :start_column,  #: Integer
         :end_line,      #: Integer
-        :end_column     #: Integer
+        :end_column,    #: Integer
+        :fix            #: Fix?
       )
 
       # A running herb-lint server process and the pipes connected to it
@@ -111,11 +121,12 @@ module RuboCop
       # The failure is remembered, so the server is not respawned for the following calls.
       # @rbs path: String -- absolute path of the file
       # @rbs source: String -- content of the file
-      def lint(path, source) #: Array[Offense]
+      # @rbs unsafe_fixes: bool -- whether to include the unsafe fixes (`herb-lint --fix-unsafely`) in the offenses
+      def lint(path, source, unsafe_fixes: false) #: Array[Offense]
         error = startup_error
         raise error if error
 
-        response = request({ path:, source: })
+        response = request({ path:, source:, unsafeFixes: unsafe_fixes })
         response.fetch("offenses").map { build_offense(_1) }
       end
 
@@ -164,6 +175,9 @@ module RuboCop
 
       def spawn_server #: Server
         stdin, stdout, wait_thread = Open3.popen2(node_command, SERVER_SCRIPT, project_root)
+        # The server talks in UTF-8 regardless of the locale (the default external encoding may be US-ASCII)
+        stdin.set_encoding(Encoding::UTF_8)
+        stdout.set_encoding(Encoding::UTF_8)
         server = Server.new(stdin:, stdout:, wait_thread:)
         response = read_response(stdout)
         return server unless response["error"]
@@ -194,7 +208,19 @@ module RuboCop
           start_line: location.dig("start", "line"),
           start_column: location.dig("start", "column"),
           end_line: location.dig("end", "line"),
-          end_column: location.dig("end", "column")
+          end_column: location.dig("end", "column"),
+          fix: build_fix(offense["fix"])
+        )
+      end
+
+      # @rbs fix: Hash[String, untyped]?
+      def build_fix(fix) #: Fix?
+        return unless fix
+
+        Fix.new(
+          begin_pos: fix.fetch("start"),
+          end_pos: fix.fetch("end"),
+          replacement: fix.fetch("replacement")
         )
       end
     end

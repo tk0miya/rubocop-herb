@@ -11,6 +11,9 @@ module RuboCop
       # (reported once, not for every file).
       # herb-lint is configured by `.herb.yml` in the project root as usual.
       #
+      # The offenses autocorrectable by herb-lint (`herb-lint --fix`) are autocorrected by `rubocop -a`.
+      # The unsafe ones (`herb-lint --fix-unsafely`) are autocorrected only by `rubocop -A`.
+      #
       # @example
       #   # bad
       #   <img src="logo.png">
@@ -18,6 +21,8 @@ module RuboCop
       #   # good
       #   <img src="logo.png" alt="Logo">
       class Linting < Base
+        extend AutoCorrector
+
         SEVERITIES: Hash[String, Symbol]
 
         # Rules of herb-lint not reported, as other Herb cops report the same offenses with autocorrection
@@ -33,9 +38,16 @@ module RuboCop
 
         private
 
+        attr_reader options: Hash[Symbol, untyped]
+
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
         def lint: (::RuboCop::Herb::ProcessedSource source, String path) -> void
+
+        # Reports the offense of herb-lint with its fix
+        # @rbs offense: ::RuboCop::Herb::HerbLintClient::Offense
+        # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
+        def report: (::RuboCop::Herb::HerbLintClient::Offense offense, ::RuboCop::Cop::Corrector applied) -> void
 
         # Adds an offense at the range, or to the whole file if the file is empty
         # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
@@ -43,12 +55,28 @@ module RuboCop
         # @rbs range: Parser::Source::Range
         # @rbs message: String
         # @rbs severity: Symbol
-        def add_offense_at: (Parser::Source::Range range, String message, Symbol severity) -> void
+        # @rbs &block: ? (::RuboCop::Cop::Corrector) -> void
+        def add_offense_at: (Parser::Source::Range range, String message, Symbol severity) ?{ (::RuboCop::Cop::Corrector) -> void } -> void
+
+        # Corrects the source with the fix of herb-lint.
+        # herb-lint fixes each offense on the source as it is, so the fixes of the offenses may overlap
+        # (e.g. both the opening and closing tags of an element are replaced to fix the case of its name).
+        # A fix clobbering the fixes applied before is skipped (the offense is reported as not corrected),
+        # and is applied in the next iteration of autocorrection, where herb-lint reports it again if it remains.
+        # @rbs corrector: ::RuboCop::Cop::Corrector
+        # @rbs fix: ::RuboCop::Herb::HerbLintClient::Fix
+        # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
+        def correct_with: (::RuboCop::Cop::Corrector corrector, ::RuboCop::Herb::HerbLintClient::Fix fix, ::RuboCop::Cop::Corrector applied) -> void
 
         # Offenses of herb-lint except the rules replaced by other Herb cops
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
         def herb_lint_offenses: (::RuboCop::Herb::ProcessedSource source, String path) -> Array[::RuboCop::Herb::HerbLintClient::Offense]
+
+        # Whether to fix offenses with the unsafe fixes of herb-lint (`herb-lint --fix-unsafely`).
+        # They are applied by `rubocop -A` but not by `rubocop -a`, as the unsafe corrections of RuboCop cops are.
+        # Without autocorrection, they mark the offenses correctable (e.g. for quick fixes of `rubocop --lsp`).
+        def unsafe_fixes?: () -> bool
 
         def client: () -> ::RuboCop::Herb::HerbLintClient
 

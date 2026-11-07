@@ -159,9 +159,9 @@ The libraries count positions and newlines differently, so convert positions exp
 
 #### herb-lint Integration
 
-- **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses (except the rules replaced by other Herb cops, e.g. `erb-no-empty-tags` by `Herb/EmptyErbTag`). Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
-- **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it
-- **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol)
+- **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses (except the rules replaced by other Herb cops, e.g. `erb-no-empty-tags` by `Herb/EmptyErbTag`). Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Autocorrects the offenses with the fixes of herb-lint (the unsafe ones of `herb-lint --fix-unsafely` only with `rubocop -A`); a fix overlapping the ones applied before is left to the next iteration of autocorrection. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
+- **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Spawns the herb-lint server once per process (lazily, so that forked workers of `rubocop --parallel` spawn their own one) and sends files to it. Receives offenses with their fixes (replacements of the source in character offsets)
+- **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Node.js script that loads herb-lint from the project and lints files received over stdin (JSON Lines protocol). Fixes each autocorrectable offense separately with `Linter#autofix` and returns the smallest replacement turning the source into the fixed one
 
 #### Other Cops
 

@@ -20,8 +20,26 @@ module RuboCop
       class StartupError < Error
       end
 
+      # The autofix of herb-lint for an offense, as a replacement of the source.
+      # Positions are 0-based character offsets of the source given to `#lint`.
+      class Fix < Data
+        attr_reader begin_pos(): Integer
+
+        attr_reader end_pos(): Integer
+
+        attr_reader replacement(): String
+
+        def self.new: (Integer begin_pos, Integer end_pos, String replacement) -> instance
+                    | (begin_pos: Integer, end_pos: Integer, replacement: String) -> instance
+
+        def self.members: () -> [ :begin_pos, :end_pos, :replacement ]
+
+        def members: () -> [ :begin_pos, :end_pos, :replacement ]
+      end
+
       # An offense reported by herb-lint.
       # Lines are 1-based and columns are 0-based character offsets.
+      # The fix is nil if the offense is not autocorrectable.
       class Offense < Data
         attr_reader rule(): String
 
@@ -37,12 +55,14 @@ module RuboCop
 
         attr_reader end_column(): Integer
 
-        def self.new: (String rule, String message, String severity, Integer start_line, Integer start_column, Integer end_line, Integer end_column) -> instance
-                    | (rule: String, message: String, severity: String, start_line: Integer, start_column: Integer, end_line: Integer, end_column: Integer) -> instance
+        attr_reader fix(): Fix?
 
-        def self.members: () -> [ :rule, :message, :severity, :start_line, :start_column, :end_line, :end_column ]
+        def self.new: (String rule, String message, String severity, Integer start_line, Integer start_column, Integer end_line, Integer end_column, Fix? fix) -> instance
+                    | (rule: String, message: String, severity: String, start_line: Integer, start_column: Integer, end_line: Integer, end_column: Integer, fix: Fix?) -> instance
 
-        def members: () -> [ :rule, :message, :severity, :start_line, :start_column, :end_line, :end_column ]
+        def self.members: () -> [ :rule, :message, :severity, :start_line, :start_column, :end_line, :end_column, :fix ]
+
+        def members: () -> [ :rule, :message, :severity, :start_line, :start_column, :end_line, :end_column, :fix ]
       end
 
       # A running herb-lint server process and the pipes connected to it
@@ -98,7 +118,8 @@ module RuboCop
       # The failure is remembered, so the server is not respawned for the following calls.
       # @rbs path: String -- absolute path of the file
       # @rbs source: String -- content of the file
-      def lint: (String path, String source) -> Array[Offense]
+      # @rbs unsafe_fixes: bool -- whether to include the unsafe fixes (`herb-lint --fix-unsafely`) in the offenses
+      def lint: (String path, String source, ?unsafe_fixes: bool) -> Array[Offense]
 
       def close: () -> void
 
@@ -122,6 +143,9 @@ module RuboCop
 
       # @rbs offense: Hash[String, untyped]
       def build_offense: (Hash[String, untyped] offense) -> Offense
+
+      # @rbs fix: Hash[String, untyped]?
+      def build_fix: (Hash[String, untyped]? fix) -> Fix?
     end
   end
 end

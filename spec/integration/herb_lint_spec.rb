@@ -138,6 +138,118 @@ RSpec.describe "Lint with Herb/Linting cop", type: :feature do
     end
   end
 
+  context "when the template has autocorrectable herb-lint offenses" do
+    let(:source) do
+      <<~ERB
+        <DIV class='user'>
+          <p>日本語😀<IMG src="logo.png" alt="Logo"></p>
+        </DIV>
+      ERB
+    end
+
+    context "when not autocorrecting" do
+      it "reports them as correctable" do
+        runner.run(path, source, {})
+        offenses = runner.offenses.select { _1.cop_name == "Herb/Linting" }
+        expect(offenses.map { [_1.line, _1.column, _1.correctable?] })
+          .to eq [[1, 1, true], [1, 11, true], [2, 10, true], [3, 2, true]]
+      end
+    end
+
+    # The fixes of the opening and closing tags of DIV and the attribute in it overlap,
+    # so they are applied over the iterations of autocorrection
+    context "when autocorrecting with rubocop -a" do
+      it "autocorrects them" do
+        runner.run(path, source, { autocorrect: true, safe_autocorrect: true })
+        expect(runner.formatted_source).to eq <<~ERB
+          <div class="user">
+            <p>日本語😀<img src="logo.png" alt="Logo"></p>
+          </div>
+        ERB
+      end
+    end
+  end
+
+  context "when the template has herb-lint offenses autocorrected along with the Ruby code" do
+    let(:source) do
+      <<~ERB
+        <p><%= link_to("Home", root_path)  %></p>
+      ERB
+    end
+
+    it "autocorrects both of them" do
+      runner.run(path, source, { autocorrect: true, safe_autocorrect: true })
+      expect(runner.formatted_source).to eq <<~ERB
+        <p><%= link_to('Home', root_path) %></p>
+      ERB
+    end
+  end
+
+  # Style/CombinableLoops removes `end` and inserts ` end` after it, which turns `<% end %>` into `<%  end %>`
+  context "when a correction of another cop leaves extra whitespace in an ERB tag" do
+    let(:source) do
+      <<~ERB
+        <% items.each do |item| %>
+          <%= item %>
+        <% end %>
+        <% items.each do |item| %>
+          <%= item.name %>
+        <% end %>
+      ERB
+    end
+
+    context "when autocorrecting with rubocop -A" do
+      it "removes the whitespace with the fix of herb-lint (erb-no-extra-whitespace-inside-tags)" do
+        runner.run(path, source, { autocorrect: true })
+        expect(runner.formatted_source).to eq <<~ERB
+          <% items.each do |item| %>
+            <%= item %>
+            <%= item.name %>
+          <% end %>
+        ERB
+      end
+    end
+  end
+
+  context "when the template has herb-lint offenses autocorrectable only unsafely" do
+    let(:source) { "<p>Tom & Jerry</p>\n" }
+
+    context "when not autocorrecting" do
+      it "reports them as correctable" do
+        runner.run(path, source, {})
+        expect(runner.offenses.map { [_1.cop_name, _1.correctable?] }).to eq [["Herb/Linting", true]]
+      end
+    end
+
+    context "when autocorrecting with rubocop -a" do
+      it "does not autocorrect them and reports them as not correctable" do
+        runner.run(path, source, { autocorrect: true, safe_autocorrect: true })
+        expect(runner.formatted_source).to eq source
+        expect(runner.offenses.map { [_1.cop_name, _1.correctable?] }).to eq [["Herb/Linting", false]]
+      end
+    end
+
+    context "when autocorrecting with rubocop -A" do
+      it "autocorrects them" do
+        runner.run(path, source, { autocorrect: true })
+        expect(runner.formatted_source).to eq "<p>Tom &amp; Jerry</p>\n"
+      end
+    end
+  end
+
+  context "when the autocorrectable herb-lint offense is disabled with rubocop:disable comment" do
+    let(:source) do
+      <<~ERB
+        <IMG src="logo.png" alt="Logo"> <%# rubocop:disable Herb/Linting %>
+      ERB
+    end
+
+    it "does not autocorrect it" do
+      runner.run(path, source, { autocorrect: true, safe_autocorrect: true })
+      expect(runner.formatted_source).to eq source
+    end
+  end
+
   context "when herb-lint is not available" do
     let(:rubocop_config) do
       config = RuboCop::Herb::Configuration.to_rubocop_config
