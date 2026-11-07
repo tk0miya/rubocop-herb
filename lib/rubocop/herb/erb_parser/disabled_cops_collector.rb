@@ -171,6 +171,16 @@ module RuboCop
         super
       end
 
+      # A multiline ERB comment with nothing after `<%#` on its first line (e.g. `<%#` and `  note` and `%>`)
+      # is rendered as `#` on the first line and the comment of the following lines at another column
+      # (e.g. `  #` and `# note`), so Layout/EmptyComment does not see them as one comment and reports
+      # the first line. Empty ERB comments are reported by Herb/EmptyErbTag instead.
+      # @rbs node: ::Herb::AST::ERBCommentNode
+      def visit_erb_comment_node(node) #: void
+        disable_line("Layout/EmptyComment", node.location.start.line) if node.content&.value&.match?(/\A[ \t]*\n/)
+        super
+      end
+
       # The tag opening of an output tag is rendered as `_ =` (e.g. `<%=foo%>` becomes `_ =foo;`),
       # so Layout/SpaceAroundOperators reports the missing space after `=` if the code follows the tag opening
       # without whitespace. The missing whitespace is reported by herb-lint (erb-require-whitespace-inside-tags).

@@ -691,5 +691,13 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                               })
       end
     end
+
+    context "with multiline ERB comments with nothing after the tag opening on their first lines" do
+      let(:code) { "<%#\n  note\n%>\n<%# \t\n  note %>\n<%# note\n  more %>\n<%# note %>\n" }
+
+      it "disables Layout/EmptyComment at the first lines of them" do
+        expect(subject).to eq({ "Layout/EmptyComment" => [1..1, 4..4] })
+      end
+    end
   end
 end
