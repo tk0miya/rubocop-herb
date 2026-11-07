@@ -12,9 +12,13 @@ module RuboCop
     # A correction may also remove the closing delimiter of an ERB tag rendered as whitespace
     # (e.g. at the end of an ERB comment rendered as a Ruby comment), so that the tag swallows the following tags,
     # or remove `#` of `<%#`, so that the text of an ERB comment becomes code.
+    # The conversion renders a semicolon in the whitespace before the closing delimiter of an ERB tag
+    # (`<%= x  %>` becomes `_ = x;   `), so a correction breaking a line after it (e.g. Layout/LineLength)
+    # moves the closing delimiter to the next line instead of shortening the line.
     # A correction is accepted only if applying it to the original ERB source keeps
     # the HTML parts as they are, keeps the number of output tags, does not make ERB tags swallow other tags,
-    # does not increase the number of ERB tags with code and does not introduce new parse errors.
+    # does not increase the number of ERB tags with code, does not introduce new parse errors
+    # and does not move closing delimiters to the next line.
     class CorrectionValidator
       ERB_TOKEN_TYPES: Array[String]
 
@@ -35,6 +39,23 @@ module RuboCop
       def valid?: (::RuboCop::Cop::Corrector corrector) -> bool
 
       private
+
+      # Whether the tokens of the corrected source keep the HTML parts and the output tags,
+      # do not have ERB tags swallowing other tags and do not have more ERB tags with code
+      # @rbs tokens: Array[::Herb::Token]
+      def keeps_structure?: (Array[::Herb::Token] tokens) -> bool
+
+      # Whether the corrector inserts a line break between the code and the closing delimiter of an ERB tag
+      # on the same line, which moves the delimiter to the next line
+      # @rbs corrector: ::RuboCop::Cop::Corrector
+      def breaks_before_closing_delimiter?: (::RuboCop::Cop::Corrector corrector) -> bool
+
+      # Whether the range is in the whitespace between the code and the closing delimiter of an ERB tag
+      # (including the end of the code), without line breaks
+      # An unclosed ERB tag has no closing delimiter to move
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def before_closing_delimiter?: (Integer from, Integer to) -> bool
 
       # Apply the corrector to the original ERB source
       # The converted Ruby code keeps the character positions of the ERB source,

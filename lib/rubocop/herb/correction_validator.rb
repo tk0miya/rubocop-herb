@@ -15,9 +15,13 @@ module RuboCop
     # A correction may also remove the closing delimiter of an ERB tag rendered as whitespace
     # (e.g. at the end of an ERB comment rendered as a Ruby comment), so that the tag swallows the following tags,
     # or remove `#` of `<%#`, so that the text of an ERB comment becomes code.
+    # The conversion renders a semicolon in the whitespace before the closing delimiter of an ERB tag
+    # (`<%= x  %>` becomes `_ = x;   `), so a correction breaking a line after it (e.g. Layout/LineLength)
+    # moves the closing delimiter to the next line instead of shortening the line.
     # A correction is accepted only if applying it to the original ERB source keeps
     # the HTML parts as they are, keeps the number of output tags, does not make ERB tags swallow other tags,
-    # does not increase the number of ERB tags with code and does not introduce new parse errors.
+    # does not increase the number of ERB tags with code, does not introduce new parse errors
+    # and does not move closing delimiters to the next line.
     class CorrectionValidator
       ERB_TOKEN_TYPES = %w[TOKEN_ERB_START TOKEN_ERB_CONTENT TOKEN_ERB_END].freeze #: Array[String]
 
@@ -35,17 +39,50 @@ module RuboCop
 
       # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
       def valid?(corrector) #: bool
+        return false if breaks_before_closing_delimiter?(corrector)
+
         corrected = apply(corrector)
-        tokens = tokens_of(corrected)
-        return false unless html_segments_of(tokens) == html_segments
-        return false unless output_tag_count_of(tokens) == output_tag_count
-        return false if swallowed_tag_count_of(tokens) > swallowed_tag_count
-        return false if code_tag_count_of(tokens) > code_tag_count
+        return false unless keeps_structure?(tokens_of(corrected))
 
         ::Herb.parse(corrected).errors.size <= parse_result.ast.errors.size
       end
 
       private
+
+      # Whether the tokens of the corrected source keep the HTML parts and the output tags,
+      # do not have ERB tags swallowing other tags and do not have more ERB tags with code
+      # @rbs tokens: Array[::Herb::Token]
+      def keeps_structure?(tokens) #: bool
+        html_segments_of(tokens) == html_segments &&
+          output_tag_count_of(tokens) == output_tag_count &&
+          swallowed_tag_count_of(tokens) <= swallowed_tag_count &&
+          code_tag_count_of(tokens) <= code_tag_count
+      end
+
+      # Whether the corrector inserts a line break between the code and the closing delimiter of an ERB tag
+      # on the same line, which moves the delimiter to the next line
+      # @rbs corrector: ::RuboCop::Cop::Corrector
+      def breaks_before_closing_delimiter?(corrector) #: bool
+        corrector.as_replacements.any? do |range, text|
+          text.include?("\n") && before_closing_delimiter?(range.begin_pos, range.end_pos)
+        end
+      end
+
+      # Whether the range is in the whitespace between the code and the closing delimiter of an ERB tag
+      # (including the end of the code), without line breaks
+      # An unclosed ERB tag has no closing delimiter to move
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def before_closing_delimiter?(from, to) #: bool
+        tag = parse_result.erb_tag_ranges.bsearch { _1.to > from }
+        return false unless tag && tag.from <= from
+
+        match = parse_result.slice(tag).match(/([ \t]*)(-?%>)\z/)
+        return false unless match
+
+        delimiter_from = tag.to - match[2].to_s.length
+        delimiter_from - match[1].to_s.length <= from && to <= delimiter_from
+      end
 
       # Apply the corrector to the original ERB source
       # The converted Ruby code keeps the character positions of the ERB source,

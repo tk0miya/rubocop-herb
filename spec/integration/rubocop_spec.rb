@@ -229,7 +229,8 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   end
 
   context "when analyzing long lines with ERB tags" do
-    it "triggers Layout/LineLength" do
+    # The cop breaks a line after the semicolon rendered at the closing delimiter, which moves `%>` to the next line
+    it "triggers Layout/LineLength without correction" do
       expect_offense(<<~ERB)
         <div class="#{"a" * 120}"><%= x %></div>
         #{" " * 120}^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Layout/LineLength: Line is too long. [148/120]
@@ -237,11 +238,32 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
         #{" " * 120}^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Layout/LineLength: Line is too long. [152/120]
       ERB
 
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a long line with spaces before the closing delimiter" do
+    # The cop breaks a line in the spaces after the semicolon rendered at the first one, moving `%>` to the next line
+    it "triggers Layout/LineLength without correction" do
+      expect_offense(<<~ERB)
+        <%= render 'x', a: 1, #{"b" * 40}: 2, #{"c" * 40}: 3  %> <span>hello</span>
+        #{" " * 120}^^^^^^^^^^^^^ Layout/LineLength: Line is too long. [133/120]
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a long line with a semicolon written in an ERB tag" do
+    it "triggers Layout/LineLength and breaks the line after the semicolon" do
+      expect_offense(<<~ERB)
+        <% a = 1; #{"b" * 110} = a %><%= #{"b" * 110} %>
+        #{" " * 120}#{"^" * 124} Layout/LineLength: Line is too long. [244/120]
+      ERB
+
       expect_correction(<<~ERB)
-        <div class="#{"a" * 120}"><%= x %></div>
-        <%= render partial_name, item1: 1, item2: 2, item3: 3, item4: 4, item5: 5, item6: 6, item7: 7, item8: 8, item9: 9,
-                                 item10: 10, item11: 11, item12: 12
-        %>
+        <% a = 1;
+         #{"b" * 110} = a %><%= #{"b" * 110} %>
       ERB
     end
   end

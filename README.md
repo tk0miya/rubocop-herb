@@ -43,6 +43,8 @@ is not applied. Such offenses are reported as not autocorrectable.
 Lines without ERB tags are HTML only, whose length is left to
 [herb-format](https://herb-tools.dev/projects/formatter) as it wraps HTML (e.g. attributes) by itself.
 herb-format does not wrap the Ruby code in ERB tags, so RuboCop still checks the lines with ERB tags.
+When using both, align `Max` of `Layout/LineLength` with `maxLineLength` of herb-format
+(`formatter.maxLineLength` in `.herb.yml`, 80 by default, while RuboCop's default is 120).
 
 Likewise, `Layout/EmptyLines` and the cops reporting blank lines around bodies and arguments
 (e.g. `Layout/EmptyLinesAroundBlockBody`) check only the blank lines in ERB tags,
