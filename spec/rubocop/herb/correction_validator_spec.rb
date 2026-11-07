@@ -146,5 +146,55 @@ RSpec.describe RuboCop::Herb::CorrectionValidator do
 
       it { is_expected.to be true }
     end
+
+    context "when the correction breaks a line in the code of an ERB tag" do
+      let(:source) { "<%= foo(a, b) %>" }
+
+      before { corrector.insert_before(range(10, 10), "\n") }
+
+      it { is_expected.to be true }
+    end
+
+    context "when the correction replaces the code of an ERB tag with multiple lines" do
+      let(:source) { "<%= foo(a, b) %>" }
+
+      before { corrector.replace(range(4, 13), "foo(a,\n    b)") }
+
+      it { is_expected.to be true }
+    end
+
+    context "when the correction breaks a line before the closing delimiter of an ERB tag" do
+      # e.g. Layout/LineLength breaking a line after the semicolon rendered there (`_ = foo(a, b);  `)
+      let(:source) { "<%= foo(a, b) %>" }
+
+      before { corrector.insert_before(range(14, 14), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction breaks a line in the whitespace before the closing delimiter of an ERB tag" do
+      # The semicolon is rendered at the first space (`_ = foo(a, b);   `)
+      let(:source) { "<%= foo(a, b)  %>" }
+
+      before { corrector.insert_before(range(14, 14), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction breaks a line at the end of the code of an ERB tag" do
+      let(:source) { "<%= foo(a, b) -%>" }
+
+      before { corrector.insert_before(range(13, 13), "\n") }
+
+      it { is_expected.to be false }
+    end
+
+    context "when the correction breaks a line in an unclosed ERB tag" do
+      let(:source) { "<%= foo(a, b)" }
+
+      before { corrector.insert_before(range(13, 13), "\n") }
+
+      it { is_expected.to be true }
+    end
   end
 end
