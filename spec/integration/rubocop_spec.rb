@@ -281,6 +281,27 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing loops written across ERB tags over the same collection" do
+    it "triggers Style/CombinableLoops and combines them, keeping the whitespace in the end tag" do
+      expect_offense(<<~ERB)
+        <% items.each do |item| %>
+          <%= item %>
+        <% end %>
+        <% items.each do |item| %>
+           ^^^^^^^^^^^^^^^^^^^^^^^ Style/CombinableLoops: Combine this loop with the previous loop.
+          <%= item.name %>
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <% items.each do |item| %>
+          <%= item %>
+          <%= item.name %>
+        <% end %>
+      ERB
+    end
+  end
+
   context "when analyzing ERB with multi-byte characters in comments" do
     it "does not trigger Layout/SpaceBeforeFirstArg" do
       expect_no_offenses(<<~ERB)
