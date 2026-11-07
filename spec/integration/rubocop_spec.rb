@@ -268,6 +268,15 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing a magic comment in an ERB comment" do
+    it "does not trigger Layout/EmptyLineAfterMagicComment, as the blank line would be output" do
+      expect_no_offenses(<<~ERB)
+        <%# encoding: utf-8 -%>
+        <%= x %>
+      ERB
+    end
+  end
+
   context "when analyzing ERB with multi-byte characters in comments" do
     it "does not trigger Layout/SpaceBeforeFirstArg" do
       expect_no_offenses(<<~ERB)
