@@ -46,6 +46,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # The trailing whitespace is left to herb-lint (erb-no-trailing-whitespace), which is disabled here
   context "when analyzing an unnecessary disable directive in an ERB comment following HTML" do
     it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment, keeping the HTML" do
       expect_offense(<<~ERB)
@@ -58,7 +59,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
 
       expect_correction(<<~ERB)
         <div>
-          <p>a</p>
+          <p>a</p>#{" "}
           <%= x %>
         </div>
       ERB
@@ -1676,8 +1677,9 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # The trailing whitespace is left to herb-lint (erb-no-trailing-whitespace), which is disabled here
   context "when a literal is written in an ERB tag following another ERB tag with a space between them" do
-    it "removes the tag and the space before it" do
+    it "removes the tag, leaving the space before it" do
       expect_offense(<<~ERB)
         <%= a %> <% 1 %>
                     ^ Lint/Void: Literal `1` used in void context.
@@ -1685,7 +1687,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       ERB
 
       expect_correction(<<~ERB)
-        <%= a %>
+        <%= a %>#{" "}
         <%= b %>
       ERB
     end

@@ -14,7 +14,8 @@ module RuboCop
     #
     # An ERB comment rendered as a Ruby comment continues over its closing delimiter rendered as whitespace,
     # so the corrections of rubocop directives in it (e.g. Lint/RedundantCopDisableDirective) are also adjusted
-    # to keep the delimiters (`<%#` and `%>`) of the comment, or to remove the whole ERB tag.
+    # to keep the delimiters (`<%#` and `%>`) of the comment.  A comment emptied by a correction is removed
+    # by Herb/EmptyErbTag.
     class CorrectionAdjuster
       # The content of an ERB tag and its character range
       Content = Data.define(
@@ -131,8 +132,8 @@ module RuboCop
         end
       end
 
-      # Turn the replacement of a whole ERB comment rendered as a Ruby comment, along with the whitespace around it,
-      # into the removal of the ERB tag (see #comment_tag_removal).
+      # Trim the replacement of a whole ERB comment rendered as a Ruby comment, along with the whitespace around it,
+      # to the content of the comment, which leaves an empty ERB comment (`<%#%>`) removed by Herb/EmptyErbTag.
       # Lint/RedundantCopDisableDirective removes an unnecessary directive along with the whitespace around it,
       # which also covers the delimiters of the adjacent ERB tags and the HTML rendered as whitespace.
       # It replaces the directive with ` # ` instead if the comment has more text, which the closing delimiter
@@ -140,43 +141,7 @@ module RuboCop
       # @rbs replacement: Replacement
       def trim_comment_removal(replacement) #: Replacement?
         content = comment_content_replaced(replacement)
-        return unless content
-
-        removal = comment_tag_removal(erb_tag_of(content))
-        replacement.with(from: removal.from, to: removal.to, text: "")
-      end
-
-      # The range to remove the ERB tag of a comment, decided from the ERB source:
-      # the whole line if the line has only the tag (and whitespace), the tag with the whitespace after it
-      # if the tag starts the line (keeping the indentation), or the tag with the whitespace before it
-      # @rbs tag: CharRange
-      def comment_tag_removal(tag) #: CharRange
-        line = line_of(tag)
-        before, after = surroundings(tag, line)
-        return line if blank?(before) && blank?(after)
-        return CharRange.new(tag.from, tag.to + after[/\A[ \t]*/].to_s.length) if blank?(before)
-
-        CharRange.new(tag.from - before[/[ \t]*\z/].to_s.length, tag.to)
-      end
-
-      # The text before and after the tag in the line
-      # @rbs tag: CharRange
-      # @rbs line: CharRange
-      def surroundings(tag, line) #: [String, String]
-        [parse_result.slice(CharRange.new(line.from, tag.from)), parse_result.slice(CharRange.new(tag.to, line.to))]
-      end
-
-      # @rbs text: String
-      def blank?(text) #: bool
-        text.match?(/\A[ \t]*\n?\z/)
-      end
-
-      # The range of the line of the ERB source with the tag (with the newline)
-      # @rbs tag: CharRange
-      def line_of(tag) #: CharRange
-        code = parse_result.code
-        line_end = code.index("\n", tag.to)
-        CharRange.new((code[0...tag.from].to_s.rindex("\n") || -1) + 1, line_end ? line_end + 1 : code.length)
+        replacement.with(from: content.from, to: content.to, text: "") if content
       end
 
       # The content of the ERB comment replaced as a whole along with whitespace, with whitespace or `#`

@@ -196,7 +196,10 @@ An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removi
 keeps the delimiters of the tag, so that it does not break the template.
 This cop removes the empty tag left by it, as the statement is removed in Ruby files.
 The line of the tag is removed if it has only empty tags.
-The whitespace before the tag is removed if the tag ends the line, so as not to leave trailing whitespace.
+The whitespace after the tag is removed if the tag starts the line, so as not to indent the following content further
+(except `<%-`, whose trimmed indentation is replaced by the whitespace after it in the output).
+The trailing whitespace left by a tag ending the line is removed by herb-lint (`erb-no-trailing-whitespace`)
+through `Herb/Linting`.
 The whitespace trimmed by the trim markers (`<%-` and `-%>`) is removed along with the tag.
 
 The cop replaces the `erb-no-empty-tags` rule of herb-lint, so `Herb/Linting` does not report the rule.
