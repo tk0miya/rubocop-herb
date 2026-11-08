@@ -13,6 +13,16 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # Blank lines are left to herb-lint and herb-format; herb-format removes the blank line after the comment here
+  context "when analyzing a magic comment in an ERB comment" do
+    it "does not trigger Layout/EmptyLineAfterMagicComment" do
+      expect_no_offenses(<<~ERB)
+        <%# encoding: utf-8 -%>
+        Hello <%= x %>
+      ERB
+    end
+  end
+
   context "when analyzing an unnecessary disable directive in an ERB comment on its own line" do
     it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment" do
       expect_offense(<<~ERB)
