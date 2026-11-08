@@ -10,15 +10,46 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
-        "Layout/ExtraSpacing", # Whitespace padding preserves positions but creates extra spaces
         "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/InitialIndentation", # ERB code may start at any indentation level within HTML
         "Layout/LeadingEmptyLines", # ERB files may not start with Ruby code
         "Layout/TrailingEmptyLines", # ERB files may not end with Ruby code
         "Metrics/BlockLength", # ERB blocks often contain substantial HTML content
         "Naming/FileName", # ERB file names may contain locales or variants (e.g. show.en-US.html.erb)
-        "Style/FrozenStringLiteralComment", # ERB files don't support frozen string literal comments
-        "Style/Semicolon" # Semicolons are inserted between ERB tags on the same line
+        "Style/FrozenStringLiteralComment" # ERB files don't support frozen string literal comments
+      ].freeze #: Array[String]
+
+      # Cops reporting the code rendered by the conversion (HTML, the delimiters of ERB tags and semicolons
+      # rendered at their closings), which are disabled except for the code copied verbatim from ERB tags
+      # (see VerbatimCode and CopOffenseFilter)
+      VERBATIM_CODE_COPS = [
+        "Layout/BlockEndNewline", # HTML before the end tag is rendered as an expression before `end`
+        "Layout/EmptyComment", # The first line of a multi-line ERB comment is rendered as an empty comment
+        "Layout/EmptyLines", # Blank lines between ERB tags are left to herb-lint (erb-no-extra-newline)
+        "Layout/EmptyLinesAroundArguments",
+        "Layout/EmptyLinesAroundBeginBody",
+        "Layout/EmptyLinesAroundBlockBody",
+        "Layout/EmptyLinesAroundClassBody",
+        "Layout/EmptyLinesAroundExceptionHandlingKeywords",
+        "Layout/EmptyLinesAroundMethodBody",
+        "Layout/EmptyLinesAroundModuleBody",
+        "Layout/ExtraSpacing", # The delimiters of ERB tags and HTML are rendered as whitespace
+        "Layout/SpaceAroundOperators", # The tag opening of an output tag is rendered as `_ =`
+        "Layout/TrailingWhitespace", # The closing delimiters of ERB tags and HTML are rendered as whitespace
+        "Lint/ElseLayout", # A semicolon is rendered at the closing of the else tag (`else;  _ = x;`)
+        "Style/ConditionalAssignment", # Output tags in the branches are all rendered as `_ = ...`
+        "Style/IfWithSemicolon", # A semicolon is rendered at the closing of the if tag (`if a;`)
+        "Style/InPatternThen", # A semicolon is rendered at the closing of the in tag (`in 1;`)
+        "Style/OneLineConditional", # Conditionals across ERB tags on a single line become `if a; ...; end`
+        "Style/RedundantCondition", # Output tags in the branches are rendered as `_ = a` (`if a; _ = a; ...`)
+        "Style/Semicolon", # Semicolons are rendered between ERB tags on the same line
+        "Style/SingleLineDoEndBlock", # Blocks across ERB tags on a single line become `foo do ...; end`
+        "Style/WhenThen" # A semicolon is rendered at the closing of the when tag (`when 1;`)
+      ].freeze #: Array[String]
+
+      # Cops whose autocorrection is discarded in ERB files
+      UNCORRECTABLE_COPS = [
+        "Style/Semicolon" # It breaks the line at the semicolon without indenting the next statement
       ].freeze #: Array[String]
 
       class << self

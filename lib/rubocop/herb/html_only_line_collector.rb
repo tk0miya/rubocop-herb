@@ -4,25 +4,16 @@ require "rubocop"
 
 module RuboCop
   module Herb
-    # Collects the lines without ERB tags (HTML only and blank lines), where the cops checking the layout
-    # of lines should be disabled, as RuboCop checks the Ruby code in ERB tags only.
+    # Collects the lines without ERB tags (HTML only and blank lines), where Layout/LineLength should be disabled,
+    # as RuboCop checks the Ruby code in ERB tags only.
     # The length of HTML lines is left to the formatter of Herb (herb-format) as it wraps HTML
-    # (e.g. attributes) by its own limit, and blank lines are left to herb-lint (erb-no-extra-newline).
-    # Lines with ERB tags (including the lines of a multi-line ERB tag) are still checked;
-    # for the line length, as herb-format does not wrap the Ruby code in ERB tags.
+    # (e.g. attributes) by its own limit.
+    # Lines with ERB tags (including the lines of a multi-line ERB tag) are still checked,
+    # as herb-format does not wrap the Ruby code in ERB tags.
+    # The cop reports the part of a line over the limit, which may be HTML on a line with ERB tags,
+    # so it is disabled by lines, not by VerbatimCode.
     class HtmlOnlyLineCollector
-      # Layout/LineLength, and the cops reporting blank lines at the blank lines
-      COP_NAMES = %w[
-        Layout/LineLength
-        Layout/EmptyLines
-        Layout/EmptyLinesAroundArguments
-        Layout/EmptyLinesAroundBeginBody
-        Layout/EmptyLinesAroundBlockBody
-        Layout/EmptyLinesAroundClassBody
-        Layout/EmptyLinesAroundExceptionHandlingKeywords
-        Layout/EmptyLinesAroundMethodBody
-        Layout/EmptyLinesAroundModuleBody
-      ].freeze #: Array[String]
+      COP_NAME = "Layout/LineLength" #: String
 
       # Collect the disabled lines from a processed source
       # @rbs processed_source: ::RuboCop::AST::ProcessedSource
@@ -45,7 +36,7 @@ module RuboCop
         # Unlike ProcessedSource#lines, String#lines does not count the empty line after the last newline
         line_count = processed_source.raw_source.lines.size
         lines = (1..line_count).filter_map { _1.._1 unless erb_tag_at_line?(_1) }
-        lines.empty? ? {} : COP_NAMES.to_h { [_1, lines] }
+        lines.empty? ? {} : { COP_NAME => lines }
       end
 
       private

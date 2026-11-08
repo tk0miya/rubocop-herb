@@ -10,6 +10,14 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS: Array[String]
 
+      # Cops reporting the code rendered by the conversion (HTML, the delimiters of ERB tags and semicolons
+      # rendered at their closings), which are disabled except for the code copied verbatim from ERB tags
+      # (see VerbatimCode and CopOffenseFilter)
+      VERBATIM_CODE_COPS: Array[String]
+
+      # Cops whose autocorrection is discarded in ERB files
+      UNCORRECTABLE_COPS: Array[String]
+
       # @rbs config: Hash[String, untyped]
       def self.setup: (Hash[String, untyped] config) -> void
 

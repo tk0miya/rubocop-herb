@@ -51,6 +51,13 @@ Likewise, `Layout/EmptyLines` and the cops reporting blank lines around bodies a
 as RuboCop checks the Ruby code in ERB tags only.
 Blank lines outside ERB tags are left to herb-lint (`erb-no-extra-newline`).
 
+### Spacing and semicolons
+
+`Layout/ExtraSpacing` and `Style/Semicolon` check only the code written in ERB tags
+(e.g. `<%= foo(a,  b) %>` and `<% a = 1; b = 2 %>`), not the whitespace and semicolons
+the conversion renders around ERB tags and HTML.
+`Style/Semicolon` is not autocorrected, as breaking the line at the semicolon leaves the next statement unindented.
+
 ### Running herb-lint together (Herb/Linting cop)
 
 The `Herb/Linting` cop (enabled by default) runs [herb-lint](https://herb-tools.dev/projects/linter)

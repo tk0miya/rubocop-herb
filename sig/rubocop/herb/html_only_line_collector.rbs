@@ -2,15 +2,16 @@
 
 module RuboCop
   module Herb
-    # Collects the lines without ERB tags (HTML only and blank lines), where the cops checking the layout
-    # of lines should be disabled, as RuboCop checks the Ruby code in ERB tags only.
+    # Collects the lines without ERB tags (HTML only and blank lines), where Layout/LineLength should be disabled,
+    # as RuboCop checks the Ruby code in ERB tags only.
     # The length of HTML lines is left to the formatter of Herb (herb-format) as it wraps HTML
-    # (e.g. attributes) by its own limit, and blank lines are left to herb-lint (erb-no-extra-newline).
-    # Lines with ERB tags (including the lines of a multi-line ERB tag) are still checked;
-    # for the line length, as herb-format does not wrap the Ruby code in ERB tags.
+    # (e.g. attributes) by its own limit.
+    # Lines with ERB tags (including the lines of a multi-line ERB tag) are still checked,
+    # as herb-format does not wrap the Ruby code in ERB tags.
+    # The cop reports the part of a line over the limit, which may be HTML on a line with ERB tags,
+    # so it is disabled by lines, not by VerbatimCode.
     class HtmlOnlyLineCollector
-      # Layout/LineLength, and the cops reporting blank lines at the blank lines
-      COP_NAMES: Array[String]
+      COP_NAME: String
 
       # Collect the disabled lines from a processed source
       # @rbs processed_source: ::RuboCop::AST::ProcessedSource

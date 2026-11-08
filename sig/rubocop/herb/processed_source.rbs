@@ -15,6 +15,8 @@ module RuboCop
 
       @correction_adjuster: CorrectionAdjuster?
 
+      @verbatim_code: VerbatimCode?
+
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
@@ -23,9 +25,8 @@ module RuboCop
       def initialize: (String ruby_code, Float ruby_version, ?String? path, parse_result: ParseResult, ?parser_engine: Symbol) -> void
 
       # Override comment_config to disable cops at the lines specified by the parse result,
-      # the lines of expressions that cannot be moved out of conditionals,
-      # the lines of trailing whitespace rendered by the conversion
-      # and the lines without ERB tags (for line length and blank lines)
+      # the lines of expressions that cannot be moved out of conditionals
+      # and the lines without ERB tags (for line length)
       def comment_config: () -> CommentConfig
 
       # The node of the AST before the transformation at the same place as the given node of the transformed AST
@@ -36,6 +37,9 @@ module RuboCop
 
       # Validator to discard autocorrections that would break the ERB template
       def correction_validator: () -> CorrectionValidator
+
+      # Checker for the code copied verbatim from ERB tags
+      def verbatim_code: () -> VerbatimCode
 
       # Adjuster to trim autocorrections to the content of ERB tags
       # The raw source is normalized as the buffer is (CRLF to LF), on which the positions of corrections are based

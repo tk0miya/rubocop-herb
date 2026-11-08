@@ -1,0 +1,22 @@
+# Generated from lib/rubocop/herb/cop_offense_filter.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Prepended to RuboCop::Cop::Base to disable the cops reporting the code rendered by the conversion
+    # (Configuration::VERBATIM_CODE_COPS) except for the code copied verbatim from ERB tags (see VerbatimCode).
+    # An offense outside of such code is handled as an offense at a line disabled by a `rubocop:disable` comment.
+    # Unlike CommentConfig, it is not affected by `--ignore-disable-comments`, as the offenses are false positives.
+    # Cops inspecting files other than ERB templates are not affected.
+    module CopOffenseFilter
+      def processed_source: () -> ::RuboCop::AST::ProcessedSource?
+
+      def cop_name: () -> String
+
+      private
+
+      # Keep it private as RuboCop::Cop::Base#enabled_lines? is
+      # @rbs range: ::Parser::Source::Range
+      def enabled_lines?: (::Parser::Source::Range range) -> bool
+    end
+  end
+end
