@@ -54,19 +54,17 @@ module RuboCop
         super
       end
 
-      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # The end tag follows the HTML structure
       # @rbs node: ::Herb::AST::ERBCaseNode
       def visit_erb_case_node(node) #: void
-        disable_cop("Style/ConditionalAssignment", node)
         disable_duplicate_branch([*node.conditions, node.else_clause].compact)
         disable_end_alignment(node.end_node)
         super
       end
 
-      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # The end tag follows the HTML structure
       # @rbs node: ::Herb::AST::ERBCaseMatchNode
       def visit_erb_case_match_node(node) #: void
-        disable_cop("Style/ConditionalAssignment", node)
         disable_duplicate_branch([*node.conditions, node.else_clause].compact)
         disable_end_alignment(node.end_node)
         super
@@ -120,8 +118,6 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
         disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
-        # A semicolon is rendered at the closing of the when tag (`when 1;`)
-        disable_cop("Style/WhenThen", node)
         # The column of the when tag follows the HTML structure, not the case tag
         disable_cop("Layout/CaseIndentation", node)
         disable_body_indentation(node.statements)
@@ -152,8 +148,6 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBInNode
       def visit_erb_in_node(node) #: void
         disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
-        # A semicolon is rendered at the closing of the in tag (`in 1;`)
-        disable_cop("Style/InPatternThen", node)
         # The column of the in tag follows the HTML structure, not the case tag
         disable_cop("Layout/CaseIndentation", node)
         disable_body_indentation(node.statements)
@@ -165,34 +159,10 @@ module RuboCop
       def visit_erb_block_node(node) #: void
         disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
         disable_single_line_block(node)
-        disable_block_end_layout(node.end_node)
+        disable_block_alignment(node.end_node)
         disable_body_indentation(node.body)
         disable_duplicate_branch(Branches.of_rescue(node))
         super
-      end
-
-      # A multiline ERB comment with nothing after `<%#` on its first line (e.g. `<%#` and `  note` and `%>`)
-      # is rendered as `#` on the first line and the comment of the following lines at another column
-      # (e.g. `  #` and `# note`), so Layout/EmptyComment does not see them as one comment and reports
-      # the first line. Empty ERB comments are reported by Herb/EmptyErbTag instead.
-      # @rbs node: ::Herb::AST::ERBCommentNode
-      def visit_erb_comment_node(node) #: void
-        disable_line("Layout/EmptyComment", node.location.start.line) if node.content&.value&.match?(/\A[ \t]*\n/)
-        super
-      end
-
-      # The tag opening of an output tag is rendered as `_ =` (e.g. `<%=foo%>` becomes `_ =foo;`),
-      # so Layout/SpaceAroundOperators reports the missing space after `=` if the code follows the tag opening
-      # without whitespace. The missing whitespace is reported by herb-lint (erb-require-whitespace-inside-tags).
-      # Called for every ERB node (e.g. `<%=yield%>` and `<%=form_with do |f|%>` as well as `<%=foo%>`)
-      # @rbs node: ::Herb::AST::Node
-      def visit_erb_node(node) #: void
-        erb_node = node #: erb_node
-        tag_opening = erb_node.tag_opening
-        return unless tag_opening && ErbLocation::OUTPUT_TAG_OPENINGS.include?(tag_opening.value)
-        return unless erb_node.content&.value&.match?(/\A\S/)
-
-        disable_line("Layout/SpaceAroundOperators", tag_opening.location.start.line)
       end
 
       private
@@ -211,16 +181,13 @@ module RuboCop
 
       # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
       # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
-      # (herb-lint's erb-prefer-do-end-blocks). Style/SingleLineDoEndBlock suggests splitting them into
-      # multiple lines, but line breaks between ERB tags change the rendered whitespace.
-      # Blocks written within a single ERB tag are still checked.
+      # (herb-lint's erb-prefer-do-end-blocks). Blocks written within a single ERB tag are still checked.
       # @rbs node: ::Herb::AST::ERBBlockNode
       def disable_single_line_block(node) #: void
         first_line = node.location.start.line
         return unless first_line == node.location.end.line
 
         disable_line("Style/BlockDelimiters", first_line)
-        disable_line("Style/SingleLineDoEndBlock", first_line)
       end
 
       # The column of the end tag follows the HTML structure (e.g. `<p>x</p><% end %>`),
@@ -232,12 +199,10 @@ module RuboCop
 
       # The column of the end tag follows the HTML structure, and the block start is shifted by the output marker
       # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`), so Layout/BlockAlignment reports it.
-      # HTML before the end tag on its line (e.g. `<p>x</p><% end %>`) is rendered as an expression before `end`,
-      # so Layout/BlockEndNewline reports it, but line breaks before the end tag change the rendered whitespace.
       # Blocks written within a single ERB tag are still checked.
       # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
-      def disable_block_end_layout(end_node) #: void
-        %w[Layout/BlockAlignment Layout/BlockEndNewline].each { disable_cop(_1, end_node) } if end_node
+      def disable_block_alignment(end_node) #: void
+        disable_cop("Layout/BlockAlignment", end_node) if end_node
       end
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
@@ -317,44 +282,16 @@ module RuboCop
 
       # Disable the cops reporting conditionals written across multiple ERB tags
       # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # The cops reporting the code rendered by the conversion (e.g. Style/IfWithSemicolon for the semicolon
+      # rendered at the closing of the if tag) are disabled by CopOffenseFilter.
       # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
       def disable_conditional_cops(node) #: void
         return unless node.end_node # elsif nodes are checked as a part of the outer if node
 
-        # A semicolon is rendered at the closing of the if tag (`if a;`)
-        disable_cop("Style/IfWithSemicolon", node)
         # Converting them to modifier form breaks the template (e.g. it drops HTML)
         disable_cop("Style/IfUnlessModifier", node)
-        # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
-        disable_cop("Style/ConditionalAssignment", node)
-        # Output tags in the branches are rendered as `_ = a`, so the condition looks redundant
-        # (`if a; _ = a; else; _ = b; end`)
-        disable_cop("Style/RedundantCondition", node)
         # Converting them to `next` breaks the template (e.g. it leaves the closing of the end tag)
         disable_cop("Style/Next", node)
-        disable_one_line_conditional(node)
-        disable_else_layout(node)
-      end
-
-      # Output tags following the else tag on the same line become `else;  _ = x;` in the Ruby code.
-      # Lint/ElseLayout reports them, but its autocorrect breaks the template (e.g. it drops the tag closing).
-      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
-      def disable_else_layout(node) #: void
-        else_node = node.is_a?(::Herb::AST::ERBIfNode) ? Branches.of_if(node).last : node.else_clause
-        return unless else_node.is_a?(::Herb::AST::ERBElseNode)
-
-        disable_cop("Lint/ElseLayout", else_node)
-      end
-
-      # Conditionals written across multiple ERB tags on a single line become
-      # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
-      # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
-      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
-      def disable_one_line_conditional(node) #: void
-        first_line = node.location.start.line
-        return unless first_line == node.location.end.line
-
-        disable_line("Style/OneLineConditional", first_line)
       end
 
       # Disable the cop at the lines of the ERB tag

@@ -7,6 +7,7 @@ module RuboCop
     # Prepended to RuboCop::Cop::Base to discard autocorrections that would break ERB templates.
     # An autocorrection reaching the delimiters of an ERB tag is trimmed by CorrectionAdjuster
     # (e.g. removing an expression without the delimiters of its ERB tag) before validation.
+    # The autocorrections of Configuration::UNCORRECTABLE_COPS are always discarded.
     # A discarded offense is reported as not autocorrectable.
     # Cops inspecting files other than ERB templates, and the cops of rubocop-herb, are not affected.
     module CopCorrectionGuard
@@ -29,6 +30,8 @@ module RuboCop
       def correct(range, &block) #: [Symbol, ::RuboCop::Cop::Corrector?]
         source = processed_source
         return super unless block && source.is_a?(ProcessedSource)
+        # The offense is reported as not autocorrectable
+        return super(range, &nil) if Configuration::UNCORRECTABLE_COPS.include?(cop_name)
         # The cops of rubocop-herb correct the ERB source knowing its tags
         # (e.g. Herb/EmptyErbTag removes ERB tags, which joins the HTML parts around them)
         return super if cop_name.start_with?("Herb/")

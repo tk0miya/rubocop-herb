@@ -13,6 +13,7 @@ module RuboCop
       # @rbs @comment_config: CommentConfig?
       # @rbs @correction_validator: CorrectionValidator?
       # @rbs @correction_adjuster: CorrectionAdjuster?
+      # @rbs @verbatim_code: VerbatimCode?
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
@@ -26,9 +27,8 @@ module RuboCop
       end
 
       # Override comment_config to disable cops at the lines specified by the parse result,
-      # the lines of expressions that cannot be moved out of conditionals,
-      # the lines of trailing whitespace rendered by the conversion
-      # and the lines without ERB tags (for line length and blank lines)
+      # the lines of expressions that cannot be moved out of conditionals
+      # and the lines without ERB tags (for line length)
       def comment_config #: CommentConfig
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
@@ -56,6 +56,11 @@ module RuboCop
         @correction_validator ||= CorrectionValidator.new(parse_result)
       end
 
+      # Checker for the code copied verbatim from ERB tags
+      def verbatim_code #: VerbatimCode
+        @verbatim_code ||= VerbatimCode.new(parse_result)
+      end
+
       # Adjuster to trim autocorrections to the content of ERB tags
       # The raw source is normalized as the buffer is (CRLF to LF), on which the positions of corrections are based
       def correction_adjuster #: CorrectionAdjuster
@@ -68,9 +73,8 @@ module RuboCop
 
       def disabled_cops #: Hash[String, Array[Range[Integer]]]
         immovable_expressions = ImmovableExpressionCollector.collect(self, parse_result)
-        rendered_trailing_whitespace = TrailingWhitespaceCollector.collect(self, parse_result)
         html_only_lines = HtmlOnlyLineCollector.collect(self, parse_result)
-        [immovable_expressions, rendered_trailing_whitespace, html_only_lines]
+        [immovable_expressions, html_only_lines]
           .reduce(parse_result.disabled_cops) do |disabled_cops, lines|
           disabled_cops.merge(lines) { |_cop, lines1, lines2| lines1 + lines2 }
         end

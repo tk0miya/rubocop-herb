@@ -26,11 +26,11 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node: (::Herb::AST::ERBUnlessNode node) -> void
 
-      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # The end tag follows the HTML structure
       # @rbs node: ::Herb::AST::ERBCaseNode
       def visit_erb_case_node: (::Herb::AST::ERBCaseNode node) -> void
 
-      # Output tags in the branches are all rendered as `_ = ...` (to avoid Lint/Void)
+      # The end tag follows the HTML structure
       # @rbs node: ::Herb::AST::ERBCaseMatchNode
       def visit_erb_case_match_node: (::Herb::AST::ERBCaseMatchNode node) -> void
 
@@ -74,20 +74,6 @@ module RuboCop
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node: (::Herb::AST::ERBBlockNode node) -> void
 
-      # A multiline ERB comment with nothing after `<%#` on its first line (e.g. `<%#` and `  note` and `%>`)
-      # is rendered as `#` on the first line and the comment of the following lines at another column
-      # (e.g. `  #` and `# note`), so Layout/EmptyComment does not see them as one comment and reports
-      # the first line. Empty ERB comments are reported by Herb/EmptyErbTag instead.
-      # @rbs node: ::Herb::AST::ERBCommentNode
-      def visit_erb_comment_node: (::Herb::AST::ERBCommentNode node) -> void
-
-      # The tag opening of an output tag is rendered as `_ =` (e.g. `<%=foo%>` becomes `_ =foo;`),
-      # so Layout/SpaceAroundOperators reports the missing space after `=` if the code follows the tag opening
-      # without whitespace. The missing whitespace is reported by herb-lint (erb-require-whitespace-inside-tags).
-      # Called for every ERB node (e.g. `<%=yield%>` and `<%=form_with do |f|%>` as well as `<%=foo%>`)
-      # @rbs node: ::Herb::AST::Node
-      def visit_erb_node: (::Herb::AST::Node node) -> void
-
       private
 
       # Lint/DuplicateBranch compares the branches in the Ruby code, but some HTML is not rendered there
@@ -100,9 +86,7 @@ module RuboCop
 
       # Blocks written across multiple ERB tags on a single line become `foo do ...; end` in the Ruby code.
       # Style/BlockDelimiters suggests braces for them, but braces across ERB tags are discouraged
-      # (herb-lint's erb-prefer-do-end-blocks). Style/SingleLineDoEndBlock suggests splitting them into
-      # multiple lines, but line breaks between ERB tags change the rendered whitespace.
-      # Blocks written within a single ERB tag are still checked.
+      # (herb-lint's erb-prefer-do-end-blocks). Blocks written within a single ERB tag are still checked.
       # @rbs node: ::Herb::AST::ERBBlockNode
       def disable_single_line_block: (::Herb::AST::ERBBlockNode node) -> void
 
@@ -113,11 +97,9 @@ module RuboCop
 
       # The column of the end tag follows the HTML structure, and the block start is shifted by the output marker
       # (`<%= form_with do |f| %>` becomes `_ = form_with do |f|;`), so Layout/BlockAlignment reports it.
-      # HTML before the end tag on its line (e.g. `<p>x</p><% end %>`) is rendered as an expression before `end`,
-      # so Layout/BlockEndNewline reports it, but line breaks before the end tag change the rendered whitespace.
       # Blocks written within a single ERB tag are still checked.
       # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
-      def disable_block_end_layout: (::Herb::AST::ERBEndNode? end_node) -> void
+      def disable_block_alignment: (::Herb::AST::ERBEndNode? end_node) -> void
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
       # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
@@ -157,19 +139,10 @@ module RuboCop
 
       # Disable the cops reporting conditionals written across multiple ERB tags
       # Conditionals written within a single ERB tag are not ERBIfNode, so they are still checked.
+      # The cops reporting the code rendered by the conversion (e.g. Style/IfWithSemicolon for the semicolon
+      # rendered at the closing of the if tag) are disabled by CopOffenseFilter.
       # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
       def disable_conditional_cops: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
-
-      # Output tags following the else tag on the same line become `else;  _ = x;` in the Ruby code.
-      # Lint/ElseLayout reports them, but its autocorrect breaks the template (e.g. it drops the tag closing).
-      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
-      def disable_else_layout: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
-
-      # Conditionals written across multiple ERB tags on a single line become
-      # `if a; ...; else; ...; end` in the Ruby code. Style/OneLineConditional
-      # reports them, but its autocorrect breaks the template (e.g. it drops HTML).
-      # @rbs node: ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode
-      def disable_one_line_conditional: (::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode node) -> void
 
       # Disable the cop at the lines of the ERB tag
       # A node split from an ERB tag (e.g. `<% case x when 1 %>`) lacks its tag opening or closing,

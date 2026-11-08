@@ -37,6 +37,9 @@ though whitespace around ERB tags (indentation and newlines) may change.
 A correction that cannot keep the HTML (e.g. swapping `if`/`else` branches containing HTML)
 is not applied. Such offenses are reported as not autocorrectable.
 
+`Style/Semicolon` is not autocorrected either (e.g. `<% a = 1; b = 2 %>`),
+as breaking the line at the semicolon leaves the next statement unindented. Fix such offenses by hand.
+
 ### Line length and blank lines
 
 `Layout/LineLength` checks only the lines with ERB tags.

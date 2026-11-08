@@ -9,10 +9,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     # Cops disabled at the if/unless tags of conditionals written across ERB tags
     def conditional_cops(*ranges)
       {
-        "Style/IfWithSemicolon" => ranges,
         "Style/IfUnlessModifier" => ranges,
-        "Style/ConditionalAssignment" => ranges,
-        "Style/RedundantCondition" => ranges,
         "Style/Next" => ranges
       }
     end
@@ -27,9 +24,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       { "Layout/ElseAlignment" => ranges }
     end
 
-    # Layout/BlockAlignment and Layout/BlockEndNewline disabled at the end tags of blocks written across ERB tags
-    def block_end_layout(*ranges)
-      { "Layout/BlockAlignment" => ranges, "Layout/BlockEndNewline" => ranges }
+    # Layout/BlockAlignment disabled at the end tags of blocks written across ERB tags
+    def block_alignment(*ranges)
+      { "Layout/BlockAlignment" => ranges }
     end
 
     # Layout/EndAlignment disabled at the end tags of conditionals and loops written across ERB tags
@@ -135,11 +132,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if and elsif tags on a single line" do
       let(:code) { "<% if a %>a<% elsif b %><% end %>" }
 
-      it "disables the conditional cops, Style/OneLineConditional and Lint/DuplicateBranch at the line" do
+      it "disables the conditional cops and Lint/DuplicateBranch at the line" do
         expect(subject).to eq({
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Lint/DuplicateBranch" => [1..1],
-                                "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
                                 **end_alignment(1..1),
@@ -151,10 +147,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with unless and else tags on a single line" do
       let(:code) { "<% unless a %><%= a %><% else %><%= b %><% end %>" }
 
-      it "disables the conditional cops and Style/OneLineConditional at the line" do
+      it "disables the conditional cops at the line" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [1..1],
-                                "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
                                 **end_alignment(1..1),
@@ -174,9 +168,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with else branch containing an HTML element" do
       let(:code) { "<% if a %>\n  <%= a %>\n<% else %>\n  <p>b</p>\n<% end %>" }
 
-      it "disables Style/EmptyElse and Lint/ElseLayout at the else tag" do
+      it "disables Style/EmptyElse at the else tag" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [3..3],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3),
@@ -189,11 +182,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with when branch containing an HTML element" do
       let(:code) { "<% case a %>\n<% when 1 %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyWhen and Style/WhenThen at the when tag and Style/ConditionalAssignment at the case tag" do
+      it "disables Lint/EmptyWhen at the when tag" do
         expect(subject).to eq({
-                                "Style/WhenThen" => [2..2],
                                 "Lint/EmptyWhen" => [2..2],
-                                "Style/ConditionalAssignment" => [1..1],
                                 "Layout/CaseIndentation" => [2..2],
                                 **end_alignment(4..4),
                                 **indentation_width(3..3)
@@ -204,11 +195,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with when branch split from an ERB tag holding the case" do
       let(:code) { "<% case a when 1 %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyWhen, Style/WhenThen and Style/ConditionalAssignment at the ERB tag" do
+      it "disables Lint/EmptyWhen at the ERB tag" do
         expect(subject).to eq({
-                                "Style/WhenThen" => [1..1],
                                 "Lint/EmptyWhen" => [1..1],
-                                "Style/ConditionalAssignment" => [1..1],
                                 "Layout/CaseIndentation" => [1..1],
                                 **end_alignment(3..3),
                                 **indentation_width(2..2)
@@ -219,10 +208,8 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with case-in statement written across ERB tags" do
       let(:code) { "<% case a %>\n<% in 1 %>\n  <%= a %>\n<% in 2 %>\n  <%= b %>\n<% end %>" }
 
-      it "disables Style/ConditionalAssignment, Style/InPatternThen and Layout/EndAlignment at the ERB tags" do
+      it "disables Layout/CaseIndentation and Layout/EndAlignment at the ERB tags" do
         expect(subject).to eq({
-                                "Style/InPatternThen" => [2..2, 4..4],
-                                "Style/ConditionalAssignment" => [1..1],
                                 "Layout/CaseIndentation" => [2..2, 4..4],
                                 **end_alignment(6..6),
                                 **indentation_width(3..3, 5..5)
@@ -326,10 +313,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block containing an HTML element" do
       let(:code) { "<% items.each do |item| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyBlock at the block tag and the block end layout cops at the end tag" do
+      it "disables Lint/EmptyBlock at the block tag and Layout/BlockAlignment at the end tag" do
         expect(subject).to eq({
                                 "Lint/EmptyBlock" => [1..1],
-                                **block_end_layout(3..3),
+                                **block_alignment(3..3),
                                 **indentation_width(2..2)
                               })
       end
@@ -338,10 +325,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with output block containing an HTML element" do
       let(:code) { "<%= form_with do |f| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Lint/EmptyBlock at the block tag and the block end layout cops at the end tag" do
+      it "disables Lint/EmptyBlock at the block tag and Layout/BlockAlignment at the end tag" do
         expect(subject).to eq({
                                 "Lint/EmptyBlock" => [1..1],
-                                **block_end_layout(3..3),
+                                **block_alignment(3..3),
                                 **indentation_width(2..2)
                               })
       end
@@ -350,11 +337,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block written across ERB tags on a single line" do
       let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
 
-      it "disables Style/BlockDelimiters, Style/SingleLineDoEndBlock and the block end layout cops at the line" do
+      it "disables Style/BlockDelimiters and Layout/BlockAlignment at the line" do
         expect(subject).to eq({
                                 "Style/BlockDelimiters" => [1..1],
-                                "Style/SingleLineDoEndBlock" => [1..1],
-                                **block_end_layout(1..1),
+                                **block_alignment(1..1),
                                 **indentation_width(1..1)
                               })
       end
@@ -437,14 +423,12 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
           "<% items.each do |item| %>\n  <%= item %>\n<% end %>"
       end
 
-      it "disables Style/ConditionalAssignment and the layout cops, but not the cops for empty bodies" do
+      it "disables the layout cops, but not the cops for empty bodies" do
         expect(subject).to eq({
-                                "Style/WhenThen" => [2..2],
-                                "Style/ConditionalAssignment" => [1..1],
                                 "Layout/CaseIndentation" => [2..2],
                                 **else_alignment(4..4),
                                 **end_alignment(6..6),
-                                **block_end_layout(9..9),
+                                **block_alignment(9..9),
                                 **indentation_width(3..3, 5..5, 8..8)
                               })
       end
@@ -455,7 +439,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/DuplicateBranch at the elsif and else tags" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [5..5],
                                 "Lint/EmptyConditionalBody" => [1..1, 3..3],
                                 "Lint/DuplicateBranch" => [3..3, 5..5],
                                 "Style/EmptyElse" => [5..5],
@@ -472,7 +455,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "does not disable Lint/DuplicateBranch" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [3..3],
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
@@ -488,11 +470,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/DuplicateBranch at the line" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [1..1],
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Lint/DuplicateBranch" => [1..1],
                                 "Style/EmptyElse" => [1..1],
-                                "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
                                 **end_alignment(1..1),
@@ -506,11 +486,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/DuplicateBranch at the line" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [1..1],
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Lint/DuplicateBranch" => [1..1],
                                 "Style/EmptyElse" => [1..1],
-                                "Style/OneLineConditional" => [1..1],
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
                                 **end_alignment(1..1),
@@ -527,9 +505,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/DuplicateBranch at the else and in tags except the first branches" do
         expect(subject).to eq({
-                                "Style/WhenThen" => [2..2],
-                                "Style/InPatternThen" => [8..8, 10..10],
-                                "Style/ConditionalAssignment" => [1..1, 7..7],
                                 "Lint/DuplicateBranch" => [4..4, 10..10],
                                 "Lint/EmptyWhen" => [2..2],
                                 "Lint/EmptyInPattern" => [8..8, 10..10],
@@ -556,7 +531,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Layout/BeginEndAlignment" => [7..7],
                                 "Layout/RescueEnsureAlignment" => [3..3, 5..5, 10..10],
                                 **else_alignment(12..12),
-                                **block_end_layout(14..14),
+                                **block_alignment(14..14),
                                 **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11, 13..13)
                               })
       end
@@ -570,7 +545,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/DuplicateBranch at the else tag of the outer conditional" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [5..5],
                                 "Lint/EmptyConditionalBody" => [2..2, 6..6],
                                 "Lint/DuplicateBranch" => [5..5],
                                 **conditional_cops(1..1, 2..2, 6..6),
@@ -589,7 +563,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "does not disable Lint/DuplicateBranch because the tags are rendered" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [5..5, 10..10],
                                 "Lint/EmptyConditionalBody" => [1..1, 8..8],
                                 **conditional_cops(1..1, 8..8),
                                 **else_alignment(3..3, 5..5, 10..10),
@@ -604,7 +577,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Lint/DuplicateBranch at the else tag" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [3..3],
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Lint/DuplicateBranch" => [3..3],
                                 "Style/EmptyElse" => [3..3],
@@ -621,7 +593,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "does not disable Lint/DuplicateBranch as the comments are rendered like comments without ERB" do
         expect(subject).to eq({
-                                "Lint/ElseLayout" => [3..3],
                                 "Lint/EmptyConditionalBody" => [1..1],
                                 "Style/EmptyElse" => [3..3],
                                 **conditional_cops(1..1),
@@ -637,26 +608,6 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables nothing" do
         expect(subject).to eq({})
-      end
-    end
-
-    context "with output tags whose code follows the tag openings without whitespace" do
-      let(:code) { "<%=foo%>\n<%==bar%>\n<%=yield%>\n<%= baz %>\n<%=%>" }
-
-      it "disables Layout/SpaceAroundOperators at the tags with the code" do
-        expect(subject).to eq({ "Layout/SpaceAroundOperators" => [1..1, 2..2, 3..3] })
-      end
-    end
-
-    context "with output block tag whose code follows the tag opening without whitespace" do
-      let(:code) { "<%=form_with do |f|%>\n  <%= f.text_field :name %>\n<% end %>" }
-
-      it "disables Layout/SpaceAroundOperators at the block tag" do
-        expect(subject).to eq({
-                                "Layout/SpaceAroundOperators" => [1..1],
-                                **block_end_layout(3..3),
-                                **indentation_width(2..2)
-                              })
       end
     end
 
@@ -686,17 +637,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Layout/IndentationWidth from the escaped ERB comment tag as it is text" do
         expect(subject).to eq({
-                                **block_end_layout(4..4),
+                                **block_alignment(4..4),
                                 **indentation_width(2..3)
                               })
-      end
-    end
-
-    context "with multiline ERB comments with nothing after the tag opening on their first lines" do
-      let(:code) { "<%#\n  note\n%>\n<%# \t\n  note %>\n<%# note\n  more %>\n<%# note %>\n" }
-
-      it "disables Layout/EmptyComment at the first lines of them" do
-        expect(subject).to eq({ "Layout/EmptyComment" => [1..1, 4..4] })
       end
     end
   end

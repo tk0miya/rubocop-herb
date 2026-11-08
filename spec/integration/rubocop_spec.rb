@@ -270,6 +270,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       expect_offense(<<~ERB)
         <% a = 1; #{"b" * 110} = a %><%= #{"b" * 110} %>
         #{" " * 120}#{"^" * 124} Layout/LineLength: Line is too long. [244/120]
+                ^ Style/Semicolon: Do not use semicolons to terminate expressions.
       ERB
 
       expect_correction(<<~ERB)
@@ -578,6 +579,62 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     it "does not trigger Layout/SpaceAroundOperators" do
       expect_no_offenses(<<~ERB)
         <th class="<%= class_name %>"><%= content %></th>
+      ERB
+    end
+  end
+
+  context "when analyzing output tags with extra whitespace after their tag openings" do
+    it "triggers Layout/ExtraSpacing but not Layout/SpaceAroundOperators for the rendered `_ =`" do
+      expect_offense(<<~ERB)
+        <%=  foo %>
+           ^ Layout/ExtraSpacing: Unnecessary spacing detected.
+      ERB
+
+      expect_correction(<<~ERB)
+        <%= foo %>
+      ERB
+    end
+  end
+
+  context "when analyzing extra spacing in ERB tags" do
+    it "triggers Layout/ExtraSpacing only for the spacing written in the ERB tags" do
+      expect_offense(<<~ERB)
+        <div>    <%= foo(a,  b) %>    </div>
+                           ^ Layout/ExtraSpacing: Unnecessary spacing detected.
+        <%= form_tag({}, method: :delete)  do %>
+                                         ^ Layout/ExtraSpacing: Unnecessary spacing detected.
+          <p>x</p>
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <div>    <%= foo(a, b) %>    </div>
+        <%= form_tag({}, method: :delete) do %>
+          <p>x</p>
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing semicolons in ERB tags" do
+    it "triggers Style/Semicolon only for the semicolons written in the ERB tags without correction" do
+      expect_offense(<<~ERB)
+        <% a = 1; b = 2 %><%= a %><%= b %>
+                ^ Style/Semicolon: Do not use semicolons to terminate expressions.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a conditional written across ERB tags in a multi-line block tag" do
+    it "does not trigger Style/IfWithSemicolon for the semicolon rendered at the closing of the tag" do
+      expect_no_offenses(<<~ERB)
+        <% items.each do |item|
+             if item.present? %>
+          <p><%= item %></p>
+          <% end %>
+        <% end %>
       ERB
     end
   end
@@ -1739,6 +1796,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       expect_offense(<<~ERB)
         <% foo; 1 %>
                 ^ Lint/Void: Literal `1` used in void context.
+              ^ Style/Semicolon: Do not use semicolons to terminate expressions.
         <%= b %>
       ERB
 

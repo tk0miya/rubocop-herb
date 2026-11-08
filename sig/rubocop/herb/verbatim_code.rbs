@@ -1,0 +1,25 @@
+# Generated from lib/rubocop/herb/verbatim_code.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Checks whether a range of the Ruby code is the code written in an ERB tag, copied verbatim from the ERB source.
+    #
+    # The conversion renders code which is not written in the ERB source: HTML as identifiers and whitespace
+    # (e.g. `<div>` becomes `div;`), the delimiters of ERB tags as whitespace and markers (e.g. `<%= x %>` becomes
+    # `_ = x;  `) and semicolons at the closing of ERB tags. A range covering such code covers characters other than
+    # the code in an ERB tag, or characters differing from the ERB source.
+    class VerbatimCode
+      attr_reader source: Source
+
+      attr_reader code_ranges: Array[CharRange]
+
+      # @rbs parse_result: ParseResult
+      def initialize: (ParseResult parse_result) -> void
+
+      # Check if the range is in the code of a single ERB tag (excluding the delimiters)
+      # and its characters are the same as the ERB source
+      # @rbs range: ::Parser::Source::Range
+      def include?: (::Parser::Source::Range range) -> bool
+    end
+  end
+end
