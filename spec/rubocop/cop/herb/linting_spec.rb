@@ -108,6 +108,34 @@ RSpec.describe RuboCop::Cop::Herb::Linting do
       end
     end
 
+    context "when .herb.yml in a parent directory of the project root is changed" do
+      let!(:checksum_before) do
+        allow(RuboCop::ConfigFinder).to receive(:project_root).and_return(File.join(project_root, "web"))
+        write("web/Gemfile", "")
+        cop.external_dependency_checksum
+      end
+
+      before { write(".herb.yml", "version: 0.11.0\nframework: actionview\n") }
+
+      it "returns a different checksum" do
+        expect(subject).to be false
+      end
+    end
+
+    context "when a custom rule in a parent directory of the project root is changed" do
+      let!(:checksum_before) do
+        allow(RuboCop::ConfigFinder).to receive(:project_root).and_return(File.join(project_root, "web"))
+        write("web/Gemfile", "")
+        cop.external_dependency_checksum
+      end
+
+      before { write(".herb/rules/my_rule.mjs", "export default class MyChangedRule {}\n") }
+
+      it "returns a different checksum" do
+        expect(subject).to be false
+      end
+    end
+
     context "when a custom rule is added" do
       before { write(".herb/rules/nested/other_rule.js", "export default class OtherRule {}\n") }
 

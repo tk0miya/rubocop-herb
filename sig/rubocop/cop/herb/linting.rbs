@@ -30,8 +30,11 @@ module RuboCop
         # Rules of herb-lint not reported, as other Herb cops report the same offenses with autocorrection
         REPLACED_RULES: Array[String]
 
-        # Files affecting the result of herb-lint other than the linted file itself
+        # Files in the project root affecting the result of herb-lint other than the linted file itself
         CONFIG_FILES: Array[String]
+
+        # Files in the directory of .herb.yml affecting the result of herb-lint
+        HERB_CONFIG_FILES: Array[String]
 
         def on_new_investigation: () -> void
 
@@ -61,6 +64,8 @@ module RuboCop
         def client: () -> ::RuboCop::Herb::HerbLintClient
 
         def config_files: () -> Array[String]
+
+        def herb_config_files: () -> Array[String]
 
         def server_scripts: () -> Array[String]
 

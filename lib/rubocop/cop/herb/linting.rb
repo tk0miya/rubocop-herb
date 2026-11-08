@@ -38,10 +38,14 @@ module RuboCop
           "erb-no-empty-tags" # Herb/EmptyErbTag
         ].freeze #: Array[String]
 
-        # Files affecting the result of herb-lint other than the linted file itself
+        # Files in the project root affecting the result of herb-lint other than the linted file itself
         CONFIG_FILES = [
+          "node_modules/@herb-tools/linter/package.json"
+        ].freeze #: Array[String]
+
+        # Files in the directory of .herb.yml affecting the result of herb-lint
+        HERB_CONFIG_FILES = [
           ".herb.yml",
-          "node_modules/@herb-tools/linter/package.json",
           ".herb/rules/**/*.{js,mjs}"
         ].freeze #: Array[String]
 
@@ -101,6 +105,10 @@ module RuboCop
 
         def config_files #: Array[String]
           CONFIG_FILES
+        end
+
+        def herb_config_files #: Array[String]
+          HERB_CONFIG_FILES
         end
 
         def server_scripts #: Array[String]

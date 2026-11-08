@@ -33,15 +33,11 @@ module RuboCop
 
         MSG: ::String
 
-        # Files affecting the result of herb-format other than the formatted file itself
+        # Files in the project root affecting the result of herb-format other than the formatted file itself
         CONFIG_FILES: Array[String]
 
-        # The files of the configuration in the directory of .herb.yml, which may be above the project root
+        # Files in the directory of .herb.yml affecting the result of herb-format
         HERB_CONFIG_FILES: Array[String]
-
-        # Invalidates the result cache also when the configuration in the directory of .herb.yml changes
-        # @rbs override
-        def external_dependency_checksum: ...
 
         def on_new_investigation: () -> void
 
@@ -52,15 +48,14 @@ module RuboCop
         def format: (::RuboCop::Herb::ProcessedSource source, String path) -> void
 
         # Whether the formatter is enabled in .herb.yml (`formatter.enabled`; disabled by default).
-        # .herb.yml is searched from the project root up to the root directory, as Herb tools do.
         # An invalid .herb.yml is left to herb-format to report the error.
         def formatter_enabled?: () -> bool
-
-        def herb_config_path: () -> String?
 
         def client: () -> ::RuboCop::Herb::HerbFormatClient
 
         def config_files: () -> Array[String]
+
+        def herb_config_files: () -> Array[String]
 
         def server_scripts: () -> Array[String]
       end

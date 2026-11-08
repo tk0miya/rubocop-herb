@@ -2,9 +2,11 @@
 
 require "spec_helper"
 
+require "fileutils"
 require "rubocop"
 require "rubocop/lsp/stdin_runner"
 require "tempfile"
+require "tmpdir"
 require "yaml"
 
 RSpec.describe "Lint with Herb/Linting cop", type: :feature do
@@ -78,6 +80,47 @@ RSpec.describe "Lint with Herb/Linting cop", type: :feature do
          "Herb/Linting: [html-attribute-values-require-quotes] " \
          "Attribute value should be quoted: `src=\"logo.png\"`. Always wrap attribute values in quotes."]
       ]
+    end
+  end
+
+  # e.g. a monorepo with .herb.yml and node_modules at its root, and a Rails application in a subdirectory
+  context "when .herb.yml is in a parent directory of the project root" do
+    let(:root) { Dir.mktmpdir }
+    let(:project_root) { File.join(root, "web") }
+    let(:source) { "<img src=\"logo.png\">\n" }
+
+    before do
+      FileUtils.mkdir_p([project_root, File.join(root, ".herb/rules")])
+      File.symlink(File.expand_path("../../node_modules", __dir__), File.join(root, "node_modules"))
+      FileUtils.cp(File.expand_path("../fixtures/herb_lint_noisy/.herb/rules/noisy.mjs", __dir__),
+                   File.join(root, ".herb/rules"))
+      File.write(File.join(root, ".herb.yml"), <<~YAML)
+        version: 0.11.0
+        framework: actionview
+        linter:
+          exclude:
+            - "web/app/views/excluded/**/*"
+      YAML
+    end
+
+    after { FileUtils.remove_entry(root) }
+
+    it "lints the template with the custom rules in the directory of .herb.yml" do
+      expect { runner.run(path, source, {}) }
+        .to output("noisy output from a custom rule\n").to_stderr_from_any_process
+      expect(herb_lint_offenses.map(&:last)).to eq [
+        "Herb/Linting: [html-img-require-alt] Missing required `alt` attribute on `<img>` tag. " \
+        "Add `alt=\"\"` for decorative images or `alt=\"description\"` for informative images."
+      ]
+    end
+
+    context "when the template is excluded by the patterns relative to the directory of .herb.yml" do
+      let(:path) { File.join(project_root, "app/views/excluded/test.html.erb") }
+
+      it "does not lint it" do
+        runner.run(path, source, {})
+        expect(herb_lint_offenses).to eq []
+      end
     end
   end
 
