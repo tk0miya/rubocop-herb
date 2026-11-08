@@ -5,6 +5,7 @@ require "herb"
 module RuboCop
   module Herb
     # Utility module for Ruby comments in ERB: rendering ERB comments as Ruby comments
+    # Shared by RubyRenderer and Herb/IgnoredCopDirective so that the cop detects directives as RuboCop sees them
     module RubyComment
       # Render an ERB comment to a Ruby comment (from "#" of "<%#" to the end of the content)
       # Each line of a multiline comment is commented out with "#"

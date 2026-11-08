@@ -2,7 +2,8 @@
 
 module RuboCop
   module Herb
-    # Configuration module for managing supported extensions.
+    # Configuration of rubocop-herb: the supported extensions, the cops excluded or filtered in ERB files,
+    # and the default configuration of the Herb cops.
     module Configuration
       DEFAULT_EXTENSIONS: Array[String]
 

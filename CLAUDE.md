@@ -6,10 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 rubocop-herb is a RuboCop plugin gem for linting HTML + ERB files. It extracts Ruby code from ERB templates using the Herb parser and passes it to RuboCop for analysis.
 
-## Setup for Claude Code on the Web
-
-When using Claude Code on the web (claude.ai/code), the environment is automatically configured by the SessionStart hook (`.claude/hooks/claude-code-web-session-start.sh`). This initializes rbenv, installs dependencies, installs the RBS collection and installs Node.js packages.
-
 ## Common Commands
 
 ```bash
@@ -24,10 +20,6 @@ bin/rake rubocop             # Run RuboCop only
 bin/rspec                    # Run RSpec tests directly
 bin/console                  # Start IRB with gem loaded
 bin/erb2ruby < file.erb      # Convert ERB to Ruby (dev tool)
-
-# Gem management
-bin/rake install             # Install gem locally
-bin/rake release             # Release to RubyGems
 ```
 
 ### Development Tools
@@ -128,80 +120,55 @@ The libraries count positions and newlines differently, so convert positions exp
 
 ### Key Components
 
-#### Core Processing
+Each class has a doc comment describing its details; read it before changing the class.
+Paths are relative to `lib/rubocop/herb/` unless noted.
 
-- **ErbParser** (`lib/rubocop/herb/erb_parser.rb`): Responsible for parsing and analyzing ERB documents. Parses using `Herb.parse()`, collects node locations via `NodeLocationCollector`, collects lines to disable cops via `DisabledCopsCollector`, and creates a `Source` object. Returns a `ParseResult`
-- **ParseResult** (`lib/rubocop/herb/parse_result.rb`): Data class holding the `Source`, parsed AST, ERB locations and disabled cops, plus utility methods for slicing and lookups
-- **RubyRenderer** (`lib/rubocop/herb/ruby_renderer.rb`): Responsible for converting parsed results to Ruby code. Visitor-based renderer that traverses Herb AST and renders Ruby code. Handles ERB blocks, control flow, comments, and HTML tags
-- **Converter** (`lib/rubocop/herb/converter.rb`): Orchestrates the conversion process, produces `ruby_code`
-- **NodeLocationCollector** (`lib/rubocop/herb/erb_parser/node_location_collector.rb`): Visitor that collects ERB node locations
-- **DisabledCopsCollector** (`lib/rubocop/herb/erb_parser/disabled_cops_collector.rb`): Collects the lines where cops should be disabled to avoid false positives caused by the conversion that depend on the ERB structure (e.g., conditional branches containing only HTML, and the alignment of tags following the HTML structure). False positives on the code rendered by the conversion are left to `CopOffenseFilter`
-- **Branches** (`lib/rubocop/herb/erb_parser/branches.rb`): Utilities for the branches of conditionals and rescue written across ERB tags, including the check for HTML not rendered in the Ruby code (e.g., text too short to place the marker, attributes), used to disable `Lint/DuplicateBranch` for branches differing only in such HTML
-- **Source** (`lib/rubocop/herb/source.rb`): Encapsulates source code and line offset information, and converts Herb positions (bytes and line/column) to character positions
-- **NodeRange** (`lib/rubocop/herb/node_range.rb`): Utility module that computes the character range (`CharRange`) of a Herb AST node
-- **RubyComment** (`lib/rubocop/herb/ruby_comment.rb`): Utility module for Ruby comments in ERB. Renders an ERB comment as a Ruby comment (shared by `RubyRenderer` and `Herb/IgnoredCopDirective` cop so that the cop detects directives as RuboCop sees them)
+#### Conversion
+
+- **Converter** (`converter.rb`): Orchestrates the conversion, produces `ruby_code`
+- **ErbParser** (`erb_parser.rb`): Parses ERB with Herb and returns a `ParseResult` (`Source`, AST, ERB locations, disabled cops)
+  - `erb_parser/node_location_collector.rb`, `erb_parser/disabled_cops_collector.rb`, `erb_parser/branches.rb`
+- **RubyRenderer** (`ruby_renderer.rb`): Visitor rendering the Herb AST to Ruby code
+- **Source** (`source.rb`), **NodeRange** (`node_range.rb`), **CharRange** (`char_range.rb`): Position conversion (see above)
+- **ErbLocation**, **ErbNode**, **EscapedErbVisitor**, **RubyComment**: Helpers for ERB nodes, escaped tags (`<%%`) and ERB comments
 
 #### RuboCop Integration
 
-- **Plugin** (`lib/rubocop/herb/plugin.rb`): LintRoller plugin entry point, registers the Extractor with RuboCop
-- **Extractor** (`lib/rubocop/herb/extractor.rb`): RuboCop extractor interface that converts ERB files to Ruby for analysis
-- **ProcessedSource** (`lib/rubocop/herb/processed_source.rb`): RuboCop ProcessedSource subclass that transforms AST after parsing (keeping the AST before the transformation for `ReparsedEquivalenceAdapter`), provides a CommentConfig built from `ParseResult#disabled_cops`, `ImmovableExpressionCollector` and `HtmlOnlyLineCollector`, and provides `VerbatimCode` for `CopOffenseFilter`
-- **CommentConfig** (`lib/rubocop/herb/comment_config.rb`): RuboCop CommentConfig subclass that disables cops at given line ranges as if `rubocop:disable` comments were written there
-- **ImmovableExpressionCollector** (`lib/rubocop/herb/immovable_expression_collector.rb`): Collects the lines to disable `Style/IdenticalConditionalBranches` for expressions that cannot be moved out of conditionals because HTML is next to them (e.g., `<input <%= x %>>` or `(<%= x %>)` in every branch), and for expressions on the first or last line of the conditional (e.g., conditionals written on a single line), on which the cop's autocorrection crashes
-- **HtmlOnlyLineCollector** (`lib/rubocop/herb/html_only_line_collector.rb`): Collects the lines without ERB tags (HTML only and blank lines) to disable `Layout/LineLength`, as RuboCop checks the Ruby code in ERB tags only. The length of HTML lines is left to herb-format. Lines with ERB tags (including the lines of a multi-line ERB tag) are still checked, as herb-format does not wrap the Ruby code in ERB tags. The cop is disabled by lines (not by `VerbatimCode`), as it reports the part of a line over the limit, which may be HTML on a line with ERB tags
-- **VerbatimCode** (`lib/rubocop/herb/verbatim_code.rb`): Checks whether a range of the Ruby code is the code written in an ERB tag (excluding the delimiters), copied verbatim from the ERB source. The ranges of offenses on the code rendered by the conversion (HTML markers, delimiters rendered as whitespace or `_ =`, semicolons rendered at the closings of tags) cover other characters
-- **CopOffenseFilter** (`lib/rubocop/herb/cop_offense_filter.rb`): Module prepended to `RuboCop::Cop::Base` that disables the cops reporting the code rendered by the conversion (`Configuration::VERBATIM_CODE_COPS`, e.g. `Layout/TrailingWhitespace`, `Style/WhenThen`, `Style/Semicolon`) except for the code accepted by `VerbatimCode`, as if `rubocop:disable` comments were written there (but not affected by `--ignore-disable-comments`). It enables `Layout/ExtraSpacing` and `Style/Semicolon` for the code in ERB tags, which would otherwise be excluded from ERB files
-- **CopCorrectionGuard** (`lib/rubocop/herb/cop_correction_guard.rb`): Module prepended to `RuboCop::Cop::Base` that discards autocorrections rejected by `CorrectionValidator` and the ones of `Configuration::UNCORRECTABLE_COPS` (e.g. `Style/Semicolon`, which breaks the line without indenting the next statement) (the offense is reported as not autocorrectable), tries the correction trimmed by `CorrectionAdjuster` before the original one, and disables `--disable-uncorrectable` for ERB files. The corrections of the Herb cops are not checked, as they correct the ERB source knowing its tags
-- **CorrectionAdjuster** (`lib/rubocop/herb/correction_adjuster.rb`): Trims a correction removing code along with the whitespace around it (e.g. `Lint/Void`), which also covers the ERB delimiters rendered as whitespace, to the content of the ERB tag. It also adjusts the corrections of rubocop directives in ERB comments rendered as Ruby comments (e.g. `Lint/RedundantCopDisableDirective`), which continue over the closing delimiter rendered as whitespace, to keep the delimiters (`<%#` and `%>`) of the comment. A correction removing a whole ERB comment is trimmed to its content, and `Herb/EmptyErbTag` removes the empty comment left. The adjuster only keeps corrections from breaking ERB tags; the layout (lines and whitespace) is left to `Herb/EmptyErbTag` and herb-lint
-- **CorrectionValidator** (`lib/rubocop/herb/correction_validator.rb`): Applies a correction to the original ERB source and accepts it only if the HTML parts between ERB tags are kept (ignoring whitespace at their edges), the number of output tags (`<%=` and `<%==`) is kept, no ERB tag swallows other tags (`<%` in the contents of ERB tags), the number of ERB tags with code does not increase (e.g. an ERB comment losing `#`), no new parse errors are introduced and no line break is inserted between the code and the closing delimiter of an ERB tag on the same line (e.g. `Layout/LineLength` breaking a line after the semicolon rendered before `%>`, which moves `%>` to the next line). Rejects corrections spanning multiple ERB tags that move or drop HTML (e.g. swapping if/else branches), or that move the code of output tags into other tags (e.g. `Style/UnlessElse` turning `<% unless a %><%= x %><% else %><%= y %><% end %>` into `<% _ = a ? y : x %>`)
-- **RuboCopASTTransformer** (`lib/rubocop/herb/rubocop_ast_transformer.rb`): AST processor that renames nodes rendered from HTML uniquely so that cops comparing code (e.g. `Lint/DuplicateBranch`) only compare the Ruby parts
-- **ReparsedEquivalenceAdapter** (`lib/rubocop/herb/reparsed_equivalence_adapter.rb`): Module prepended to `RuboCop::Cop::ReparsedEquivalence` (rubocop 1.92.0+) that compares the reparsed AST of a correction with the AST before the transformation by `RuboCopASTTransformer`. Without it, the cops verifying their corrections by reparsing (e.g. `Style/RedundantParentheses`, `Style/MethodCallWithoutArgsParentheses` and `Style/TernaryParentheses`) drop their offenses or corrections in templates with HTML, as the reparsed AST never equals the transformed one
-- **Configuration** (`lib/rubocop/herb/configuration.rb`): Manages supported extensions, excluded cops, the cops filtered by `CopOffenseFilter` and `CopCorrectionGuard`, and the default configuration of the Herb cops
+- **Plugin** / **Extractor**: Entry points registering the conversion with RuboCop
+- **ProcessedSource** (`processed_source.rb`): Transforms the AST with **RuboCopASTTransformer** and builds the **CommentConfig** from `DisabledCopsCollector`, **ImmovableExpressionCollector** and **HtmlOnlyLineCollector**
+- **CopOffenseFilter** + **VerbatimCode**: Suppress offenses on the code rendered by the conversion (`Configuration::VERBATIM_CODE_COPS`)
+- **CopCorrectionGuard** + **CorrectionAdjuster** + **CorrectionValidator**: Trim and validate autocorrections so that they never break ERB tags
+- **ReparsedEquivalenceAdapter**: Lets the cops reparsing their corrections compare with the AST before the transformation
+- **Configuration** (`configuration.rb`): Extensions, `EXCLUDED_COPS`, `VERBATIM_CODE_COPS`, `UNCORRECTABLE_COPS`
 
 #### Herb Tools Integration (herb-lint and herb-format)
 
-- **Herb/Linting cop** (`lib/rubocop/cop/herb/linting.rb`): Runs herb-lint (`@herb-tools/linter`, a Node.js package) on HTML+ERB files and reports its offenses as RuboCop offenses (except the rules replaced by other Herb cops, e.g. `erb-no-empty-tags` by `Herb/EmptyErbTag`). Enabled by default; if herb-lint is not available, it reports an error once (not for every file) to ask users to set it up or disable the cop. Autocorrects the offenses with the fixes of herb-lint (the unsafe ones of `herb-lint --fix-unsafely` only with `rubocop -A`); a fix overlapping the ones applied before is left to the next iteration of autocorrection. Its name, message format (`[rule] message`) and severity mapping are aligned with the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility
-- **Herb/Formatting cop** (`lib/rubocop/cop/herb/formatting.rb`): Runs herb-format (`@herb-tools/formatter`) on HTML+ERB files, reports each part changed by the formatting as an offense, and formats the files by autocorrection (unsafe, as herb-format is in experimental preview and changes the whitespace in HTML). Enabled by default, but does nothing unless the formatter is enabled in `.herb.yml` (`formatter.enabled`, searched from the project root upwards as Herb tools do); the cop checks it in Ruby so that it spawns no Node.js process (and requires no Node.js) when the formatter is disabled. If herb-format is not available while enabled, it reports an error once
-- **HerbToolCop** (`lib/rubocop/herb/herb_tool_cop.rb`): Mixin of the Herb/Linting and Herb/Formatting cops: the checksum of the result cache (Node.js, the server scripts, the package of the tool, and the configuration files in the directory of `.herb.yml`, which is searched from the project root upwards as Herb tools do), the report of the startup error, and the correction with the fixes of the tool
-- **NodeServerClient** (`lib/rubocop/herb/node_server_client.rb`): Base class of the clients of the Node.js servers. Spawns the server once per process and class (lazily, so that forked workers of `rubocop --parallel` spawn their own one), remembers its startup error, and respawns it when the checksum of the configuration changes
-- **HerbLintClient** (`lib/rubocop/herb/herb_lint_client.rb`): Client of the herb-lint server. Receives offenses with their fixes (replacements of the source in character offsets)
-- **HerbFormatClient** (`lib/rubocop/herb/herb_format_client.rb`): Client of the herb-format server. Receives the fixes turning the source into the formatted one
-- **Node.js servers** (`lib/rubocop/herb/node_server.cjs`): Shared parts of the servers: the JSON Lines protocol over stdin/stdout, the resolution of the packages from the project, the directory of `.herb.yml` (to which the patterns in it and the custom rules and rewriters are relative; the project root without `.herb.yml`), and the smallest replacement between two strings in code points
-- **herb-lint server** (`lib/rubocop/herb/herb_lint_server.cjs`): Loads herb-lint (with the custom rules in the directory of `.herb.yml`) from the project and lints files, passing their paths relative to the directory of `.herb.yml` as the herb-lint CLI does. Fixes each autocorrectable offense separately with `Linter#autofix` and returns the smallest replacement turning the source into the fixed one
-- **herb-format server** (`lib/rubocop/herb/herb_format_server.cjs`): Loads herb-format (with the rewriters configured in `.herb.yml`, loaded from the directory of `.herb.yml` as the herb-format CLI does) from the project and formats files. Passes absolute paths to `isFormatterEnabledForPath`, as the patterns of `.herb.yml` are relative to its directory, which may be above the project root. Splits the differences into fixes by the lines matched ignoring the whitespace around them (so that a reindented line is a fix by itself), joining the fixes touching each other. Returns no fixes for files herb-format skips or whose formatted source has more parse errors
+- **Herb/Linting**, **Herb/Formatting** (`lib/rubocop/cop/herb/`): Run herb-lint / herb-format and report their results; shared logic in **HerbToolCop**
+- **NodeServerClient** → **HerbLintClient**, **HerbFormatClient**: Clients of long-running Node.js servers
+- `node_server.cjs`, `herb_lint_server.cjs`, `herb_format_server.cjs`: The servers (JSON Lines over stdin/stdout)
 
-#### Other Cops
+#### Other Cops (`lib/rubocop/cop/herb/`)
 
-- **Herb/EmptyErbTag cop** (`lib/rubocop/cop/herb/empty_erb_tag.rb`): Reports empty `<% %>` tags and `<%# %>` comments and removes them by autocorrection (with their lines if they are alone on them or with other empty tags only, with the whitespace after them if they start the line (except `<%-`, which keeps the rendered output), and with the whitespace trimmed by `<%-` and `-%>`; the trailing whitespace left by a tag ending the line is left to herb-lint's `erb-no-trailing-whitespace`). Removes the tags left empty by corrections removing the whole code of a tag (e.g. `Lint/Void` turns `<% 1 %>` into `<% %>`, and `Lint/RedundantCopDisableDirective` turns an ERB comment into `<%#%>`, as `CorrectionAdjuster` keeps the delimiters), through RuboCop's autocorrection loop.
-- **Herb/IgnoredCopDirective cop** (`lib/rubocop/cop/herb/ignored_cop_directive.rb`): Reports rubocop directives (e.g. `rubocop:disable`) in ERB comments followed by ERB tags or HTML on the same line. rubocop-herb ignores such a comment because it would comment out the following code, so the directive has no effect. Ordinary comments are not reported because ignoring them is harmless. No autocorrection because inserting a line break may change the rendered whitespace
+- **Herb/EmptyErbTag**: Removes empty ERB tags, including the ones left by other cops' corrections
+- **Herb/IgnoredCopDirective**: Reports rubocop directives in ERB comments ignored because code or HTML follows them
 
-#### Utilities
+### Design Rules
 
-- **CharRange** (`lib/rubocop/herb/char_range.rb`): Data class storing a character-based (not byte-based) range
-- **ErbLocation** (`lib/rubocop/herb/erb_location.rb`): Location and metadata (type, node, range, line, column) of an ERB node
-- **ErbNode** (`lib/rubocop/herb/erb_node.rb`): Utility module for Herb AST nodes of ERB tags. `ErbNode.escaped?` checks for escaped ERB tags (`<%%`)
-- **EscapedErbVisitor** (`lib/rubocop/herb/escaped_erb_visitor.rb`): Mixin for Herb visitors to handle escaped ERB tags as text
+- Autocorrections must never break ERB tags. Guard them generically with `CorrectionAdjuster` / `CorrectionValidator` (or `UNCORRECTABLE_COPS`) rather than special-casing cops elsewhere
+- Where to suppress false positives:
+  - Caused by the ERB structure (e.g. branches containing only HTML) → `DisabledCopsCollector`
+  - On the code rendered by the conversion (HTML markers, delimiters, semicolons) → `VERBATIM_CODE_COPS` (`CopOffenseFilter`)
+  - Inherently incompatible with ERB → `EXCLUDED_COPS`
+- Herb cops correct the ERB source directly, so `CopCorrectionGuard` does not check them
+- `CorrectionAdjuster` only keeps corrections from breaking ERB tags; the layout (lines and whitespace) is left to `Herb/EmptyErbTag` and herb-lint
+- Herb/Linting and Herb/Formatting must not spawn Node.js unless needed, and report a startup error once per process (not for every file)
+- Herb/Linting, Herb/Formatting and their servers resolve `.herb.yml` from the project root upwards and treat its patterns, custom rules and rewriters as relative to its directory, as the Herb CLIs do (the Ruby side and the servers must agree)
 
 ### Dependencies
 
-- `herb` (>= 0.11.0): ERB parser that provides AST for HTML+ERB files
-  - herb is still pre-1.0 and its AST changes between minor versions, so only the latest minor version is supported.
-    When bumping herb to a new minor version, raise the lower bound in the gemspec as well and drop code for older versions.
-    Do not add an upper bound.
-- `lint_roller` (>= 1.1.0): RuboCop plugin framework for registering extractors
-- `not_nilable`: Provides `#not_nil!` for unwrapping nilable values with type narrowing
-- `rubocop` (>= 1.90.0): The linter itself; 1.90.0 is required because `CommentConfig` overrides `cop_enabled_at_lines?`, introduced in that version
-
-### Configuration Options
-
-The plugin supports these configuration options in `.rubocop.yml`:
-
-```yaml
-plugins:
-  - rubocop-herb:
-      extensions:
-        - .html.erb # Default: [".html.erb"]
-```
+- herb is still pre-1.0 and its AST changes between minor versions, so only the latest minor version is supported.
+  When bumping herb to a new minor version, raise the lower bound in the gemspec as well and drop code for older versions.
+  Do not add an upper bound.
 
 ## Code Conventions
 
@@ -263,4 +230,4 @@ Result = Data.define(
 
 ### Generating RBS Files
 
-Type definition files (`.rbs`) are generated automatically by the PostToolUse hook when `.rb` files in `lib/` are modified. **Never edit `.rbs` files directly** - always modify the inline annotations in Ruby source files.
+**Never edit `.rbs` files in `sig/` directly**; they are generated from the inline annotations by the PostToolUse hook.

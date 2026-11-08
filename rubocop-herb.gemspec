@@ -38,5 +38,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "herb", ">= 0.11.0"
   spec.add_dependency "lint_roller", ">= 1.1.0"
   spec.add_dependency "not_nilable"
+  # 1.90.0 introduced CommentConfig#cop_enabled_at_lines?, overridden by RuboCop::Herb::CommentConfig
   spec.add_dependency "rubocop", ">= 1.90.0"
 end
