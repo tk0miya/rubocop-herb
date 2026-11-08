@@ -10,10 +10,12 @@ module RuboCop
       # An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removing `1` from `<% 1 %>`)
       # leaves an empty tag, as rubocop-herb keeps the delimiters of ERB tags.  This cop removes it,
       # along with its line if the tag is alone on the line (or with other empty tags only),
-      # so that the code is removed as in Ruby files.  If the tag ends the line after other content,
-      # the whitespace before it is removed too, so as not to leave trailing whitespace.
-      # Otherwise the whitespace trimmed by the trim markers (the indentation before `<%-` and
+      # so that the code is removed as in Ruby files.  If the tag (except `<%-`) starts the line before other content,
+      # the whitespace after it is removed too, so as not to indent the content further.
+      # The whitespace trimmed by the trim markers (the indentation before `<%-` and
       # the newline after `-%>`) is removed along with the tag, so the rendered output is kept.
+      # The trailing whitespace left by removing a tag ending the line is left to herb-lint
+      # (`erb-no-trailing-whitespace`, fixed by Herb/Linting).
       #
       # Output tags (`<%= %>`) and literal tags (`<%% %>`) are not checked.
       #
@@ -86,34 +88,34 @@ module RuboCop
 
         # The range to remove for the tag
         # The line is removed if the tag is alone on it or with other empty tags only (e.g. `<% %> <% %>`).
-        # The whitespace before the tag is removed if the tag ends the line, unless `-%>` trims the newline,
-        # so as not to leave trailing whitespace.
+        # If the tag (except `<%-`) starts the line before other content, the whitespace after it is removed,
+        # keeping the indentation of the line, so as not to indent the following content further.
         # Otherwise the indentation before `<%-` and the newline after `-%>` are removed
-        # as they are trimmed from the output
+        # as they are trimmed from the output (the whitespace after `<%-` is rendered as the indentation)
         # @rbs node: ::RuboCop::Herb::erb_node
         # @rbs tag: ::RuboCop::Herb::CharRange
         # @rbs parse_result: ::RuboCop::Herb::ParseResult
         def removal_range(node, tag, parse_result) #: ::RuboCop::Herb::CharRange
           line_from = line_range(tag.from, parse_result).first
           line_to = line_range(tag.to, parse_result).last
-          ends_line = blank?(parse_result, tag.to, line_to)
-          if ends_line && blank?(parse_result, line_from, tag.from)
+          starts_line = blank?(parse_result, line_from, tag.from)
+          if starts_line && blank?(parse_result, tag.to, line_to)
             return ::RuboCop::Herb::CharRange.new(line_from, line_to)
           end
-          if ends_line && !trims_newline?(node, tag, parse_result)
-            return ::RuboCop::Herb::CharRange.new(whitespace_start(tag.from, line_from, parse_result), tag.to)
+
+          if starts_line && node.tag_opening&.value != "<%-"
+            return ::RuboCop::Herb::CharRange.new(tag.from, whitespace_end(tag.to, line_to, parse_result))
           end
 
           trimmed_range(node, tag, line_from, parse_result)
         end
 
-        # The start position of the whitespace before the position in the line
+        # The end position of the whitespace after the position in the line
         # @rbs pos: Integer
-        # @rbs line_from: Integer -- start position of the line
+        # @rbs line_to: Integer -- end position of the line
         # @rbs parse_result: ::RuboCop::Herb::ParseResult
-        def whitespace_start(pos, line_from, parse_result) #: Integer
-          whitespace = parse_result.slice(::RuboCop::Herb::CharRange.new(line_from, pos))[/[[:blank:]]*\z/].to_s
-          pos - whitespace.length
+        def whitespace_end(pos, line_to, parse_result) #: Integer
+          pos + parse_result.slice(::RuboCop::Herb::CharRange.new(pos, line_to))[/\A[[:blank:]]*/].to_s.length
         end
 
         # The range of the tag and the whitespace trimmed by its trim markers
