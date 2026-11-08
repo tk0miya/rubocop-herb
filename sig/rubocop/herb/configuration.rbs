@@ -30,6 +30,12 @@ module RuboCop
       # @rbs globs: Array[String]
       private def self.herb_lint_config: (Array[String] globs) -> Hash[String, untyped]
 
+      # Default configuration of Herb/Formatting cop.
+      # It is enabled, but does nothing unless the formatter is enabled in .herb.yml (`formatter.enabled`).
+      # The autocorrection is unsafe as herb-format is in experimental preview and changes the whitespace in HTML
+      # @rbs globs: Array[String]
+      private def self.herb_format_config: (Array[String] globs) -> Hash[String, untyped]
+
       # Default configuration of Herb/IgnoredCopDirective cop
       # @rbs globs: Array[String]
       private def self.ignored_cop_directive_config: (Array[String] globs) -> Hash[String, untyped]

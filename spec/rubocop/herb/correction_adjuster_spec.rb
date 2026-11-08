@@ -66,7 +66,10 @@ RSpec.describe RuboCop::Herb::CorrectionAdjuster do
 
       before { corrector.replace(range(6, 40), " # ") }
 
-      it { is_expected.to eq "<%= x %>\n<%= y %>" }
+      # The empty ERB comment is removed by Herb/EmptyErbTag
+      it "removes the content of the ERB comment, keeping its delimiters" do
+        expect(subject).to eq "<%= x %><%#%>\n<%= y %>"
+      end
     end
 
     context "when the correction replaces a whole ERB comment on its own line with ` # ` to the next line" do
@@ -74,8 +77,8 @@ RSpec.describe RuboCop::Herb::CorrectionAdjuster do
 
       before { corrector.replace(range(11, 42), " # ") }
 
-      it "removes the line of the ERB comment, keeping the indentation of the next line" do
-        expect(subject).to eq "<div>\n\n  <%= x %>\n</div>"
+      it "removes the content of the ERB comment, keeping its delimiters and the next line" do
+        expect(subject).to eq "<div>\n\n  <%#%>\n  <%= x %>\n</div>"
       end
     end
 
@@ -85,8 +88,8 @@ RSpec.describe RuboCop::Herb::CorrectionAdjuster do
 
       before { corrector.replace(range(2, 41), " # ") }
 
-      it "removes the ERB comment with the whitespace before it, keeping the HTML" do
-        expect(subject).to eq "<p>a</p>\n<%= x %>"
+      it "removes the content of the ERB comment, keeping its delimiters and the HTML" do
+        expect(subject).to eq "<p>a</p> <%#%>\n<%= x %>"
       end
     end
 

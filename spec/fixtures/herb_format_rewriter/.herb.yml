@@ -1,0 +1,8 @@
+version: 0.11.0
+framework: actionview
+formatter:
+  enabled: true
+  rewriter:
+    post:
+      - prepend-comment
+      - no-such-rewriter

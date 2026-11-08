@@ -21,6 +21,8 @@ module RuboCop
       #   # good
       #   <img src="logo.png" alt="Logo">
       class Linting < Base
+        include ::RuboCop::Herb::HerbToolCop
+
         extend AutoCorrector
 
         SEVERITIES: Hash[String, Symbol]
@@ -28,13 +30,13 @@ module RuboCop
         # Rules of herb-lint not reported, as other Herb cops report the same offenses with autocorrection
         REPLACED_RULES: Array[String]
 
-        # Files affecting the result of herb-lint other than the linted file itself
+        # Files in the project root affecting the result of herb-lint other than the linted file itself
         CONFIG_FILES: Array[String]
 
-        def on_new_investigation: () -> void
+        # Files in the directory of .herb.yml affecting the result of herb-lint
+        HERB_CONFIG_FILES: Array[String]
 
-        # Invalidates the result cache when Node.js, herb-lint, its configuration, or custom rules change
-        def external_dependency_checksum: () -> String
+        def on_new_investigation: () -> void
 
         private
 
@@ -49,25 +51,6 @@ module RuboCop
         # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
         def report: (::RuboCop::Herb::HerbLintClient::Offense offense, ::RuboCop::Cop::Corrector applied) -> void
 
-        # Adds an offense at the range, or to the whole file if the file is empty
-        # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
-        # reports a global offense for it
-        # @rbs range: Parser::Source::Range
-        # @rbs message: String
-        # @rbs severity: Symbol
-        # @rbs &block: ? (::RuboCop::Cop::Corrector) -> void
-        def add_offense_at: (Parser::Source::Range range, String message, Symbol severity) ?{ (::RuboCop::Cop::Corrector) -> void } -> void
-
-        # Corrects the source with the fix of herb-lint.
-        # herb-lint fixes each offense on the source as it is, so the fixes of the offenses may overlap
-        # (e.g. both the opening and closing tags of an element are replaced to fix the case of its name).
-        # A fix clobbering the fixes applied before is skipped (the offense is reported as not corrected),
-        # and is applied in the next iteration of autocorrection, where herb-lint reports it again if it remains.
-        # @rbs corrector: ::RuboCop::Cop::Corrector
-        # @rbs fix: ::RuboCop::Herb::HerbLintClient::Fix
-        # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
-        def correct_with: (::RuboCop::Cop::Corrector corrector, ::RuboCop::Herb::HerbLintClient::Fix fix, ::RuboCop::Cop::Corrector applied) -> void
-
         # Offenses of herb-lint except the rules replaced by other Herb cops
         # @rbs source: ::RuboCop::Herb::ProcessedSource
         # @rbs path: String -- absolute path of the file
@@ -80,12 +63,11 @@ module RuboCop
 
         def client: () -> ::RuboCop::Herb::HerbLintClient
 
-        def node_command: () -> String
+        def config_files: () -> Array[String]
 
-        # The path of the Node.js executable; nil if not installed
-        def node_path: () -> String?
+        def herb_config_files: () -> Array[String]
 
-        def project_root: () -> String
+        def server_scripts: () -> Array[String]
 
         # @rbs offense: ::RuboCop::Herb::HerbLintClient::Offense
         def offense_range: (::RuboCop::Herb::HerbLintClient::Offense offense) -> Parser::Source::Range

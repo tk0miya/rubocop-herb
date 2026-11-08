@@ -1,0 +1,72 @@
+# Generated from lib/rubocop/herb/herb_tool_cop.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Shared by the cops running Herb tools on Node.js servers (Herb/Linting and Herb/Formatting).
+    # The including cop defines `config_files`, `herb_config_files` and `server_scripts`.
+    # @rbs module-self ::RuboCop::Cop::Base
+    module HerbToolCop : ::RuboCop::Cop::Base
+      private def config_files: () -> Array[String]
+
+      private def herb_config_files: () -> Array[String]
+
+      private def server_scripts: () -> Array[String]
+
+      # Invalidates the result cache when Node.js, the Herb tool, its configuration, or its plugins change
+      def external_dependency_checksum: () -> String
+
+      private
+
+      # The absolute paths of the files matching the patterns in the directory
+      # @rbs patterns: Array[String]
+      # @rbs dir: String
+      def glob: (Array[String] patterns, String dir) -> Array[String]
+
+      # Reports that the Herb tool is not available, once (not for every file)
+      # @rbs client: NodeServerClient
+      # @rbs path: String -- absolute path of the file
+      # @rbs error: NodeServerClient::StartupError
+      # @rbs tool: String -- the name of the Herb tool (e.g. "herb-lint")
+      # @rbs package: String -- the package of the Herb tool (e.g. "@herb-tools/linter")
+      def report_startup_error: (NodeServerClient client, String path, NodeServerClient::StartupError error, tool: String, package: String) -> void
+
+      # Adds an offense at the range, or to the whole file if the file is empty
+      # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
+      # reports a global offense for it
+      # @rbs range: Parser::Source::Range
+      # @rbs message: String
+      # @rbs severity: Symbol
+      # @rbs &block: ? (::RuboCop::Cop::Corrector) -> void
+      def add_offense_at: (Parser::Source::Range range, String message, Symbol severity) ?{ (::RuboCop::Cop::Corrector) -> void } -> void
+
+      # Corrects the source with the fix of the Herb tool.
+      # The Herb tool fixes the source as it is, so its fixes may overlap
+      # (e.g. both the opening and closing tags of an element are replaced to fix the case of its name).
+      # A fix clobbering the fixes applied before is skipped (the offense is reported as not corrected),
+      # and is applied in the next iteration of autocorrection, where the Herb tool reports it again if it remains.
+      # @rbs corrector: ::RuboCop::Cop::Corrector
+      # @rbs fix: NodeServerClient::Fix
+      # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
+      def correct_with: (::RuboCop::Cop::Corrector corrector, NodeServerClient::Fix fix, ::RuboCop::Cop::Corrector applied) -> void
+
+      # @rbs fix: NodeServerClient::Fix
+      def fix_range: (NodeServerClient::Fix fix) -> Parser::Source::Range
+
+      def node_command: () -> String
+
+      # The path of the Node.js executable; nil if not installed
+      def node_path: () -> String?
+
+      def project_root: () -> String
+
+      # The path of .herb.yml, searched from the project root up to the root directory as Herb tools do;
+      # nil if not found
+      def herb_config_path: () -> String?
+
+      # The directory of .herb.yml (the project root if not found), to which the configuration of Herb tools
+      # (e.g. the patterns in .herb.yml and the directory of custom rules) is relative.
+      # It may be above the project root (e.g. a monorepo with .herb.yml at its root)
+      def herb_config_dir: () -> String
+    end
+  end
+end

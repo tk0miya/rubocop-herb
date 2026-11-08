@@ -1,0 +1,64 @@
+# Generated from lib/rubocop/cop/herb/formatting.rb with RBS::Inline
+
+module RuboCop
+  module Cop
+    module Herb
+      # Checks that HTML+ERB files are formatted as herb-format (@herb-tools/formatter) formats them,
+      # and formats them by autocorrection.
+      #
+      # This cop does nothing unless the formatter is enabled in `.herb.yml` (`formatter.enabled: true`),
+      # as herb-format does nothing unless it is enabled. So it is enabled by default,
+      # and `.herb.yml` decides whether to format files (and which files with `formatter.exclude`).
+      # When the formatter is enabled, this cop requires Node.js and @herb-tools/formatter installed in the project
+      # (`npm install --save-dev @herb-tools/formatter`).
+      # If herb-format is not available, an offense asking to set it up or disable this cop is reported
+      # (reported once, not for every file).
+      #
+      # Each part of the file changed by the formatting (e.g. the indentation of a line) is reported as an offense.
+      # The autocorrection is unsafe, as herb-format is in experimental preview,
+      # and changes the whitespace in HTML, which may change how the page is rendered.
+      #
+      # @example
+      #   # bad
+      #   <div><p><%= @user.name %></p></div>
+      #
+      #   # good
+      #   <div>
+      #     <p><%= @user.name %></p>
+      #   </div>
+      class Formatting < Base
+        include ::RuboCop::Herb::HerbToolCop
+
+        extend AutoCorrector
+
+        MSG: ::String
+
+        # Files in the project root affecting the result of herb-format other than the formatted file itself
+        CONFIG_FILES: Array[String]
+
+        # Files in the directory of .herb.yml affecting the result of herb-format
+        HERB_CONFIG_FILES: Array[String]
+
+        def on_new_investigation: () -> void
+
+        private
+
+        # @rbs source: ::RuboCop::Herb::ProcessedSource
+        # @rbs path: String -- absolute path of the file
+        def format: (::RuboCop::Herb::ProcessedSource source, String path) -> void
+
+        # Whether the formatter is enabled in .herb.yml (`formatter.enabled`; disabled by default).
+        # An invalid .herb.yml is left to herb-format to report the error.
+        def formatter_enabled?: () -> bool
+
+        def client: () -> ::RuboCop::Herb::HerbFormatClient
+
+        def config_files: () -> Array[String]
+
+        def herb_config_files: () -> Array[String]
+
+        def server_scripts: () -> Array[String]
+      end
+    end
+  end
+end

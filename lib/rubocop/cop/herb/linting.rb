@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "digest/sha1"
 require "rubocop"
 
 module RuboCop
@@ -24,6 +23,7 @@ module RuboCop
       #   # good
       #   <img src="logo.png" alt="Logo">
       class Linting < Base
+        include ::RuboCop::Herb::HerbToolCop
         extend AutoCorrector
 
         SEVERITIES = {
@@ -38,10 +38,14 @@ module RuboCop
           "erb-no-empty-tags" # Herb/EmptyErbTag
         ].freeze #: Array[String]
 
-        # Files affecting the result of herb-lint other than the linted file itself
+        # Files in the project root affecting the result of herb-lint other than the linted file itself
         CONFIG_FILES = [
+          "node_modules/@herb-tools/linter/package.json"
+        ].freeze #: Array[String]
+
+        # Files in the directory of .herb.yml affecting the result of herb-lint
+        HERB_CONFIG_FILES = [
           ".herb.yml",
-          "node_modules/@herb-tools/linter/package.json",
           ".herb/rules/**/*.{js,mjs}"
         ].freeze #: Array[String]
 
@@ -55,14 +59,6 @@ module RuboCop
           lint(source, File.expand_path(path))
         end
 
-        # Invalidates the result cache when Node.js, herb-lint, its configuration, or custom rules change
-        def external_dependency_checksum #: String
-          files = CONFIG_FILES.flat_map { Dir.glob(_1, base: project_root) }.sort
-          contents = files.map { "#{_1}\n#{File.read(File.join(project_root, _1))}" }
-          Digest::SHA1.hexdigest([node_command, node_path.to_s, File.read(::RuboCop::Herb::HerbLintClient::SERVER_SCRIPT),
-                                  *contents].join("\n"))
-        end
-
         private
 
         attr_reader :options #: Hash[Symbol, untyped] -- options of RuboCop; Base has no reader for them
@@ -74,14 +70,7 @@ module RuboCop
           applied = ::RuboCop::Cop::Corrector.new(source.buffer)
           herb_lint_offenses(source, path).each { report(_1, applied) }
         rescue ::RuboCop::Herb::HerbLintClient::StartupError => e
-          # Do not consume the report on a file where it would be suppressed by a disable comment
-          return unless source.comment_config.cop_enabled_at_line?(self, 1)
-          return unless client.report_startup_error_on?(path)
-
-          add_offense_at(source.buffer.line_range(1),
-                         "herb-lint is not available: #{e.message}. Set up herb-lint " \
-                         "(`npm install --save-dev @herb-tools/linter`) or disable Herb/Linting cop.",
-                         :error)
+          report_startup_error(client, path, e, tool: "herb-lint", package: "@herb-tools/linter")
         end
 
         # Reports the offense of herb-lint with its fix
@@ -93,44 +82,6 @@ module RuboCop
             fix = offense.fix
             correct_with(corrector, fix, applied) if fix
           end
-        end
-
-        # Adds an offense at the range, or to the whole file if the file is empty
-        # Formatters fail to read the source line of an offense in an empty file, so Lint/EmptyFile also
-        # reports a global offense for it
-        # @rbs range: Parser::Source::Range
-        # @rbs message: String
-        # @rbs severity: Symbol
-        # @rbs &block: ? (::RuboCop::Cop::Corrector) -> void
-        def add_offense_at(range, message, severity, &block) #: void
-          if processed_source.buffer.source.empty?
-            add_global_offense(message, severity:)
-          elsif block # Steep does not accept passing a nil block to add_offense
-            add_offense(range, message:, severity:, &block)
-          else
-            add_offense(range, message:, severity:)
-          end
-        end
-
-        # Corrects the source with the fix of herb-lint.
-        # herb-lint fixes each offense on the source as it is, so the fixes of the offenses may overlap
-        # (e.g. both the opening and closing tags of an element are replaced to fix the case of its name).
-        # A fix clobbering the fixes applied before is skipped (the offense is reported as not corrected),
-        # and is applied in the next iteration of autocorrection, where herb-lint reports it again if it remains.
-        # @rbs corrector: ::RuboCop::Cop::Corrector
-        # @rbs fix: ::RuboCop::Herb::HerbLintClient::Fix
-        # @rbs applied: ::RuboCop::Cop::Corrector -- the fixes applied so far
-        def correct_with(corrector, fix, applied) #: void
-          buffer = corrector.source_buffer
-          return unless fix.end_pos <= buffer.source.length
-
-          candidate = ::RuboCop::Cop::Corrector.new(buffer)
-          candidate.replace(Parser::Source::Range.new(buffer, fix.begin_pos, fix.end_pos), fix.replacement)
-          # Corrections are applied only when autocorrecting; otherwise they only mark offenses as correctable
-          applied.merge!(candidate) if autocorrect?
-          corrector.merge!(candidate)
-        rescue ::Parser::ClobberingError
-          nil
         end
 
         # Offenses of herb-lint except the rules replaced by other Herb cops
@@ -152,24 +103,16 @@ module RuboCop
           ::RuboCop::Herb::HerbLintClient.for(node_command:, project_root:, checksum: external_dependency_checksum)
         end
 
-        def node_command #: String
-          cop_config.fetch("NodeCommand", "node")
+        def config_files #: Array[String]
+          CONFIG_FILES
         end
 
-        # The path of the Node.js executable; nil if not installed
-        def node_path #: String?
-          candidates = if node_command.include?(File::SEPARATOR)
-                         [node_command]
-                       else
-                         ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).map { File.join(_1, node_command) }
-                       end
-          # Resolve symlinks to detect upgrades of Node.js installed via symlinks (e.g. Homebrew)
-          path = candidates.find { File.file?(_1) && File.executable?(_1) }
-          path && File.realpath(path)
+        def herb_config_files #: Array[String]
+          HERB_CONFIG_FILES
         end
 
-        def project_root #: String
-          ::RuboCop::ConfigFinder.project_root || Dir.pwd
+        def server_scripts #: Array[String]
+          ::RuboCop::Herb::HerbLintClient.server_scripts
         end
 
         # @rbs offense: ::RuboCop::Herb::HerbLintClient::Offense

@@ -41,7 +41,8 @@ is not applied. Such offenses are reported as not autocorrectable.
 
 `Layout/LineLength` checks only the lines with ERB tags.
 Lines without ERB tags are HTML only, whose length is left to
-[herb-format](https://herb-tools.dev/projects/formatter) as it wraps HTML (e.g. attributes) by itself.
+[herb-format](https://herb-tools.dev/projects/formatter) as it wraps HTML (e.g. attributes) by itself
+(see [Herb/Formatting cop](#running-herb-format-together-herbformatting-cop)).
 herb-format does not wrap the Ruby code in ERB tags, so RuboCop still checks the lines with ERB tags.
 When using both, align `Max` of `Layout/LineLength` with `maxLineLength` of herb-format
 (`formatter.maxLineLength` in `.herb.yml`, 80 by default, while RuboCop's default is 120).
@@ -78,8 +79,10 @@ Herb/Linting:
   # NodeCommand: node  # The Node.js executable (default: node)
 ```
 
-herb-lint is configured with `.herb.yml` in the project root as usual
+herb-lint is configured with `.herb.yml` as usual
 (rules, `linter.exclude`, custom rules in `.herb/rules/`, and `<%# herb:disable %>` comments work as in herb-lint).
+As in herb-lint, `.herb.yml` is searched from the project root upwards (e.g. at the root of a monorepo),
+and the patterns in it and `.herb/rules/` are relative to its directory.
 `<%# rubocop:disable Herb/Linting %>` also disables the cop.
 
 Offenses are reported as `[rule-name] message`, and the severities of herb-lint are mapped to
@@ -100,6 +103,56 @@ Limitations:
 - herb-lint does not run on files where the Ruby code has syntax errors.
 - Rules that analyze other templates (e.g. partials and their callers) run without the project-wide analysis,
   so that RuboCop's result cache stays valid per file.
+
+### Running herb-format together (Herb/Formatting cop)
+
+The `Herb/Formatting` cop runs [herb-format](https://herb-tools.dev/projects/formatter)
+on HTML+ERB files, reports the parts of the files it would change, and formats them by autocorrection.
+
+The cop is enabled by default, but it does nothing unless the formatter is enabled in `.herb.yml`
+(the formatter of Herb is disabled by default):
+
+```yaml
+formatter:
+  enabled: true
+```
+
+So `.herb.yml` decides whether to format the files, as it does for herb-format
+(including `formatter.exclude`, `formatter.indentWidth`, `formatter.maxLineLength`, the rewriters in `formatter.rewriter`,
+and `<%# herb:formatter ignore %>` comments).
+When the formatter is enabled, the cop requires Node.js and `@herb-tools/formatter` installed in the project:
+
+```bash
+npm install --save-dev @herb-tools/formatter
+```
+
+If herb-format is not available, the cop reports an error asking to set it up (reported once, not for every file).
+To disable the cop regardless of `.herb.yml`, configure it in `.rubocop.yml`:
+
+```yaml
+Herb/Formatting:
+  Enabled: false
+  # NodeCommand: node  # The Node.js executable (default: node)
+```
+
+Each part of a file changed by the formatting (e.g. the indentation of a line) is reported as an offense.
+The autocorrection is unsafe, so it is applied by `rubocop -A` but not by `rubocop -a`,
+as herb-format is in experimental preview and changes the whitespace in HTML, which may change how the page is rendered.
+To apply it with `rubocop -a`, set `SafeAutoCorrect: true` for the cop.
+
+herb-format changes only the whitespace around the Ruby code in ERB tags and the indentation of ERB tags.
+For a multi-line ERB tag with code on its first line (e.g. `<%= render partial: "user",` followed by arguments),
+it reindents only the first line, and RuboCop realigns the following lines (e.g. `Layout/ArgumentAlignment`)
+in the iterations of autocorrection.
+
+As with herb-lint, a Node.js process is spawned once per RuboCop process (and per worker of `rubocop --parallel`),
+but only when the formatter is enabled in `.herb.yml`.
+
+Limitations:
+
+- herb-format does not format files with parse errors; herb-lint reports them.
+- The changes of the rewriters configured in `.herb.yml` (e.g. `tailwind-class-sorter`) are reported as offenses
+  together with the formatting, as herb-format applies them while formatting.
 
 ### Herb/IgnoredCopDirective cop
 
@@ -150,7 +203,10 @@ An autocorrection removing the whole code of an ERB tag (e.g. `Lint/Void` removi
 keeps the delimiters of the tag, so that it does not break the template.
 This cop removes the empty tag left by it, as the statement is removed in Ruby files.
 The line of the tag is removed if it has only empty tags.
-The whitespace before the tag is removed if the tag ends the line, so as not to leave trailing whitespace.
+The whitespace after the tag is removed if the tag starts the line, so as not to indent the following content further
+(except `<%-`, whose trimmed indentation is replaced by the whitespace after it in the output).
+The trailing whitespace left by a tag ending the line is removed by herb-lint (`erb-no-trailing-whitespace`)
+through `Herb/Linting`.
 The whitespace trimmed by the trim markers (`<%-` and `-%>`) is removed along with the tag.
 
 The cop replaces the `erb-no-empty-tags` rule of herb-lint, so `Herb/Linting` does not report the rule.

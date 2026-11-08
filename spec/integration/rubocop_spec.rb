@@ -13,6 +13,16 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # Blank lines are left to herb-lint and herb-format; herb-format removes the blank line after the comment here
+  context "when analyzing a magic comment in an ERB comment" do
+    it "does not trigger Layout/EmptyLineAfterMagicComment" do
+      expect_no_offenses(<<~ERB)
+        <%# encoding: utf-8 -%>
+        Hello <%= x %>
+      ERB
+    end
+  end
+
   context "when analyzing an unnecessary disable directive in an ERB comment on its own line" do
     it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment" do
       expect_offense(<<~ERB)
@@ -46,6 +56,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # The trailing whitespace is left to herb-lint (erb-no-trailing-whitespace), which is disabled here
   context "when analyzing an unnecessary disable directive in an ERB comment following HTML" do
     it "triggers Lint/RedundantCopDisableDirective and removes the ERB comment, keeping the HTML" do
       expect_offense(<<~ERB)
@@ -58,7 +69,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
 
       expect_correction(<<~ERB)
         <div>
-          <p>a</p>
+          <p>a</p>#{" "}
           <%= x %>
         </div>
       ERB
@@ -1733,8 +1744,9 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  # The trailing whitespace is left to herb-lint (erb-no-trailing-whitespace), which is disabled here
   context "when a literal is written in an ERB tag following another ERB tag with a space between them" do
-    it "removes the tag and the space before it" do
+    it "removes the tag, leaving the space before it" do
       expect_offense(<<~ERB)
         <%= a %> <% 1 %>
                     ^ Lint/Void: Literal `1` used in void context.
@@ -1742,7 +1754,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
       ERB
 
       expect_correction(<<~ERB)
-        <%= a %>
+        <%= a %>#{" "}
         <%= b %>
       ERB
     end

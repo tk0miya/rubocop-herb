@@ -10,6 +10,9 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
+        # Blank lines in ERB files are left to herb-lint and herb-format (herb-format removes the blank line
+        # after a magic comment in an ERB comment, which makes the autocorrection loop infinitely)
+        "Layout/EmptyLineAfterMagicComment",
         "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/InitialIndentation", # ERB code may start at any indentation level within HTML
         "Layout/LeadingEmptyLines", # ERB files may not start with Ruby code
@@ -70,6 +73,7 @@ module RuboCop
           config = {
             "AllCops" => { "Include" => globs },
             "Herb/Linting" => herb_lint_config(globs),
+            "Herb/Formatting" => herb_format_config(globs),
             "Herb/IgnoredCopDirective" => ignored_cop_directive_config(globs),
             "Herb/EmptyErbTag" => empty_erb_tag_config(globs)
           }
@@ -87,6 +91,21 @@ module RuboCop
           {
             "Description" => "Runs herb-lint (@herb-tools/linter) on HTML+ERB files.",
             "Enabled" => true,
+            "Include" => globs,
+            "NodeCommand" => "node"
+          }
+        end
+
+        # Default configuration of Herb/Formatting cop.
+        # It is enabled, but does nothing unless the formatter is enabled in .herb.yml (`formatter.enabled`).
+        # The autocorrection is unsafe as herb-format is in experimental preview and changes the whitespace in HTML
+        # @rbs globs: Array[String]
+        def herb_format_config(globs) #: Hash[String, untyped]
+          {
+            "Description" => "Checks that HTML+ERB files are formatted by herb-format (@herb-tools/formatter) " \
+                             "if the formatter is enabled in .herb.yml.",
+            "Enabled" => true,
+            "SafeAutoCorrect" => false,
             "Include" => globs,
             "NodeCommand" => "node"
           }

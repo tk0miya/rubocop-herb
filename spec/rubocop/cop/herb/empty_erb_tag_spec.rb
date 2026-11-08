@@ -79,8 +79,44 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
     end
   end
 
+  context "when an empty ERB tag starts the line before HTML" do
+    it "registers an offense and removes the tag and the whitespace after it, keeping the indentation" do
+      expect_offense(<<~ERB)
+        <div>
+          <% %>  <p>a</p>
+          ^^^^^ Remove the empty ERB tag.
+        </div>
+      ERB
+
+      expect_correction(<<~ERB)
+        <div>
+          <p>a</p>
+        </div>
+      ERB
+    end
+  end
+
+  # `<%-` trims the indentation from the output, and the space after the tag is rendered instead
+  context "when an empty ERB tag with a trim marker `<%-` starts the indented line before HTML" do
+    it "registers an offense and removes the tag and the indentation trimmed by the marker only" do
+      expect_offense(<<~ERB)
+        <div>
+          <%- %> <p>a</p>
+          ^^^^^^ Remove the empty ERB tag.
+        </div>
+      ERB
+
+      expect_correction(<<~ERB)
+        <div>
+         <p>a</p>
+        </div>
+      ERB
+    end
+  end
+
+  # The trailing whitespace is left to herb-lint (erb-no-trailing-whitespace, fixed by Herb/Linting)
   context "when empty ERB tags end the line after HTML" do
-    it "registers offenses and removes the tags and the whitespace before them" do
+    it "registers offenses and removes the tags, leaving the whitespace before them" do
       expect_offense(<<~ERB)
         <p>a</p> <% %>  <%# %>
                  ^^^^^ Remove the empty ERB tag.
@@ -89,7 +125,7 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
       ERB
 
       expect_correction(<<~ERB)
-        <p>a</p>
+        <p>a</p>#{"   "}
         <p>b</p>
       ERB
     end
@@ -110,7 +146,7 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
   end
 
   context "when an empty ERB tag with a trim marker `-%>` is followed by an empty ERB tag at the line end" do
-    it "registers offenses and removes the tags and the whitespace before them" do
+    it "registers offenses and removes the tags, leaving the whitespace before them" do
       expect_offense(<<~ERB)
         <p>a</p> <% -%> <% %>
                  ^^^^^^ Remove the empty ERB tag.
@@ -119,14 +155,14 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
       ERB
 
       expect_correction(<<~ERB)
-        <p>a</p>
+        <p>a</p>#{"  "}
         <p>b</p>
       ERB
     end
   end
 
   context "when an empty ERB tag with a trim marker `<%-` follows another empty ERB tag" do
-    it "registers offenses and removes the tags only" do
+    it "registers offenses and removes the tags and the whitespace after the tag starting the line" do
       expect_offense(<<~ERB)
         <% %> <%- %>x
         ^^^^^ Remove the empty ERB tag.
@@ -134,9 +170,8 @@ RSpec.describe RuboCop::Cop::Herb::EmptyErbTag do
         <p>b</p>
       ERB
 
-      # The space between the tags is rendered, as `<%-` trims only the indentation
       expect_correction(<<~ERB)
-         x
+        x
         <p>b</p>
       ERB
     end
