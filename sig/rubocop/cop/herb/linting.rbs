@@ -9,10 +9,14 @@ module RuboCop
       # (`npm install --save-dev @herb-tools/linter`).
       # If herb-lint is not available, an offense asking to set it up or disable this cop is reported
       # (reported once, not for every file).
-      # herb-lint is configured by `.herb.yml` in the project root as usual.
+      # herb-lint is configured by `.herb.yml` as usual (searched from the project root upwards, as herb-lint does).
       #
       # The offenses autocorrectable by herb-lint (`herb-lint --fix`) are autocorrected by `rubocop -a`.
       # The unsafe ones (`herb-lint --fix-unsafely`) are autocorrected only by `rubocop -A`.
+      # The rules replaced by other Herb cops (REPLACED_RULES) are not reported.
+      #
+      # The name of this cop, the message format (`[rule] message`) and the severity mapping are aligned with
+      # the `Herb/Linting` cop of the upstream prototype (`rubocop-herb` branch of marcoroth/herb) for compatibility.
       #
       # @example
       #   # bad

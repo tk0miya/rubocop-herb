@@ -9,7 +9,10 @@ module RuboCop
     # Visitor that collects the lines where cops should be disabled.
     # Some cops report false positives caused by the conversion
     # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
-    # This collector finds such lines from the ERB structure.
+    # This collector finds such lines from the ERB structure (e.g. conditional branches containing only HTML,
+    # and the alignment of tags following the HTML structure).
+    # False positives on the code rendered by the conversion itself (HTML markers, delimiters and semicolons)
+    # are left to CopOffenseFilter.
     # Escaped ERB tags (e.g. `<%% if a %>`) are text, so no cops are disabled for them.
     class DisabledCopsCollector < ::Herb::Visitor
       include EscapedErbVisitor

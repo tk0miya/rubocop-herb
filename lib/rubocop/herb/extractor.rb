@@ -2,6 +2,7 @@
 
 module RuboCop
   module Herb
+    # RuboCop extractor converting ERB files to Ruby code (with Converter) for analysis
     class Extractor
       class << self
         # @rbs processed_source: ::RuboCop::ProcessedSource

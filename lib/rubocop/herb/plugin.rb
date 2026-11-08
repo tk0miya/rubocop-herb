@@ -3,6 +3,7 @@
 require "lint_roller"
 module RuboCop
   module Herb
+    # LintRoller plugin entry point, registering the Extractor with RuboCop
     class Plugin < LintRoller::Plugin
       # @rbs override
       def initialize(config = {})

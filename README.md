@@ -29,6 +29,16 @@ plugins:
   - rubocop-herb
 ```
 
+The extensions of the files to check can be configured (default: `.html.erb`):
+
+```yaml
+plugins:
+  - rubocop-herb:
+      extensions:
+        - .html.erb
+        - .turbo_stream.erb
+```
+
 ### Autocorrection
 
 `rubocop -a` / `rubocop -A` correct the Ruby code in ERB tags. HTML is kept as is,
