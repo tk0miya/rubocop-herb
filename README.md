@@ -37,6 +37,9 @@ though whitespace around ERB tags (indentation and newlines) may change.
 A correction that cannot keep the HTML (e.g. swapping `if`/`else` branches containing HTML)
 is not applied. Such offenses are reported as not autocorrectable.
 
+`Style/Semicolon` is not autocorrected either (e.g. `<% a = 1; b = 2 %>`),
+as breaking the line at the semicolon leaves the next statement unindented. Fix such offenses by hand.
+
 ### Line length and blank lines
 
 `Layout/LineLength` checks only the lines with ERB tags.
@@ -51,13 +54,6 @@ Likewise, `Layout/EmptyLines` and the cops reporting blank lines around bodies a
 (e.g. `Layout/EmptyLinesAroundBlockBody`) check only the blank lines in ERB tags,
 as RuboCop checks the Ruby code in ERB tags only.
 Blank lines outside ERB tags are left to herb-lint (`erb-no-extra-newline`).
-
-### Spacing and semicolons
-
-`Layout/ExtraSpacing` and `Style/Semicolon` check only the code written in ERB tags
-(e.g. `<%= foo(a,  b) %>` and `<% a = 1; b = 2 %>`), not the whitespace and semicolons
-the conversion renders around ERB tags and HTML.
-`Style/Semicolon` is not autocorrected, as breaking the line at the semicolon leaves the next statement unindented.
 
 ### Running herb-lint together (Herb/Linting cop)
 
