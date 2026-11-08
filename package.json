@@ -1,8 +1,9 @@
 {
   "name": "rubocop-herb-development",
   "private": true,
-  "description": "Node.js packages used to test the Herb/Linting cop",
+  "description": "Node.js packages used to test the Herb/Linting and Herb/Formatting cops",
   "devDependencies": {
+    "@herb-tools/formatter": "0.11.1",
     "@herb-tools/linter": "0.11.1"
   }
 }
