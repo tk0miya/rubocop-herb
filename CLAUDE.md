@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 rubocop-herb is a RuboCop plugin gem for linting HTML + ERB files. It extracts Ruby code from ERB templates using the Herb parser and passes it to RuboCop for analysis.
 
+## Goals
+
+Use these goals to decide between trade-offs:
+
+- Improve the accuracy of linting and formatting the Ruby parts of ERB templates
+- Keep as many cops enabled as possible, unlike other implementations disabling many cops
+  - Reduce false positives caused by the conversion from ERB (or the code rendered by rubocop-herb) as much as possible; the goal is zero
+  - Report problems in the input ERB as much as possible (reduce false negatives)
+- Autocorrection is optional. As AI lowers the cost of fixing offenses without autocorrection, never breaking templates and never misjudging take priority over the coverage of autocorrection
+
 ## Common Commands
 
 ```bash
