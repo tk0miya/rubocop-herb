@@ -3,10 +3,12 @@
 module RuboCop
   module Herb
     # Shared by the cops running Herb tools on Node.js servers (Herb/Linting and Herb/Formatting).
-    # The including cop defines `config_files` and `server_scripts`.
+    # The including cop defines `config_files`, `herb_config_files` and `server_scripts`.
     # @rbs module-self ::RuboCop::Cop::Base
     module HerbToolCop : ::RuboCop::Cop::Base
       private def config_files: () -> Array[String]
+
+      private def herb_config_files: () -> Array[String]
 
       private def server_scripts: () -> Array[String]
 
@@ -14,6 +16,11 @@ module RuboCop
       def external_dependency_checksum: () -> String
 
       private
+
+      # The absolute paths of the files matching the patterns in the directory
+      # @rbs patterns: Array[String]
+      # @rbs dir: String
+      def glob: (Array[String] patterns, String dir) -> Array[String]
 
       # Reports that the Herb tool is not available, once (not for every file)
       # @rbs client: NodeServerClient
@@ -51,6 +58,15 @@ module RuboCop
       def node_path: () -> String?
 
       def project_root: () -> String
+
+      # The path of .herb.yml, searched from the project root up to the root directory as Herb tools do;
+      # nil if not found
+      def herb_config_path: () -> String?
+
+      # The directory of .herb.yml (the project root if not found), to which the configuration of Herb tools
+      # (e.g. the patterns in .herb.yml and the directory of custom rules) is relative.
+      # It may be above the project root (e.g. a monorepo with .herb.yml at its root)
+      def herb_config_dir: () -> String
     end
   end
 end

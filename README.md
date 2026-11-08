@@ -72,8 +72,10 @@ Herb/Linting:
   # NodeCommand: node  # The Node.js executable (default: node)
 ```
 
-herb-lint is configured with `.herb.yml` in the project root as usual
+herb-lint is configured with `.herb.yml` as usual
 (rules, `linter.exclude`, custom rules in `.herb/rules/`, and `<%# herb:disable %>` comments work as in herb-lint).
+As in herb-lint, `.herb.yml` is searched from the project root upwards (e.g. at the root of a monorepo),
+and the patterns in it and `.herb/rules/` are relative to its directory.
 `<%# rubocop:disable Herb/Linting %>` also disables the cop.
 
 Offenses are reported as `[rule-name] message`, and the severities of herb-lint are mapped to

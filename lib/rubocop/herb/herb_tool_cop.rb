@@ -6,22 +6,30 @@ require "rubocop"
 module RuboCop
   module Herb
     # Shared by the cops running Herb tools on Node.js servers (Herb/Linting and Herb/Formatting).
-    # The including cop defines `config_files` and `server_scripts`.
+    # The including cop defines `config_files`, `herb_config_files` and `server_scripts`.
     # @rbs module-self ::RuboCop::Cop::Base
     module HerbToolCop
       # @rbs!
       #   private def config_files: () -> Array[String]
+      #   private def herb_config_files: () -> Array[String]
       #   private def server_scripts: () -> Array[String]
 
       # Invalidates the result cache when Node.js, the Herb tool, its configuration, or its plugins change
       def external_dependency_checksum #: String
-        files = config_files.flat_map { Dir.glob(_1, base: project_root) }.sort
-        contents = files.map { "#{_1}\n#{File.read(File.join(project_root, _1))}" }
+        files = glob(config_files, project_root) + glob(herb_config_files, herb_config_dir)
+        contents = files.sort.map { "#{_1}\n#{File.read(_1)}" }
         scripts = server_scripts.map { File.read(_1) }
         Digest::SHA1.hexdigest([node_command, node_path.to_s, *scripts, *contents].join("\n"))
       end
 
       private
+
+      # The absolute paths of the files matching the patterns in the directory
+      # @rbs patterns: Array[String]
+      # @rbs dir: String
+      def glob(patterns, dir) #: Array[String]
+        patterns.flat_map { Dir.glob(_1, base: dir) }.map { File.join(dir, _1) }
+      end
 
       # Reports that the Herb tool is not available, once (not for every file)
       # @rbs client: NodeServerClient
@@ -102,6 +110,29 @@ module RuboCop
 
       def project_root #: String
         ::RuboCop::ConfigFinder.project_root || Dir.pwd
+      end
+
+      # The path of .herb.yml, searched from the project root up to the root directory as Herb tools do;
+      # nil if not found
+      def herb_config_path #: String?
+        dir = project_root
+        loop do
+          path = File.join(dir, ".herb.yml")
+          return path if File.file?(path)
+
+          parent = File.dirname(dir)
+          return if parent == dir
+
+          dir = parent
+        end
+      end
+
+      # The directory of .herb.yml (the project root if not found), to which the configuration of Herb tools
+      # (e.g. the patterns in .herb.yml and the directory of custom rules) is relative.
+      # It may be above the project root (e.g. a monorepo with .herb.yml at its root)
+      def herb_config_dir #: String
+        path = herb_config_path
+        path ? File.dirname(path) : project_root
       end
     end
   end

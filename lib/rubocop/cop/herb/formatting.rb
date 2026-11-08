@@ -35,29 +35,16 @@ module RuboCop
 
         MSG = "Format the template as herb-format does."
 
-        # Files affecting the result of herb-format other than the formatted file itself
+        # Files in the project root affecting the result of herb-format other than the formatted file itself
         CONFIG_FILES = [
-          ".herb.yml",
-          "node_modules/@herb-tools/formatter/package.json",
-          ".herb/rewriters/**/*.mjs"
+          "node_modules/@herb-tools/formatter/package.json"
         ].freeze #: Array[String]
 
-        # The files of the configuration in the directory of .herb.yml, which may be above the project root
+        # Files in the directory of .herb.yml affecting the result of herb-format
         HERB_CONFIG_FILES = [
           ".herb.yml",
           ".herb/rewriters/**/*.mjs"
         ].freeze #: Array[String]
-
-        # Invalidates the result cache also when the configuration in the directory of .herb.yml changes
-        # @rbs override
-        def external_dependency_checksum
-          config_path = herb_config_path
-          return super unless config_path
-
-          config_dir = File.dirname(config_path)
-          files = HERB_CONFIG_FILES.flat_map { Dir.glob(_1, base: config_dir) }.sort.map { File.join(config_dir, _1) }
-          Digest::SHA1.hexdigest([super, *files.map { "#{_1}\n#{File.read(_1)}" }].join("\n"))
-        end
 
         def on_new_investigation #: void
           source = processed_source
@@ -86,7 +73,6 @@ module RuboCop
         end
 
         # Whether the formatter is enabled in .herb.yml (`formatter.enabled`; disabled by default).
-        # .herb.yml is searched from the project root up to the root directory, as Herb tools do.
         # An invalid .herb.yml is left to herb-format to report the error.
         def formatter_enabled? #: bool
           path = herb_config_path
@@ -99,25 +85,16 @@ module RuboCop
           true
         end
 
-        def herb_config_path #: String?
-          dir = project_root
-          loop do
-            path = File.join(dir, ".herb.yml")
-            return path if File.file?(path)
-
-            parent = File.dirname(dir)
-            return if parent == dir
-
-            dir = parent
-          end
-        end
-
         def client #: ::RuboCop::Herb::HerbFormatClient
           ::RuboCop::Herb::HerbFormatClient.for(node_command:, project_root:, checksum: external_dependency_checksum)
         end
 
         def config_files #: Array[String]
           CONFIG_FILES
+        end
+
+        def herb_config_files #: Array[String]
+          HERB_CONFIG_FILES
         end
 
         def server_scripts #: Array[String]
