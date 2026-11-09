@@ -4,6 +4,10 @@ module RuboCop
   module Herb
     # Configuration of rubocop-herb: the supported extensions, the cops excluded or filtered in ERB files,
     # and the default configuration of the Herb cops.
+    #
+    # rubocop-herb lints the Ruby code in ERB tags; the layout of HTML and text (blank lines and whitespace
+    # outside ERB tags) is left to herb-lint and herb-format. The cops excluded or filtered for this reason
+    # name the corresponding herb-lint rule, or "no herb-lint rule" when herb-lint has none.
     module Configuration
       DEFAULT_EXTENSIONS: Array[String]
 
