@@ -4,6 +4,10 @@ module RuboCop
   module Herb
     # Configuration of rubocop-herb: the supported extensions, the cops excluded or filtered in ERB files,
     # and the default configuration of the Herb cops.
+    #
+    # rubocop-herb lints the Ruby code in ERB tags; the layout of HTML and text (blank lines and whitespace
+    # outside ERB tags) is left to herb-lint and herb-format. The cops excluded or filtered for this reason
+    # name the corresponding herb-lint rule, or "no herb-lint rule" when herb-lint has none.
     module Configuration
       DEFAULT_EXTENSIONS = %w[.html.erb].freeze #: Array[String]
 
@@ -11,13 +15,14 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS = [
         "Layout/CommentIndentation", # ERB comment to Ruby comment conversion shifts column position
-        # Blank lines in ERB files are left to herb-lint and herb-format (herb-format removes the blank line
-        # after a magic comment in an ERB comment, which makes the autocorrection loop infinitely)
+        # The blank line after a magic comment in an ERB comment is in HTML and text (no herb-lint rule;
+        # herb-format removes it, which makes the autocorrection loop infinitely)
         "Layout/EmptyLineAfterMagicComment",
         "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/InitialIndentation", # ERB code may start at any indentation level within HTML
-        "Layout/LeadingEmptyLines", # ERB files may not start with Ruby code
-        "Layout/TrailingEmptyLines", # ERB files may not end with Ruby code
+        "Layout/LeadingEmptyLines", # Blank lines at the start of the file are in HTML and text (no herb-lint rule)
+        # Blank lines at the end of the file are in HTML and text (herb-lint: erb-require-trailing-newline)
+        "Layout/TrailingEmptyLines",
         "Metrics/BlockLength", # ERB blocks often contain substantial HTML content
         "Naming/FileName", # ERB file names may contain locales or variants (e.g. show.en-US.html.erb)
         "Style/FrozenStringLiteralComment" # ERB files don't support frozen string literal comments
@@ -29,7 +34,8 @@ module RuboCop
       VERBATIM_CODE_COPS = [
         "Layout/BlockEndNewline", # HTML before the end tag is rendered as an expression before `end`
         "Layout/EmptyComment", # The first line of a multi-line ERB comment is rendered as an empty comment
-        "Layout/EmptyLines", # Blank lines between ERB tags are left to herb-lint (erb-no-extra-newline)
+        "Layout/EmptyLines", # Blank lines between ERB tags are in HTML and text (herb-lint: erb-no-extra-newline)
+        # Blank lines between ERB tags are in HTML and text (no herb-lint rule)
         "Layout/EmptyLinesAroundArguments",
         "Layout/EmptyLinesAroundBeginBody",
         "Layout/EmptyLinesAroundBlockBody",
@@ -39,7 +45,9 @@ module RuboCop
         "Layout/EmptyLinesAroundModuleBody",
         "Layout/ExtraSpacing", # The delimiters of ERB tags and HTML are rendered as whitespace
         "Layout/SpaceAroundOperators", # The tag opening of an output tag is rendered as `_ =`
-        "Layout/TrailingWhitespace", # The closing delimiters of ERB tags and HTML are rendered as whitespace
+        # The closing delimiters of ERB tags are rendered as whitespace,
+        # and trailing whitespace in HTML and text is left to herb-lint (erb-no-trailing-whitespace)
+        "Layout/TrailingWhitespace",
         "Lint/ElseLayout", # A semicolon is rendered at the closing of the else tag (`else;  _ = x;`)
         "Style/ConditionalAssignment", # Output tags in the branches are all rendered as `_ = ...`
         "Style/IfWithSemicolon", # A semicolon is rendered at the closing of the if tag (`if a;`)
