@@ -7,6 +7,16 @@ module RuboCop
     # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
     # This collector finds such lines from the ERB structure (e.g. conditional branches containing only HTML,
     # and the alignment of tags following the HTML structure).
+    #
+    # The layout cops (e.g. Layout/BlockAlignment and Layout/IndentationWidth) are disabled for the structures
+    # written across ERB tags, because the columns of the tags are the layout of HTML, which is left to
+    # herb-format (herb-lint has no rule for them). herb-format indents the tags by the HTML structure,
+    # and even then the cops report the tags formatted by it: the Ruby code starts after the tag opening,
+    # whose width differs (`<%`, `<%=` and `<%-`), while the output marker (`_ =`) and the HTML markers
+    # start at the tag opening
+    # (e.g. `<%= form_with do %>` and `<% end %>` are rendered as `_ = form_with do;` and `   end;`).
+    # The Ruby code cannot be moved to the tag opening as it keeps the positions of the source.
+    # The structures written within a single ERB tag are still checked.
     # False positives on the code rendered by the conversion itself (HTML markers, delimiters and semicolons)
     # are left to CopOffenseFilter.
     # Escaped ERB tags (e.g. `<%% if a %>`) are text, so no cops are disabled for them.
