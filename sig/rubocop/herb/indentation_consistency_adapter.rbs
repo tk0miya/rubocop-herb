@@ -1,0 +1,33 @@
+# Generated from lib/rubocop/herb/indentation_consistency_adapter.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Prepended to RuboCop::Cop::Layout::IndentationConsistency to compare the indentation of the statements
+    # in the same ERB tag only.
+    # The columns of the statements in different ERB tags and of HTML are the layout of HTML (they follow
+    # the HTML structure and the width of the tag openings), which is left to herb-format.
+    # The statements written in a single ERB tag (e.g. the lines of a multi-line `<% %>` tag) are aligned as Ruby code,
+    # so they are checked as in Ruby files. Statements spanning multiple ERB tags (e.g. conditionals written
+    # across ERB tags) and HTML are not checked.
+    module IndentationConsistencyAdapter
+      def processed_source: () -> ::RuboCop::AST::ProcessedSource?
+
+      private
+
+      # Called for each body with its statements and the column to align them with
+      # (the column of the first statement by default)
+      # @rbs items: Array[::RuboCop::AST::Node]
+      # @rbs base_column: Integer?
+      def check_alignment: (Array[::RuboCop::AST::Node] items, ?Integer? base_column) -> void
+
+      # The node owning the body containing the statement (e.g. the class of a class body, or kwbegin)
+      # @rbs item: ::RuboCop::AST::Node
+      def owner_of: (::RuboCop::AST::Node item) -> ::RuboCop::AST::Node?
+
+      # Whether the node is written in a single ERB tag, where it is checked as in Ruby files
+      # @rbs source: ProcessedSource
+      # @rbs node: ::RuboCop::AST::Node?
+      def in_single_tag?: (ProcessedSource source, ::RuboCop::AST::Node? node) -> bool
+    end
+  end
+end

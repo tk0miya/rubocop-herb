@@ -28,10 +28,17 @@ module RuboCop
       # and its characters are the same as the ERB source
       # @rbs range: ::Parser::Source::Range
       def include?(range) #: bool
-        code_range = code_ranges.bsearch { _1.to >= range.end_pos }
-        return false unless code_range && code_range.from <= range.begin_pos
+        !code_range_of(range).nil?
+      end
 
-        source.slice(CharRange.new(range.begin_pos, range.end_pos)) == range.source
+      # The range of the code of the ERB tag containing the range, if the range is verbatim code (see include?)
+      # @rbs range: ::Parser::Source::Range
+      def code_range_of(range) #: CharRange?
+        code_range = code_ranges.bsearch { _1.to >= range.end_pos }
+        return unless code_range && code_range.from <= range.begin_pos
+        return unless source.slice(CharRange.new(range.begin_pos, range.end_pos)) == range.source
+
+        code_range
       end
     end
   end

@@ -149,6 +149,7 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 - **CopOffenseFilter** + **VerbatimCode**: Suppress offenses on the code rendered by the conversion (`Configuration::VERBATIM_CODE_COPS`)
 - **CopCorrectionGuard** + **CorrectionAdjuster** + **CorrectionValidator**: Trim and validate autocorrections so that they never break ERB tags
 - **ReparsedEquivalenceAdapter**: Lets the cops reparsing their corrections compare with the AST before the transformation
+- **IndentationConsistencyAdapter**: Lets Layout/IndentationConsistency compare only the statements in the same ERB tag
 - **Configuration** (`configuration.rb`): Extensions, `EXCLUDED_COPS`, `VERBATIM_CODE_COPS`, `UNCORRECTABLE_COPS`
 
 #### Herb Tools Integration (herb-lint and herb-format)

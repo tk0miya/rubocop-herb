@@ -20,6 +20,10 @@ module RuboCop
       # and its characters are the same as the ERB source
       # @rbs range: ::Parser::Source::Range
       def include?: (::Parser::Source::Range range) -> bool
+
+      # The range of the code of the ERB tag containing the range, if the range is verbatim code (see include?)
+      # @rbs range: ::Parser::Source::Range
+      def code_range_of: (::Parser::Source::Range range) -> CharRange?
     end
   end
 end

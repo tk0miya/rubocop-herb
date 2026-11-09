@@ -18,7 +18,6 @@ module RuboCop
         # The blank line after a magic comment in an ERB comment is in HTML and text (no herb-lint rule;
         # herb-format removes it, which makes the autocorrection loop infinitely)
         "Layout/EmptyLineAfterMagicComment",
-        "Layout/IndentationConsistency", # Ruby code in ERB may be aligned differently
         "Layout/InitialIndentation", # ERB code may start at any indentation level within HTML
         "Layout/LeadingEmptyLines", # Blank lines at the start of the file are in HTML and text (no herb-lint rule)
         # Blank lines at the end of the file are in HTML and text (herb-lint: erb-require-trailing-newline)

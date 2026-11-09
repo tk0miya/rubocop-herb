@@ -100,4 +100,30 @@ RSpec.describe RuboCop::Herb::VerbatimCode do
       it { is_expected.to be true }
     end
   end
+
+  describe "#code_range_of" do
+    subject { described_class.new(conversion_result.parse_result).code_range_of(range) }
+
+    let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", code) }
+    let(:buffer) do
+      Parser::Source::Buffer.new("test.html.erb", source: conversion_result.ruby_code)
+    end
+    let(:range) { Parser::Source::Range.new(buffer, from, to) }
+
+    context "with the code in the second ERB tag" do
+      let(:code) { "<% a %><% b %>" }
+      let(:from) { 10 }
+      let(:to) { 11 }
+
+      it { is_expected.to eq RuboCop::Herb::CharRange.new(from: 9, to: 12) }
+    end
+
+    context "with the code in an ERB tag after multi-byte characters" do
+      let(:code) { "<p>日本語</p><% a %>" }
+      let(:from) { 13 }
+      let(:to) { 14 }
+
+      it { is_expected.to eq RuboCop::Herb::CharRange.new(from: 12, to: 15) }
+    end
+  end
 end

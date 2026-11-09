@@ -9,6 +9,7 @@
 # Herb/IgnoredCopDirective cop detects rubocop directives with DirectiveComment::DIRECTIVE_COMMENT_REGEXP.
 # CorrectionValidator and CopCorrectionGuard create Corrector objects.
 # ReparsedEquivalenceAdapter is prepended to Cop::ReparsedEquivalence (rubocop 1.92.0+).
+# IndentationConsistencyAdapter is prepended to Cop::Layout::IndentationConsistency.
 
 module RuboCop
   module ConfigFinder
@@ -35,6 +36,11 @@ module RuboCop
     end
 
     module ReparsedEquivalence
+    end
+
+    module Layout
+      class IndentationConsistency < Base
+      end
     end
   end
 end

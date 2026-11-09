@@ -266,16 +266,17 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   end
 
   context "when analyzing a long line with a semicolon written in an ERB tag" do
-    it "triggers Layout/LineLength and breaks the line after the semicolon" do
+    it "triggers Layout/LineLength and breaks the line after the semicolon, aligning the next line in the tag" do
       expect_offense(<<~ERB)
         <% a = 1; #{"b" * 110} = a %><%= #{"b" * 110} %>
         #{" " * 120}#{"^" * 124} Layout/LineLength: Line is too long. [244/120]
                 ^ Style/Semicolon: Do not use semicolons to terminate expressions.
       ERB
 
+      # Layout/IndentationConsistency aligns the statement moved to the next line with the one in the same tag
       expect_correction(<<~ERB)
         <% a = 1;
-         #{"b" * 110} = a %><%= #{"b" * 110} %>
+           #{"b" * 110} = a %><%= #{"b" * 110} %>
       ERB
     end
   end
@@ -1827,6 +1828,83 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
 
 
         <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing statements indented inconsistently in an ERB tag" do
+    it "triggers Layout/IndentationConsistency and aligns them" do
+      expect_offense(<<~ERB)
+        <%
+          a = 1
+            b = 2
+            ^^^^^ Layout/IndentationConsistency: Inconsistent indentation detected.
+        %>
+        <% c = 3
+             d = 4 %>
+             ^^^^^ Layout/IndentationConsistency: Inconsistent indentation detected.
+        <%= a + b + c + d %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%
+          a = 1
+          b = 2
+        %>
+        <% c = 3
+           d = 4 %>
+        <%= a + b + c + d %>
+      ERB
+    end
+  end
+
+  context "when analyzing a class body with an access modifier in an ERB tag" do
+    it "triggers Layout/IndentationConsistency as in Ruby files" do
+      expect_offense(<<~ERB)
+        <%
+          # Foo
+          class Foo
+            private
+
+              def x; end
+              ^^^^^^^^^^ Layout/IndentationConsistency: Inconsistent indentation detected.
+          ^^^^ Layout/IndentationWidth: Use 2 (not 4) spaces for indentation.
+          end
+        %>
+      ERB
+
+      expect_correction(<<~ERB)
+        <%
+          # Foo
+          class Foo
+            private
+
+            def x; end
+          end
+        %>
+      ERB
+    end
+  end
+
+  context "when analyzing statements in different ERB tags indented by the HTML structure" do
+    it "does not trigger Layout/IndentationConsistency" do
+      expect_no_offenses(<<~ERB)
+        <% a = 1 %>
+        <div>
+          <% b = 2 %>
+          <%= a + b %>
+          <% if a %>
+            <% c = 3 %>
+            <p>
+              <%= c %>
+            </p>
+            <%
+              d = 4
+              e = 5
+            %>
+          <% end %>
+        </div>
+        <%= d + e %>
       ERB
     end
   end
