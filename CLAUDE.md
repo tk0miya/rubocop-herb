@@ -169,6 +169,9 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
   - Caused by the ERB structure (e.g. branches containing only HTML) → `DisabledCopsCollector`
   - On the code rendered by the conversion (HTML markers, delimiters, semicolons) → `VERBATIM_CODE_COPS` (`CopOffenseFilter`)
   - Inherently incompatible with ERB → `EXCLUDED_COPS`
+- Never patch individual cops (e.g. prepending to `RuboCop::Cop::Layout::IndentationConsistency` to override its private methods): their internals change silently between RuboCop versions.
+  Patch only the parts of RuboCop shared by the cops (e.g. `Cop::Base`, `Cop::ReparsedEquivalence`), as `CopOffenseFilter`, `CopCorrectionGuard` and `ReparsedEquivalenceAdapter` do.
+  If a cop cannot be fixed with these generic mechanisms, keep it in `EXCLUDED_COPS` (or disable it with `DisabledCopsCollector`).
 - Herb cops correct the ERB source directly, so `CopCorrectionGuard` does not check them
 - `CorrectionAdjuster` only keeps corrections from breaking ERB tags; the layout (lines and whitespace) is left to `Herb/EmptyErbTag` and herb-lint
 - Herb/Linting and Herb/Formatting must not spawn Node.js unless needed, and report a startup error once per process (not for every file)
