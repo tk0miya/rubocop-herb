@@ -84,16 +84,21 @@ module RuboCop
       end
 
       # The end tag of loops follows the HTML structure
+      # Converting loops written across ERB tags to modifier form breaks the template (e.g. it drops HTML),
+      # as Style/IfUnlessModifier does for conditionals
       # @rbs node: ::Herb::AST::ERBWhileNode
       def visit_erb_while_node(node) #: void
+        disable_cop("Style/WhileUntilModifier", node)
         disable_end_alignment(node.end_node)
         disable_body_indentation(node.statements)
         super
       end
 
       # The end tag of loops follows the HTML structure
+      # Converting loops written across ERB tags to modifier form breaks the template (see visit_erb_while_node)
       # @rbs node: ::Herb::AST::ERBUntilNode
       def visit_erb_until_node(node) #: void
+        disable_cop("Style/WhileUntilModifier", node)
         disable_end_alignment(node.end_node)
         disable_body_indentation(node.statements)
         super
@@ -279,7 +284,10 @@ module RuboCop
       # @rbs nodes: Array[::Herb::AST::Node]
       def first_content_line(nodes) #: Integer?
         nodes.each do |node|
-          return node.location.start.line unless node.is_a?(::Herb::AST::HTMLTextNode)
+          # Literals may start with whitespace as text does (e.g. `class="<% if a %>\n  active` and the contents
+          # of script elements)
+          return node.location.start.line unless node.is_a?(::Herb::AST::HTMLTextNode) ||
+                                                 node.is_a?(::Herb::AST::LiteralNode)
 
           leading_text = node.content.to_s[/\A\s*(?=\S)/]
           return node.location.start.line + leading_text.count("\n") if leading_text
