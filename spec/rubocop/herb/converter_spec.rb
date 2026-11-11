@@ -1120,6 +1120,124 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
+    # The literals in the ERB nodes of attribute values are rendered as markers like text nodes,
+    # while the attributes in the open tag (`class="btn ..."`) are a part of the tag
+    describe "with a conditional in an attribute value" do
+      let(:source) { '<div class="btn <% if admin? %>admin<% end %>"></div>' }
+      let(:expected) { "div;               if admin?;  _a;     end;    div;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in an attribute value containing text too short to place the marker" do
+      let(:source) { '<div class="<% if a %>x<% end %>"></div>' }
+      let(:expected) { "div;           if a;      end;    div;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in an attribute value containing multi-byte characters" do
+      let(:source) { '<div class="<% if a %>管理者 <% else %>一般ユーザー <% end %>"></div>' }
+      let(:expected) { "div;           if a;  _a;    else;  _a;       end;    div;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in a multi-line attribute value" do
+      let(:source) { "<div class=\"\n  base\n  <% if a %>\n    active\n  <% end %>\n\"></div>" }
+      let(:expected) { "div;        \n      \n     if a;  \n    _a;   \n     end;  \n  div;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a block in an attribute value" do
+      let(:source) { '<ul class="<% items.each do |i| %>item <% end %>"></ul>' }
+      let(:expected) { "ul;           items.each do |i|;  _a;     end;    ul;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional attribute" do
+      let(:source) { "<input <% if a %>disabled<% end %>>" }
+      let(:expected) { "input;    if a;  _a;        end;   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The marker of the attribute is rendered at the value when it does not fit in the name
+    describe "with a conditional attribute whose name is too short to place the marker" do
+      let(:source) { '<input <% if a %>id="abc"<% end %>>' }
+      let(:expected) { "input;    if a;      _a;    end;   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in a script element" do
+      let(:source) { "<script>var a = 1; <% if a %>abc <%= x %><% end %></script>" }
+      let(:expected) { "script; _a;           if a;  _a; _ = x;     end;  script;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in a style element" do
+      let(:source) { "<style>.a { color: red; } <% if a %>.b {}<% end %></style>" }
+      let(:expected) { "style; _a;                   if a;  _a;     end;  style;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a doctype in a conditional" do
+      let(:source) { "<% if a %><!DOCTYPE html><% end %>" }
+      let(:expected) { "   if a;  _a;               end;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in CDATA" do
+      let(:source) { "<![CDATA[ hello <% if a %>world<% end %> ]]>" }
+      let(:expected) { "          _a;      if a;  _a;     end;      " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with an XML declaration containing ERB" do
+      let(:source) { '<?xml version="<%= v %>"?>' }
+      let(:expected) { "      _a;      _ = v;     " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional in an HTML comment" do
+      let(:source) { "<!-- note <% if a %>abc<% end %> -->" }
+      let(:expected) { "     _a;     if a;  _a;   end;      " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The comment would be a comment on its own line without the marker, as the marker of the text
+    # is rendered at its first line
+    describe "with an ERB comment following multi-line text" do
+      let(:source) { "<div>abc\n  de <%# note %>\n  <%= x %>\n</div>" }
+      let(:expected) { "div; _a;\n  _a;  # note   \n  _ = x;  \ndiv;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a code tag with only a comment following multi-line text" do
+      let(:source) { "<div>abc\n  de <% # note\n  %>\n</div>" }
+      let(:expected) { "div; _a;\n  _a;   # note\n    \ndiv;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The closing of a multi-line ERB tag is not HTML, so the comment stays on its own line
+    describe "with an ERB comment following the closing of a multi-line ERB tag" do
+      let(:source) { "<% return\n%> <%# note %>" }
+      let(:expected) { "   return\n     # note   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     # HTML tags not wrapped by an element
     describe "with an open tag without the close tag" do
       let(:source) { "<div class=\"a\">\n  <%= x %>" }

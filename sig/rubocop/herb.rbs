@@ -6,7 +6,10 @@ module RuboCop
     type erb_node = ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBCaseNode | ::Herb::AST::ERBWhenNode | ::Herb::AST::ERBCaseMatchNode | ::Herb::AST::ERBInNode | ::Herb::AST::ERBBeginNode | ::Herb::AST::ERBRescueNode | ::Herb::AST::ERBEnsureNode | ::Herb::AST::ERBBlockNode | ::Herb::AST::ERBForNode | ::Herb::AST::ERBWhileNode | ::Herb::AST::ERBUntilNode | ::Herb::AST::ERBContentNode | ::Herb::AST::ERBCommentNode | ::Herb::AST::ERBEndNode
 
     # Union type for all HTML nodes
-    type html_node = ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLCommentNode
+    type html_node = ::Herb::AST::HTMLElementNode | ::Herb::AST::HTMLTextNode | ::Herb::AST::HTMLOpenTagNode | ::Herb::AST::HTMLCloseTagNode | ::Herb::AST::HTMLCommentNode | ::Herb::AST::HTMLDoctypeNode | ::Herb::AST::CDATANode | ::Herb::AST::XMLDeclarationNode
+
+    # Union type for HTML nodes starting with an opening of 3 characters or more (e.g. `<!--`)
+    type html_opening_node = ::Herb::AST::HTMLCommentNode | ::Herb::AST::HTMLDoctypeNode | ::Herb::AST::CDATANode | ::Herb::AST::XMLDeclarationNode
 
     # Union type for ERB nodes holding the statements of a branch
     type branch_node = ::Herb::AST::ERBIfNode | ::Herb::AST::ERBUnlessNode | ::Herb::AST::ERBElseNode | ::Herb::AST::ERBWhenNode | ::Herb::AST::ERBInNode | ::Herb::AST::ERBRescueNode
