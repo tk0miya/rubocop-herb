@@ -465,6 +465,20 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
+    context "with if branches containing indented text too short to place the marker at the text" do
+      let(:code) { "<% if a %>\n  [<%= x %>\n<% elsif b %>\n  <%= y %>\n<% else %>\n  <%= y %>\n<% end %>" }
+
+      it "does not disable Lint/DuplicateBranch" do
+        expect(subject).to eq({
+                                "Lint/EmptyConditionalBody" => [1..1],
+                                **conditional_cops(1..1),
+                                **else_alignment(3..3, 5..5),
+                                **end_alignment(7..7),
+                                **indentation_width(2..2, 4..4, 6..6)
+                              })
+      end
+    end
+
     context "with if branches containing text in an attribute value" do
       let(:code) { "<div class=\"<% if a %>abc<%= x %><% else %>def<%= x %><% end %>\"></div>" }
 

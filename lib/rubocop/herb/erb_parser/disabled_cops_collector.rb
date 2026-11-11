@@ -320,7 +320,7 @@ module RuboCop
 
       # Check if the nodes contain non-ERB content (except whitespace)
       # HTML content may be rendered as whitespace (e.g. text too short to place the marker in the line,
-      # see RubyRenderer::TEXT_MARKER_POSITION), so bodies containing only HTML can become empty in the Ruby code
+      # see RubyRenderer.text_marker_position), so bodies containing only HTML can become empty in the Ruby code
       # @rbs nodes: Array[::Herb::AST::Node]
       def html_content?(nodes) #: bool
         nodes.any? do |node|

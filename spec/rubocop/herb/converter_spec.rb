@@ -105,9 +105,17 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    describe "with text node shorter than 4 characters" do
+    describe "with text node shorter than 3 characters" do
+      let(:source) { "<div>ab<%= x %></div>" }
+      let(:expected) { "div;   _ = x;  div;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The marker is rendered right before the code following the text
+    describe "with text node of 3 characters" do
       let(:source) { "<div>abc<%= x %></div>" }
-      let(:expected) { "div;    _ = x;  div;  " }
+      let(:expected) { "div; _a;_ = x;  div;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -123,6 +131,58 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with text node of 2 characters followed by a newline" do
       let(:source) { "<%= x %>ab\n<%= y %>" }
       let(:expected) { "_ = x;  _a\n_ = y;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The marker is placed over the whitespace before the text when the text is too short
+    describe "with indented text node of 1 character followed by an ERB tag" do
+      let(:source) { "<% if a %>\n  [<%= a %>]\n<% end %>\n" }
+      let(:expected) { "   if a;  \n_a;_ = a;   \n   end;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with indented text node of 1 character followed by a newline" do
+      let(:source) { "<% if a %>\n  H\n<% end %>\n" }
+      let(:expected) { "   if a;  \n_a;\n   end;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text node of 1 character after a space followed by a newline" do
+      let(:source) { "<%= x %> H\n<%= y %>" }
+      let(:expected) { "_ = x;  _a\n_ = y;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text node of 2 characters after a space followed by an ERB tag" do
+      let(:source) { "<%= x %> ab<%= y %>" }
+      let(:expected) { "_ = x;  _a;_ = y;  " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The whitespace before the text is used only when the text is too short in every line
+    describe "with indented text node of 1 character followed by a longer line" do
+      let(:source) { "<% if a %>\n  H\n  Hello\n<% end %>\n" }
+      let(:expected) { "   if a;  \n   \n  _a;  \n   end;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # The whitespace before the text in the line is required (the newline is not overwritten)
+    describe "with text node of 1 character without indentation" do
+      let(:source) { "<% if a %>\nH\n<% end %>\n" }
+      let(:expected) { "   if a;  \n \n   end;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with indented text node of 1 character containing a multi-byte character" do
+      let(:source) { "<% if a %>\n  「<%= a %>」\n<% end %>\n" }
+      let(:expected) { "   if a;  \n_a;_ = a;   \n   end;  \n" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -425,7 +485,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with case-in-ERB tags on single line" do
       let(:source) { "<% case value %><% in 1 %>one<% end %>" }
-      let(:expected) { "   case value;     in 1;        end;  " }
+      let(:expected) { "   case value;     in 1;  _a;   end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -873,8 +933,8 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with multibyte characters before output tag" do
       let(:source) { "日本語<%= x %>" }
       # 日本語 (3 chars) + <%= x %> (8 chars) = 11 chars
-      # Bleached to: 3 spaces + "_ = x;  " (8 chars) = 11 chars
-      let(:expected) { "   _ = x;  " }
+      # Rendered to: "_a;" (3 chars) + "_ = x;  " (8 chars) = 11 chars
+      let(:expected) { "_a;_ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -882,7 +942,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with emoji characters before output tag" do
       let(:source) { "🎉🎉🎉<%= x %>" }
       # 🎉🎉🎉 (3 chars) + <%= x %> (8 chars) = 11 chars
-      let(:expected) { "   _ = x;  " }
+      let(:expected) { "_a;_ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end

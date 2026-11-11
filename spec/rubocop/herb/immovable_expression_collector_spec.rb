@@ -51,7 +51,8 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
     end
 
     context "with the same Ruby code at the head of multiple expressions preceded by HTML" do
-      let(:code) { "<% if a %>\n  (<%= x %>\n  <%= y %>)\n<% else %>\n  [<%= x %>\n  <%= z %>]\n<% end %>" }
+      # The text without indentation is too short for the marker, so it is rendered as whitespace
+      let(:code) { "<% if a %>\n(<%= x %>\n<%= y %>)\n<% else %>\n[<%= x %>\n<%= z %>]\n<% end %>" }
 
       it "disables Style/IdenticalConditionalBranches at the head" do
         expect(subject).to eq({ "Style/IdenticalConditionalBranches" => [2..2, 5..5] })

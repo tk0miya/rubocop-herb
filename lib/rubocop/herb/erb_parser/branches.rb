@@ -35,7 +35,7 @@ module RuboCop
       end
 
       # Check if the nodes contain HTML not rendered in the Ruby code (except whitespace):
-      # text too short to place the marker (see RubyRenderer::TEXT_MARKER_POSITION),
+      # text too short to place the marker (see RubyRenderer.text_marker_position),
       # HTML in open tags (e.g. attributes and their values) and HTML comments containing ERB
       # (except escaped ERB tags, which are text)
       # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
@@ -50,7 +50,7 @@ module RuboCop
         case node
         when ::Herb::AST::HTMLTextNode
           text = node.content.to_s
-          text.match?(/\S/) && !text.match?(RubyRenderer::TEXT_MARKER_POSITION)
+          text.match?(/\S/) && !RubyRenderer.text_marker_position(text)
         when ::Herb::AST::LiteralNode
           node.content.to_s.match?(/\S/)
         when ::Herb::AST::HTMLElementNode, ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode,
