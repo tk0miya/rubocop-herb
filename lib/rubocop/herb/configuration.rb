@@ -44,6 +44,8 @@ module RuboCop
         "Layout/EmptyLinesAroundMethodBody",
         "Layout/EmptyLinesAroundModuleBody",
         "Layout/ExtraSpacing", # The delimiters of ERB tags and HTML are rendered as whitespace
+        # The marker of a text node is rendered right before the code following it (`abc<%= x %>` becomes `_a;_ = x;`)
+        "Layout/SpaceAfterSemicolon",
         "Layout/SpaceAroundOperators", # The tag opening of an output tag is rendered as `_ =`
         # The closing delimiters of ERB tags are rendered as whitespace,
         # and trailing whitespace in HTML and text is left to herb-lint (erb-no-trailing-whitespace)

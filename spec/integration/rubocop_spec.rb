@@ -329,6 +329,58 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing a nested conditional following a short indented text" do
+    it "does not trigger Style/SoleNestedConditional" do
+      expect_no_offenses(<<~ERB)
+        <% if a %>
+          [<% if b %>
+            <%= x %>
+          <% end %>]
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing a short indented text after next" do
+    it "triggers Lint/UnreachableCode on the indentation before the text" do
+      expect_offense(<<~ERB)
+        <% items.each do |item| %>
+          <% next %>
+          [<%= item %>]
+           ^^^^^^^^ Lint/UnreachableCode: Unreachable code detected.
+        ^^ Lint/UnreachableCode: Unreachable code detected.
+        <% end %>
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a short text followed by an output tag" do
+    it "does not trigger Layout/SpaceAfterSemicolon" do
+      expect_no_offenses(<<~ERB)
+        <% if a %>
+          [<%= a %>]
+        <% end %>
+        <p>abc<%= b %></p>
+      ERB
+    end
+  end
+
+  context "when analyzing a semicolon without a space in an ERB tag" do
+    it "triggers Layout/SpaceAfterSemicolon" do
+      expect_offense(<<~ERB)
+        [<% a;b %>]
+             ^ Layout/SpaceAfterSemicolon: Space missing after semicolon.
+             ^ Style/Semicolon: Do not use semicolons to terminate expressions.
+      ERB
+
+      expect_correction(<<~ERB)
+        [<% a; b %>]
+      ERB
+    end
+  end
+
   context "when analyzing conditional branches without any content" do
     it "triggers Lint/EmptyConditionalBody" do
       expect_offense(<<~ERB)

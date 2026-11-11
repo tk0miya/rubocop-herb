@@ -15,9 +15,14 @@ module RuboCop
       include EscapedErbVisitor
 
       # The position to render the marker of a text node:
-      # 3 characters in the line followed by at least 1 character (space or newline) for "_a;",
+      # 3 characters in the line for "_a;" (the code following the text may follow the semicolon: `_a;_ = x;`),
       # or 2 characters followed by a newline for "_a" (the newline terminates the statement)
-      TEXT_MARKER_POSITION = /\S(?:[^\r\n]{2}.|[^\r\n](?=\r?\n))/m #: Regexp
+      TEXT_MARKER_POSITION = /\S(?:[^\r\n]{2}|[^\r\n](?=\r?\n))/ #: Regexp
+
+      # The position to render the marker of a text node too short for TEXT_MARKER_POSITION
+      # (e.g. `[` in `  [<%= x %>]`): the marker starts at the whitespace before the text in the line
+      # (part of the text node), so that the text is not rendered as whitespace
+      INDENTED_TEXT_MARKER_POSITION = /[^\S\r\n](?:[^\S\r\n]\S|\S[^\r\n]|\S(?=\r?\n))/ #: Regexp
 
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
@@ -25,6 +30,15 @@ module RuboCop
         renderer = new(parse_result)
         parse_result.ast.visit(renderer)
         renderer.ruby_code
+      end
+
+      # Find the position to render the marker of a text node (nil if the text is too short to place it)
+      # The marker is placed at the text (see TEXT_MARKER_POSITION) and, only when the text is too short in every line,
+      # over the whitespace before the text (see INDENTED_TEXT_MARKER_POSITION), so that the offenses on the marker
+      # (e.g. Lint/UnreachableCode) point at the text as much as possible
+      # @rbs text: String
+      def self.text_marker_position(text) #: MatchData?
+        text.match(TEXT_MARKER_POSITION) || text.match(INDENTED_TEXT_MARKER_POSITION)
       end
 
       attr_reader :ruby_code #: String
@@ -229,14 +243,14 @@ module RuboCop
         ruby_code[pos]&.match?(/[\r\n]/) || false
       end
 
-      # Render HTML text node by placing a marker ("_a;" or "_a") at the first position where it fits in the line
-      # (see TEXT_MARKER_POSITION)
+      # Render HTML text node by placing a marker ("_a;" or "_a") at the first position where it fits in the line,
+      # or over the whitespace before it (see text_marker_position)
       # This indicates content presence to avoid Lint/EmptyBlock and similar cops
       # @rbs node: ::Herb::AST::HTMLTextNode
       def render_text_node(node) #: void
         range = NodeRange.compute_char_range(node, source)
         text = source.slice(range)
-        match = text.match(TEXT_MARKER_POSITION)
+        match = RubyRenderer.text_marker_position(text)
         return unless match
 
         pos = range.from + match.begin(0).not_nil!
