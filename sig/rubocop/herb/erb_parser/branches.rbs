@@ -13,20 +13,44 @@ module RuboCop
       def self?.of_rescue: (::Herb::AST::ERBBeginNode | ::Herb::AST::ERBBlockNode node) -> Array[branch_node]
 
       # Check if the nodes contain HTML not rendered in the Ruby code (except whitespace):
-      # text too short to place the marker (see RubyRenderer.text_marker_position),
-      # HTML in open tags (e.g. attributes and their values) and HTML comments containing ERB
-      # (except escaped ERB tags, which are text)
+      # text and literals too short to place the marker (see RubyRenderer.text_marker_position),
+      # attributes in ERB nodes none of whose literals fit the marker (see RubyRenderer#visit_html_attribute_node),
+      # and comments, doctypes, CDATA and XML declarations containing ERB (except escaped ERB tags, which are text)
+      # none of whose literals fit the marker (their literals are rendered instead of them,
+      # see RubyRenderer#render_opening_node)
       # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
-      # the branch. HTML elements and tags are not because they are rendered and make the branch unique.
+      # the branch, and so are the ones in attributes, comments and so on. HTML elements and tags are not
+      # because they are rendered and make the branch unique.
       # @rbs nodes: Array[::Herb::AST::Node]
       def self?.unrendered_html?: (Array[::Herb::AST::Node] nodes) -> bool
 
       # @rbs node: ::Herb::AST::Node
       def self?.unrendered_html_node?: (::Herb::AST::Node node) -> bool
 
-      # Check if the HTML comment contains ERB (except escaped ERB tags, which are text)
-      # @rbs node: ::Herb::AST::HTMLCommentNode
-      def self?.comment_with_erb?: (::Herb::AST::HTMLCommentNode node) -> bool
+      # @rbs text: String
+      def self?.unrendered_text?: (String text) -> bool
+
+      # Check if the attribute in an ERB node has no literal to place the marker in (e.g. `id="ab"` and
+      # `<%= k %>="<%= v %>"`), or contains ERB nodes with HTML not rendered (e.g. `class="<% if a %>x<% end %>"`)
+      # The marker of the attribute is rendered at one of its literals (see RubyRenderer#visit_html_attribute_node),
+      # so its other literals are not checked
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def self?.unrendered_attribute?: (::Herb::AST::HTMLAttributeNode node) -> bool
+
+      # Check if the comment, doctype, CDATA or XML declaration containing ERB has no literal to place the marker in
+      # (its delimiters, e.g. `<!--`, are not rendered), or contains HTML not rendered
+      # A comment and so on without ERB is rendered at its opening
+      # @rbs node: html_opening_node
+      def self?.unrendered_opening_node?: (html_opening_node node) -> bool
+
+      # Check if none of the literals in the nodes fits the marker
+      # @rbs nodes: Array[::Herb::AST::Node]
+      def self?.no_marker?: (Array[::Herb::AST::Node] nodes) -> bool
+
+      # Check if the comment, doctype, CDATA or XML declaration contains ERB
+      # (except escaped ERB tags, which are text)
+      # @rbs node: html_opening_node
+      def self?.with_erb?: (html_opening_node node) -> bool
     end
   end
 end
