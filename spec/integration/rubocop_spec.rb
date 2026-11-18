@@ -1335,7 +1335,84 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   context "when analyzing conditional branches in an attribute differing only in text not rendered in the Ruby code" do
     it "does not trigger Lint/DuplicateBranch" do
       expect_no_offenses(<<~ERB)
-        <p class="<% if b %>abc<%= x %><% elsif c %>def<%= x %><% end %>"></p>
+        <p class="<% if b %>a<%= x %><% elsif c %>d<%= x %><% end %>"></p>
+      ERB
+    end
+  end
+
+  context "when analyzing conditional branches in an attribute differing only in text rendered in the Ruby code" do
+    it "does not trigger Lint/DuplicateBranch" do
+      expect_no_offenses(<<~ERB)
+        <p class="<% if b %>abc <%= x %><% else %>def <%= x %><% end %>"></p>
+      ERB
+    end
+  end
+
+  context "when analyzing conditional branches in script, style and comments differing only in text" do
+    it "does not trigger Lint/DuplicateBranch" do
+      expect_no_offenses(<<~ERB)
+        <script><% if a %>abc <%= x %><% else %>def <%= x %><% end %></script>
+        <style><% if b %>abc <%= x %><% else %>def <%= x %><% end %></style>
+        <!-- <% if c %>abc <%= x %><% else %>def <%= x %><% end %> -->
+      ERB
+    end
+  end
+
+  context "when analyzing a conditional in a script element with a negated condition" do
+    it "triggers Style/NegatedIfElseCondition as for the conditional outside script elements" do
+      expect_offense(<<~ERB)
+        <script><% if !a %>var x = 1;<% else %>var x = 2;<% end %></script>
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/NegatedIfElseCondition: Invert the negated condition and swap the if-else branches.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing conditionals in attributes having the same Ruby code in all branches" do
+    it "triggers Lint/DuplicateBranch" do
+      expect_offense(<<~ERB)
+        <p class="<% if b %><%= x %><% else %><%= x %><% end %>"></p>
+                                       ^^^^ Lint/DuplicateBranch: Duplicate branch body detected.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a conditional in an attribute with a negated condition" do
+    it "triggers Style/NegatedIfElseCondition as for the conditional outside attributes" do
+      expect_offense(<<~ERB)
+        <div class="<% if !a %>active <% else %>idle <% end %>"></div>
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/NegatedIfElseCondition: Invert the negated condition and swap the if-else branches.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a block in an attribute with an unused block argument" do
+    it "triggers Lint/UnusedBlockArgument as for the block outside attributes" do
+      expect_offense(<<~ERB)
+        <ul class="<% items.each do |item| %>item <% end %>"></ul>
+                                     ^^^^ Lint/UnusedBlockArgument: Unused block argument - `item`. You can omit the argument if you don't care about it.
+      ERB
+
+      expect_correction(<<~ERB)
+        <ul class="<% items.each do |_item| %>item <% end %>"></ul>
+      ERB
+    end
+  end
+
+  context "when analyzing a conditional in a multi-line attribute value" do
+    it "does not trigger Layout/IndentationWidth" do
+      expect_no_offenses(<<~ERB)
+        <div class="
+          base
+          <% if a %>
+            active
+          <% end %>
+        "></div>
       ERB
     end
   end

@@ -67,6 +67,15 @@ module RuboCop
     #                  | ::Herb::AST::HTMLOpenTagNode
     #                  | ::Herb::AST::HTMLCloseTagNode
     #                  | ::Herb::AST::HTMLCommentNode
+    #                  | ::Herb::AST::HTMLDoctypeNode
+    #                  | ::Herb::AST::CDATANode
+    #                  | ::Herb::AST::XMLDeclarationNode
+    #
+    #   # Union type for HTML nodes starting with an opening of 3 characters or more (e.g. `<!--`)
+    #   type html_opening_node = ::Herb::AST::HTMLCommentNode
+    #                          | ::Herb::AST::HTMLDoctypeNode
+    #                          | ::Herb::AST::CDATANode
+    #                          | ::Herb::AST::XMLDeclarationNode
     #
     #   # Union type for ERB nodes holding the statements of a branch
     #   type branch_node = ::Herb::AST::ERBIfNode
