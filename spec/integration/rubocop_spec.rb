@@ -329,6 +329,52 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing bodies containing only text too short to place the marker" do
+    it "does not trigger the cops for empty bodies" do
+      expect_no_offenses(<<~ERB)
+        <% if a %>
+        x
+        <% elsif b %>
+        y
+        <% else %>
+        z
+        <% end %>
+        <% unless c %>x<% end %>
+        <% case a %>
+        <% when 1 %>
+        x
+        <% else %>
+        y
+        <% end %>
+        <% case a %>
+        <% in 1 %>
+        x
+        <% end %>
+        <% items.each do %>
+        x
+        <% end %>
+        <% begin %>
+          <%= a %>
+        <% rescue StandardError %>
+        x
+        <% ensure %>
+        y
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing an empty elsif branch following an if branch containing HTML on a single line" do
+    it "triggers Lint/EmptyConditionalBody for the elsif branch" do
+      expect_offense(<<~ERB)
+        <% if a %><p>a</p><% elsif b %><% end %>
+                             ^^^^^^^^ Lint/EmptyConditionalBody: Avoid `elsif` branches without a body.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
   context "when analyzing a nested conditional following a short indented text" do
     it "does not trigger Style/SoleNestedConditional" do
       expect_no_offenses(<<~ERB)
@@ -450,7 +496,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
   context "when analyzing conditionals written across ERB tags on a single line" do
     it "does not trigger Style/OneLineConditional" do
       expect_offense(<<~ERB)
-        <% if a %>foo<% elsif b %><% end %>
+        <% if a %>foo<% elsif b %>bar<% end %>
         <% if a %><%= x %><% else %><%= y %><% end %>
         <% unless a %><%= x %><% else %><%= y %><% end %>
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/UnlessElse: Do not use `unless` with `else`. Rewrite these with the positive case first.

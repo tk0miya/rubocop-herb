@@ -9,8 +9,8 @@ module RuboCop
     # Visitor that collects the lines where cops should be disabled.
     # Some cops report false positives caused by the conversion
     # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
-    # This collector finds such lines from the ERB structure (e.g. conditional branches containing only HTML,
-    # and the alignment of tags following the HTML structure).
+    # This collector finds such lines from the ERB structure (e.g. conditional branches containing only HTML
+    # not rendered in the Ruby code, and the alignment of tags following the HTML structure).
     #
     # The layout cops (e.g. Layout/BlockAlignment and Layout/IndentationWidth) are disabled for the structures
     # written across ERB tags, because the columns of the tags are the layout of HTML, which is left to
@@ -43,10 +43,10 @@ module RuboCop
         super
       end
 
-      # Conditional branches containing only HTML may become empty in the Ruby code
+      # Conditional branches containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
-        disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
+        disable_cop("Lint/EmptyConditionalBody", node) if unrendered_html_only?(node.statements)
         disable_conditional_cops(node)
         end_node = node.end_node
         # elsif nodes have no end tag. The column of elsif tags follows the HTML structure as well as else tags
@@ -56,10 +56,10 @@ module RuboCop
         super
       end
 
-      # Conditional branches containing only HTML may become empty in the Ruby code
+      # Conditional branches containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node(node) #: void
-        disable_cop("Lint/EmptyConditionalBody", node) if html_content?(node.statements)
+        disable_cop("Lint/EmptyConditionalBody", node) if unrendered_html_only?(node.statements)
         disable_conditional_cops(node)
         disable_end_alignment(node.end_node)
         disable_duplicate_branch([node, node.else_clause].compact)
@@ -121,10 +121,10 @@ module RuboCop
         super
       end
 
-      # Else branches containing only HTML may become empty in the Ruby code
+      # Else branches containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
-        disable_cop("Style/EmptyElse", node) if html_content?(node.statements)
+        disable_cop("Style/EmptyElse", node) if unrendered_html_only?(node.statements)
         # The column of the else tag follows the HTML structure (e.g. `<span><% if a %>` and `<% else %>`
         # on the next line), not the opening tag. Conditionals written within a single ERB tag are still checked.
         disable_cop("Layout/ElseAlignment", node)
@@ -132,50 +132,50 @@ module RuboCop
         super
       end
 
-      # When branches containing only HTML may become empty in the Ruby code
+      # When branches containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
-        disable_cop("Lint/EmptyWhen", node) if html_content?(node.statements)
+        disable_cop("Lint/EmptyWhen", node) if unrendered_html_only?(node.statements)
         # The column of the when tag follows the HTML structure, not the case tag
         disable_cop("Layout/CaseIndentation", node)
         disable_body_indentation(node.statements)
         super
       end
 
-      # Rescue clauses containing only HTML may become empty in the Ruby code
+      # Rescue clauses containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node(node) #: void
-        disable_cop("Lint/SuppressedException", node) if html_content?(node.statements)
+        disable_cop("Lint/SuppressedException", node) if unrendered_html_only?(node.statements)
         # The column of the rescue tag follows the HTML structure, not the begin tag or the block tag
         disable_cop("Layout/RescueEnsureAlignment", node)
         disable_body_indentation(node.statements)
         super
       end
 
-      # Ensure clauses containing only HTML may become empty in the Ruby code
+      # Ensure clauses containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node(node) #: void
-        disable_cop("Lint/EmptyEnsure", node) if html_content?(node.statements)
+        disable_cop("Lint/EmptyEnsure", node) if unrendered_html_only?(node.statements)
         # The column of the ensure tag follows the HTML structure, not the begin tag or the block tag
         disable_cop("Layout/RescueEnsureAlignment", node)
         disable_body_indentation(node.statements)
         super
       end
 
-      # In branches containing only HTML may become empty in the Ruby code
+      # In branches containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBInNode
       def visit_erb_in_node(node) #: void
-        disable_cop("Lint/EmptyInPattern", node) if html_content?(node.statements)
+        disable_cop("Lint/EmptyInPattern", node) if unrendered_html_only?(node.statements)
         # The column of the in tag follows the HTML structure, not the case tag
         disable_cop("Layout/CaseIndentation", node)
         disable_body_indentation(node.statements)
         super
       end
 
-      # Blocks containing only HTML may become empty in the Ruby code
+      # Blocks containing only HTML not rendered in the Ruby code become empty (see unrendered_html_only?)
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
-        disable_cop("Lint/EmptyBlock", node) if html_content?(node.body)
+        disable_cop("Lint/EmptyBlock", node) if unrendered_html_only?(node.body)
         disable_single_line_block(node)
         disable_block_alignment(node.end_node)
         disable_body_indentation(node.body)
@@ -326,17 +326,31 @@ module RuboCop
         (disabled_cops[cop_name] ||= []) << (first_line..last_line)
       end
 
-      # Check if the nodes contain non-ERB content (except whitespace)
-      # HTML content may be rendered as whitespace (e.g. text too short to place the marker in the line,
-      # see RubyRenderer.text_marker_position), so bodies containing only HTML can become empty in the Ruby code
+      # Check if the body consists only of HTML not rendered in the Ruby code (see Branches.unrendered_html_node?),
+      # except whitespace and ERB tags without Ruby code: such a body becomes empty in the Ruby code
+      # (e.g. `<% if a %>x<% end %>` becomes `if a;      end;`), although it is not empty in the ERB.
+      # HTML containing ERB tags with Ruby code (e.g. `id="<%= x %>"`) is not, as the tags are rendered.
       # @rbs nodes: Array[::Herb::AST::Node]
-      def html_content?(nodes) #: bool
-        nodes.any? do |node|
-          if node.is_a?(::Herb::AST::HTMLTextNode)
-            node.content.to_s.match?(/\S/)
-          else
-            !node.type.start_with?("AST_ERB_")
-          end
+      def unrendered_html_only?(nodes) #: bool
+        contents = nodes.reject { blank_html?(_1) || codeless_erb?(_1) }
+        contents.any? && contents.all? { unrendered_html_without_erb?(_1) }
+      end
+
+      # Whether the node is HTML not rendered in the Ruby code, containing no ERB tags with Ruby code
+      # @rbs node: ::Herb::AST::Node
+      def unrendered_html_without_erb?(node) #: bool
+        return false if node.type.start_with?("AST_ERB_")
+
+        Branches.unrendered_html_node?(node) && first_erb_line([node]).nil?
+      end
+
+      # Whether the node is a WhitespaceNode, or text or a literal containing only whitespace
+      # @rbs node: ::Herb::AST::Node
+      def blank_html?(node) #: bool
+        case node
+        when ::Herb::AST::WhitespaceNode then true
+        when ::Herb::AST::HTMLTextNode, ::Herb::AST::LiteralNode then !node.content.to_s.match?(/\S/)
+        else false
         end
       end
     end
