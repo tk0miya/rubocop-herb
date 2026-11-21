@@ -356,6 +356,39 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing empty branches next to branches containing HTML" do
+    it "triggers Lint/EmptyWhen and Lint/EmptyConditionalBody only for the empty branches" do
+      expect_offense(<<~ERB)
+        <% case a %><% when 1 %><% when 2 %><p>b</p><% end %>
+                       ^^^^^^ Lint/EmptyWhen: Avoid `when` branches without a body.
+        <% if a %><p>a</p><% elsif b %><% end %>
+                             ^^^^^^^^ Lint/EmptyConditionalBody: Avoid `elsif` branches without a body.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing branches containing only attributes without literals" do
+    it "does not trigger the cops for empty branches and Lint/DuplicateBranch" do
+      expect_no_offenses(<<~ERB)
+        <input <% if a %><%= k %>="<%= v %>"<% else %><%= k %>='<%= v %>'<% end %>>
+      ERB
+    end
+  end
+
+  context "when analyzing a conditional with text in a doctype" do
+    it "does not trigger Lint/EmptyConditionalBody and Lint/DuplicateBranch" do
+      expect_no_offenses(<<~ERB)
+        <!DOCTYPE <% if a %>
+        xyz
+        <% elsif b %>
+        xyz
+        <% end %>>
+      ERB
+    end
+  end
+
   context "when analyzing a short text followed by an output tag" do
     it "does not trigger Layout/SpaceAfterSemicolon" do
       expect_no_offenses(<<~ERB)
@@ -451,6 +484,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     it "does not trigger Style/OneLineConditional" do
       expect_offense(<<~ERB)
         <% if a %>foo<% elsif b %><% end %>
+                        ^^^^^^^^ Lint/EmptyConditionalBody: Avoid `elsif` branches without a body.
         <% if a %><%= x %><% else %><%= y %><% end %>
         <% unless a %><%= x %><% else %><%= y %><% end %>
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/UnlessElse: Do not use `unless` with `else`. Rewrite these with the positive case first.

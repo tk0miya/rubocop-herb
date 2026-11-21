@@ -166,7 +166,7 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 
 - Autocorrections must never break ERB tags. Guard them generically with `CorrectionAdjuster` / `CorrectionValidator` (or `UNCORRECTABLE_COPS`) rather than special-casing cops elsewhere
 - Where to suppress false positives:
-  - Caused by the ERB structure (e.g. branches containing only HTML) → `DisabledCopsCollector`
+  - Caused by the ERB structure (e.g. tags aligned by the HTML structure, branches containing only HTML not rendered in the Ruby code) → `DisabledCopsCollector`
   - On the code rendered by the conversion (HTML markers, delimiters, semicolons) → `VERBATIM_CODE_COPS` (`CopOffenseFilter`)
   - Inherently incompatible with ERB → `EXCLUDED_COPS`
 - Never patch individual cops (e.g. prepending to `RuboCop::Cop::Layout::IndentationConsistency` to override its private methods): their internals change silently between RuboCop versions.

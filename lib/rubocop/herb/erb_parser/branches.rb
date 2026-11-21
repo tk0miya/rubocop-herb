@@ -68,10 +68,15 @@ module RuboCop
 
       # Check if the attribute in an ERB node has no literal to place the marker in
       # (e.g. `id="ab"` and `<%= k %>="<%= v %>"`), as it is rendered at one of its literals
+      # An attribute without a value and literals (e.g. `<%= x %>` in `<input <%= x %>>`) has only ERB nodes,
+      # which are rendered as Ruby code, so it has no HTML
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def unrendered_attribute?(node) #: bool
         children = [*node.name&.children, *node.value&.children] #: Array[::Herb::AST::Node]
-        children.none? { _1.is_a?(::Herb::AST::LiteralNode) && RubyRenderer.text_marker_position(_1.content.to_s) }
+        literals = children.grep(::Herb::AST::LiteralNode) #: Array[::Herb::AST::LiteralNode]
+        return false if node.value.nil? && literals.empty?
+
+        literals.none? { RubyRenderer.text_marker_position(_1.content.to_s) }
       end
     end
   end
