@@ -29,6 +29,8 @@ module RuboCop
 
       # Check if the attribute in an ERB node has no literal to place the marker in
       # (e.g. `id="ab"` and `<%= k %>="<%= v %>"`), as it is rendered at one of its literals
+      # An attribute without a value and literals (e.g. `<%= x %>` in `<input <%= x %>>`) has only ERB nodes,
+      # which are rendered as Ruby code, so it has no HTML
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def self?.unrendered_attribute?: (::Herb::AST::HTMLAttributeNode node) -> bool
     end
