@@ -123,6 +123,12 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
       def disable_block_alignment: (::Herb::AST::ERBEndNode? end_node) -> void
 
+      # HTML and the code before the end tag are rendered with a semicolon, which Layout/BlockEndNewline skips,
+      # but the nodes of short texts have none (see ExpandedCode), so the cop reports the end tag following one
+      # (e.g. `<%= x %>,<% end %>`). Blocks written within a single ERB tag are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
+      def disable_block_end_newline: (::Herb::AST::ERBEndNode? end_node) -> void
+
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
       # by the HTML structure. Layout/IndentationWidth reports the first statement of a body, which is
       # the first HTML content or the first ERB tag in it, so the cop is disabled

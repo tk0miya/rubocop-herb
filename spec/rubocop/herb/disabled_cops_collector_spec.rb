@@ -24,9 +24,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       { "Layout/ElseAlignment" => ranges }
     end
 
-    # Layout/BlockAlignment disabled at the end tags of blocks written across ERB tags
-    def block_alignment(*ranges)
-      { "Layout/BlockAlignment" => ranges }
+    # The cops disabled at the end tags of blocks written across ERB tags
+    def block_end(*ranges)
+      { "Layout/BlockAlignment" => ranges, "Layout/BlockEndNewline" => ranges }
     end
 
     # Layout/EndAlignment disabled at the end tags of conditionals and loops written across ERB tags
@@ -309,9 +309,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block containing an HTML element" do
       let(:code) { "<% items.each do |item| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Layout/BlockAlignment at the end tag, not Lint/EmptyBlock as the element is rendered" do
+      it "disables the cops for the block end at the end tag, not Lint/EmptyBlock as the element is rendered" do
         expect(subject).to eq({
-                                **block_alignment(3..3),
+                                **block_end(3..3),
                                 **indentation_width(2..2)
                               })
       end
@@ -320,9 +320,9 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with output block containing an HTML element" do
       let(:code) { "<%= form_with do |f| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables Layout/BlockAlignment at the end tag, not Lint/EmptyBlock as the element is rendered" do
+      it "disables the cops for the block end at the end tag, not Lint/EmptyBlock as the element is rendered" do
         expect(subject).to eq({
-                                **block_alignment(3..3),
+                                **block_end(3..3),
                                 **indentation_width(2..2)
                               })
       end
@@ -331,10 +331,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block written across ERB tags on a single line" do
       let(:code) { "<% items.each do |item| %><%= item %><% end %>" }
 
-      it "disables Style/BlockDelimiters and Layout/BlockAlignment at the line" do
+      it "disables Style/BlockDelimiters and the cops for the block end at the line" do
         expect(subject).to eq({
                                 "Style/BlockDelimiters" => [1..1],
-                                **block_alignment(1..1),
+                                **block_end(1..1),
                                 **indentation_width(1..1)
                               })
       end
@@ -419,7 +419,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Layout/CaseIndentation" => [2..2],
                                 **else_alignment(4..4),
                                 **end_alignment(6..6),
-                                **block_alignment(9..9),
+                                **block_end(9..9),
                                 **indentation_width(3..3, 5..5, 8..8)
                               })
       end
@@ -594,7 +594,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
         expect(subject).to eq({
                                 "Lint/EmptyBlock" => [1..1],
                                 "Style/BlockDelimiters" => [1..1],
-                                **block_alignment(1..1),
+                                **block_end(1..1),
                                 **indentation_width(1..1)
                               })
       end
@@ -686,7 +686,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
                                 "Layout/BeginEndAlignment" => [7..7],
                                 "Layout/RescueEnsureAlignment" => [3..3, 5..5, 10..10],
                                 **else_alignment(12..12),
-                                **block_alignment(14..14),
+                                **block_end(14..14),
                                 **indentation_width(2..2, 4..4, 6..6, 9..9, 11..11, 13..13)
                               })
       end
@@ -796,7 +796,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
 
       it "disables Layout/IndentationWidth from the escaped ERB comment tag as it is text" do
         expect(subject).to eq({
-                                **block_alignment(4..4),
+                                **block_end(4..4),
                                 **indentation_width(2..3)
                               })
       end

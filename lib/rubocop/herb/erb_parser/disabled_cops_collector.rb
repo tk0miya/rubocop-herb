@@ -188,6 +188,7 @@ module RuboCop
         disable_cop("Lint/EmptyBlock", node) if unrendered_body?(node.body)
         disable_single_line_block(node)
         disable_block_alignment(node.end_node)
+        disable_block_end_newline(node.end_node)
         disable_body_indentation(node.body)
         disable_duplicate_branch(Branches.of_rescue(node))
         super
@@ -233,6 +234,14 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
       def disable_block_alignment(end_node) #: void
         disable_cop("Layout/BlockAlignment", end_node) if end_node
+      end
+
+      # HTML and the code before the end tag are rendered with a semicolon, which Layout/BlockEndNewline skips,
+      # but the nodes of short texts have none (see ExpandedCode), so the cop reports the end tag following one
+      # (e.g. `<%= x %>,<% end %>`). Blocks written within a single ERB tag are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
+      def disable_block_end_newline(end_node) #: void
+        disable_cop("Layout/BlockEndNewline", end_node) if end_node
       end
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented

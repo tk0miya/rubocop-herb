@@ -495,6 +495,15 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
+  context "when analyzing end tags of blocks following texts too short to be rendered in the Ruby code" do
+    it "does not trigger Layout/BlockEndNewline" do
+      expect_no_offenses(<<~ERB)
+        <% items.each do |item| %>
+          <%= item %>,<% end %>
+      ERB
+    end
+  end
+
   context "when analyzing a short text followed by an output tag" do
     it "does not trigger Layout/SpaceAfterSemicolon" do
       expect_no_offenses(<<~ERB)
