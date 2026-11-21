@@ -1,0 +1,59 @@
+# Generated from lib/rubocop/herb/expanded_code.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # The Ruby code to parse: the Ruby code rendered by RubyRenderer in which the markers of short texts are inserted.
+    # A text of 1-2 characters has no room for the marker ("_a;") in the Ruby code keeping the positions of the source,
+    # so it is replaced with the marker here, which shifts the code after it.
+    # The positions in the result of parsing this code are converted back to the ones in the source
+    # (see LocationRemapper), so that RuboCop gets an AST with the nodes of short texts at their positions.
+    #
+    #     source:    "<% if x %>a<% else %>b<% end %>"
+    #     ruby_code: "   if x;       else;       end;  "
+    #     code:      "   if x;  _a;     else;  _a;     end;  "
+    class ExpandedCode
+      # The marker of a short text, which is the same as the one of a text (see RubyRenderer)
+      MARKER: String
+
+      # The offset of the semicolon in the marker
+      SEMICOLON_OFFSET: Integer
+
+      # A short text replaced with the marker
+      class Replacement < Data
+        attr_reader range(): CharRange
+
+        attr_reader expanded_pos(): Integer
+
+        def self.new: (CharRange range, Integer expanded_pos) -> instance
+                    | (range: CharRange, expanded_pos: Integer) -> instance
+
+        def self.members: () -> [ :range, :expanded_pos ]
+
+        def members: () -> [ :range, :expanded_pos ]
+      end
+
+      attr_reader code: String
+
+      attr_reader replacements: Array[Replacement]
+
+      # @rbs ruby_code: String
+      # @rbs short_text_ranges: Array[CharRange] -- the ranges of the short texts in the source
+      def initialize: (String ruby_code, Array[CharRange] short_text_ranges) -> void
+
+      # Convert a position in the expanded code to the one in the source
+      # The identifier of a marker (`_a`) is mapped to the short text, and its semicolon to the end of the text
+      # @rbs pos: Integer
+      def to_source_pos: (Integer pos) -> Integer
+
+      # Whether the position in the expanded code is the semicolon of a marker
+      # @rbs pos: Integer
+      def marker_semicolon?: (Integer pos) -> bool
+
+      private
+
+      # The last replacement starting at the position or before it
+      # @rbs pos: Integer
+      def preceding_replacement: (Integer pos) -> Replacement?
+    end
+  end
+end

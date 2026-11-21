@@ -5,6 +5,8 @@ module RuboCop
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
     # Comments are retrieved from ParseResult and rendered at the end
     # with filtering applied.
+    # The texts too short for the marker are not rendered in the Ruby code, as it keeps the positions of the source.
+    # They are collected in short_text_ranges instead (see ExpandedCode).
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
 
@@ -20,9 +22,12 @@ module RuboCop
       # (part of the text node), so that the text is not rendered as whitespace
       INDENTED_TEXT_MARKER_POSITION: Regexp
 
+      # The short text to collect in a text too short to place the marker: 1-2 characters
+      SHORT_TEXT: Regexp
+
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
-      def self.render: (ParseResult parse_result) -> String
+      def self.render: (ParseResult parse_result) -> RubyRenderer
 
       # Find the position to render the marker of a text node (nil if the text is too short to place it)
       # The marker is placed at the text (see TEXT_MARKER_POSITION) and, only when the text is too short in every line,
@@ -31,7 +36,14 @@ module RuboCop
       # @rbs text: String
       def self.text_marker_position: (String text) -> MatchData?
 
+      # The literals of the name and the value of an attribute (except the ones in ERB nodes) to place the marker of
+      # the attribute at. Literals with whitespace only have no text to place it at
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def self.attribute_literals: (::Herb::AST::HTMLAttributeNode node) -> Array[::Herb::AST::LiteralNode]
+
       attr_reader ruby_code: String
+
+      attr_reader short_text_ranges: Array[CharRange]
 
       attr_reader parse_result: ParseResult
 
@@ -105,7 +117,7 @@ module RuboCop
 
       # Visit HTML attribute nodes
       # An attribute in an ERB node (e.g. `<input <% if a %>disabled<% end %>>`) is a branch of its own,
-      # so it is rendered as a marker at its first literal in which the marker fits
+      # so it is rendered as a marker at its first literal in which the marker fits (or at its first literal)
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def visit_html_attribute_node: (::Herb::AST::HTMLAttributeNode node) -> void
 
@@ -151,7 +163,9 @@ module RuboCop
       def within_open_tag: (bool value) { () -> void } -> void
 
       # Render the marker of an attribute at its first literal in which the marker fits
-      # (e.g. `disabled` of `<% if a %>disabled<% end %>`)
+      # (e.g. `disabled` of `<% if a %>disabled<% end %>`), or at its first literal as a short text if it fits in none
+      # (e.g. `id` of `<% if a %>id="x"<% end %>`)
+      # An attribute without literals (e.g. `<%= k %>="<%= v %>"`) has no marker
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def render_attribute_marker: (::Herb::AST::HTMLAttributeNode node) -> void
 
@@ -195,7 +209,7 @@ module RuboCop
       def render_opening_node: (html_opening_node node) -> void
 
       # Render the marker of the HTML node (e.g. "tag; " for tags and "_a;" for text)
-      # Text and literals are not rendered when the marker does not fit in them (see render_text_marker)
+      # Text and literals are collected as short texts when the marker does not fit in them (see render_text_node)
       # @rbs node: ::Herb::AST::Node
       def render_marker: (::Herb::AST::Node node) -> void
 
@@ -210,6 +224,9 @@ module RuboCop
       def newline_at?: (Integer pos) -> bool
 
       # Render HTML text node (or literal node) as a marker (see render_text_marker)
+      # The text too short to place the marker is collected as a short text: its first 1-2 characters
+      # (e.g. `a` in `<% if x %>a<% end %>`). One short text is enough to indicate content presence,
+      # as one marker is rendered for a text
       # @rbs node: ::Herb::AST::HTMLTextNode | ::Herb::AST::LiteralNode
       def render_text_node: (::Herb::AST::HTMLTextNode | ::Herb::AST::LiteralNode node) -> void
 

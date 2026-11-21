@@ -85,6 +85,7 @@ RuboCop ←── returns ─── Extractor
    - Calls **RubyRenderer** to traverse the AST and render Ruby code
 4. **Extractor** returns the result to **RuboCop**
 5. **RuboCop** analyzes the Ruby code; **RuboCopASTTransformer** renames the nodes rendered from HTML uniquely. RuboCop reports offenses at the positions in the original ERB source, as the Ruby code keeps the positions of the source
+6. The AST RuboCop gets is not always the one of parsing the Ruby code: the texts too short to be rendered in it get their nodes in **ProcessedSource** (see "Short Texts" below)
 
 Data containers: `ParseResult` (holds parsed AST and metadata), `ProcessedSource` (RuboCop's source wrapper)
 
@@ -112,6 +113,23 @@ div;
 div;
 ```
 
+#### 3. Short Texts
+
+A text of 1-2 characters has no room for the marker (`_a;`) in the Ruby code keeping the positions of the source, so it is rendered as whitespace.
+`RubyRenderer` collects such texts (`Converter::Result#short_text_ranges`), and `ProcessedSource` parses the code in which their markers are inserted (`ExpandedCode`) instead of the Ruby code, then converts the positions in the result (AST, tokens, comments and diagnostics) back to the ones in the Ruby code (`LocationRemapper`).
+
+```
+source:        <% if x %>a<% else %>b<% end %>
+ruby_code:        if x;       else;       end;       (the buffer RuboCop reports offenses on)
+expanded code:    if x;  _a;     else;  _a;     end;
+AST:           (if (send nil :x) (send nil :_a__html10) (send nil :_a__html21))
+```
+
+- The buffer is still the Ruby code, so that the positions and the lines are the ones of the source. The node of a short text is at the text (`a` at 10...11), and the semicolon of its marker has no token
+- Anything reading the buffer instead of the AST (e.g. the cops checking lines) does not see short texts
+- The cops parsing the corrected buffer again to compare it with the AST (`ReparsedEquivalence`) get the AST of the buffer itself (`ProcessedSource#untransformed_node`), which has no nodes of short texts
+- When all the HTML in a body has nodes in the AST, the cops for empty bodies and duplicate branches need no disabling. `Branches.unrendered_html?` tells the HTML without nodes (attributes with a value but without literals, and unknown nodes)
+
 ### Positions and Newlines
 
 The libraries count positions and newlines differently, so convert positions explicitly and never mix them:
@@ -135,7 +153,7 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 
 #### Conversion
 
-- **Converter** (`converter.rb`): Orchestrates the conversion, produces `ruby_code`
+- **Converter** (`converter.rb`): Orchestrates the conversion, produces `ruby_code` and `short_text_ranges`
 - **ErbParser** (`erb_parser.rb`): Parses ERB with Herb and returns a `ParseResult` (`Source`, AST, ERB locations, disabled cops)
   - `erb_parser/node_location_collector.rb`, `erb_parser/disabled_cops_collector.rb`, `erb_parser/branches.rb`
 - **RubyRenderer** (`ruby_renderer.rb`): Visitor rendering the Herb AST to Ruby code
@@ -146,6 +164,7 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 
 - **Plugin** / **Extractor**: Entry points registering the conversion with RuboCop
 - **ProcessedSource** (`processed_source.rb`): Transforms the AST with **RuboCopASTTransformer** and builds the **CommentConfig** from `DisabledCopsCollector`, **ImmovableExpressionCollector** and **HtmlOnlyLineCollector**
+- **ExpandedCode** (`expanded_code.rb`) + **LocationRemapper** (`location_remapper.rb`): Add the nodes of short texts to the AST (see "Short Texts" above)
 - **CopOffenseFilter** + **VerbatimCode**: Suppress offenses on the code rendered by the conversion (`Configuration::VERBATIM_CODE_COPS`)
 - **CopCorrectionGuard** + **CorrectionAdjuster** + **CorrectionValidator**: Trim and validate autocorrections so that they never break ERB tags
 - **ReparsedEquivalenceAdapter**: Lets the cops reparsing their corrections compare with the AST before the transformation
@@ -166,7 +185,7 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 
 - Autocorrections must never break ERB tags. Guard them generically with `CorrectionAdjuster` / `CorrectionValidator` (or `UNCORRECTABLE_COPS`) rather than special-casing cops elsewhere
 - Where to suppress false positives:
-  - Caused by the ERB structure (e.g. tags aligned by the HTML structure, branches containing only HTML not rendered in the Ruby code) → `DisabledCopsCollector`
+  - Caused by the ERB structure (e.g. tags aligned by the HTML structure, branches containing HTML without nodes in the AST) → `DisabledCopsCollector`
   - On the code rendered by the conversion (HTML markers, delimiters, semicolons) → `VERBATIM_CODE_COPS` (`CopOffenseFilter`)
   - Inherently incompatible with ERB → `EXCLUDED_COPS`
 - Never patch individual cops (e.g. prepending to `RuboCop::Cop::Layout::IndentationConsistency` to override its private methods): their internals change silently between RuboCop versions.

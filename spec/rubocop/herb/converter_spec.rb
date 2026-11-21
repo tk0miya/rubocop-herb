@@ -18,10 +18,19 @@ RSpec.describe RuboCop::Herb::Converter do
         end
       end
     end
+
+    describe "short_text_ranges" do
+      it "matches the ranges of the texts too short to be rendered in the Ruby code" do
+        expect(subject.short_text_ranges.map { source[_1.from..._1.to] }).to eq(short_texts)
+      end
+    end
   end
 
   describe "#convert" do
     subject { described_class.new.convert("test.html.erb", source) }
+
+    # The texts too short to be rendered in the Ruby code (see RubyRenderer#render_text_node)
+    let(:short_texts) { [] }
 
     # Basic ERB tags with HTML open/close tag rendering
     describe "with a content ERB tag" do
@@ -108,6 +117,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with text node shorter than 3 characters" do
       let(:source) { "<div>ab<%= x %></div>" }
       let(:expected) { "div;   _ = x;  div;  " }
+      let(:short_texts) { %w[ab] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -139,6 +149,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with indented text node of 1 character followed by an ERB tag" do
       let(:source) { "<% if a %>\n  [<%= a %>]\n<% end %>\n" }
       let(:expected) { "   if a;  \n_a;_ = a;   \n   end;  \n" }
+      let(:short_texts) { %w[\]] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -176,6 +187,32 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with text node of 1 character without indentation" do
       let(:source) { "<% if a %>\nH\n<% end %>\n" }
       let(:expected) { "   if a;  \n \n   end;  \n" }
+      let(:short_texts) { %w[H] }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # One short text is enough to indicate content presence, as one marker is rendered for a text
+    describe "with text node of 1 character in multiple lines" do
+      let(:source) { "<% if a %>\nH\nI\n<% end %>\n" }
+      let(:expected) { "   if a;  \n \n \n   end;  \n" }
+      let(:short_texts) { %w[H] }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text nodes of 1 and 2 characters at the end of the source" do
+      let(:source) { "<%= x %>a<%= y %>bc" }
+      let(:expected) { "_ = x;   _ = y;    " }
+      let(:short_texts) { %w[a bc] }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text nodes of 1 character containing multi-byte characters" do
+      let(:source) { "あ<%= x %>🍣<%= y %>" }
+      let(:expected) { " _ = x;   _ = y;  " }
+      let(:short_texts) { %w[あ 🍣] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -183,6 +220,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with indented text node of 1 character containing a multi-byte character" do
       let(:source) { "<% if a %>\n  「<%= a %>」\n<% end %>\n" }
       let(:expected) { "   if a;  \n_a;_ = a;   \n   end;  \n" }
+      let(:short_texts) { %w[」] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -264,6 +302,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with an escaped ERB tag containing multi-byte characters" do
       let(:source) { "<p>あ<%% い %><%= x %></p>" }
       let(:expected) { "p;  _a;     _ = x;  p;  " }
+      let(:short_texts) { %w[あ] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -1132,6 +1171,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with a conditional in an attribute value containing text too short to place the marker" do
       let(:source) { '<div class="<% if a %>x<% end %>"></div>' }
       let(:expected) { "div;           if a;      end;    div;  " }
+      let(:short_texts) { %w[x] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -1165,6 +1205,31 @@ RSpec.describe RuboCop::Herb::Converter do
     end
 
     # The marker of the attribute is rendered at the value when it does not fit in the name
+    # The attribute is collected as a short text at its first literal when the marker fits in none of its literals
+    describe "with a conditional attribute whose literals are too short to place the marker" do
+      let(:source) { '<input <% if a %>id="ab"<% end %>>' }
+      let(:expected) { "input;    if a;            end;   " }
+      let(:short_texts) { %w[id] }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Literals with whitespace only have no text to place the marker at
+    describe "with a conditional attribute whose first literal has whitespace only" do
+      let(:source) { '<input <% if a %><%= k %>=" <%= v %>x"<% end %>>' }
+      let(:expected) { "input;    if a;  _ = k;     _ = v;       end;   " }
+      let(:short_texts) { %w[x] }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional attribute without literals" do
+      let(:source) { '<input <% if a %><%= k %>="<%= v %>"<% end %>>' }
+      let(:expected) { "input;    if a;  _ = k;    _ = v;      end;   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
     describe "with a conditional attribute whose name is too short to place the marker" do
       let(:source) { '<input <% if a %>id="abc"<% end %>>' }
       let(:expected) { "input;    if a;      _a;    end;   " }
@@ -1203,6 +1268,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with an XML declaration containing ERB" do
       let(:source) { '<?xml version="<%= v %>"?>' }
       let(:expected) { "_a;   _a;      _ = v;     " }
+      let(:short_texts) { ['"'] }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end

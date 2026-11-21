@@ -10,6 +10,8 @@ module RuboCop
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
     # Comments are retrieved from ParseResult and rendered at the end
     # with filtering applied.
+    # The texts too short for the marker are not rendered in the Ruby code, as it keeps the positions of the source.
+    # They are collected in short_text_ranges instead (see ExpandedCode).
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
       include EscapedErbVisitor
@@ -24,12 +26,15 @@ module RuboCop
       # (part of the text node), so that the text is not rendered as whitespace
       INDENTED_TEXT_MARKER_POSITION = /[^\S\r\n](?:[^\S\r\n]\S|\S[^\r\n]|\S(?=\r?\n))/ #: Regexp
 
+      # The short text to collect in a text too short to place the marker: 1-2 characters
+      SHORT_TEXT = /\S\S?/ #: Regexp
+
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
-      def self.render(parse_result) #: String
+      def self.render(parse_result) #: RubyRenderer
         renderer = new(parse_result)
         parse_result.ast.visit(renderer)
-        renderer.ruby_code
+        renderer
       end
 
       # Find the position to render the marker of a text node (nil if the text is too short to place it)
@@ -41,7 +46,17 @@ module RuboCop
         text.match(TEXT_MARKER_POSITION) || text.match(INDENTED_TEXT_MARKER_POSITION)
       end
 
+      # The literals of the name and the value of an attribute (except the ones in ERB nodes) to place the marker of
+      # the attribute at. Literals with whitespace only have no text to place it at
+      # @rbs node: ::Herb::AST::HTMLAttributeNode
+      def self.attribute_literals(node) #: Array[::Herb::AST::LiteralNode]
+        children = [*node.name&.children, *node.value&.children] #: Array[::Herb::AST::Node]
+        literals = children.grep(::Herb::AST::LiteralNode) #: Array[::Herb::AST::LiteralNode]
+        literals.select { _1.content.to_s.match?(/\S/) }
+      end
+
       attr_reader :ruby_code #: String
+      attr_reader :short_text_ranges #: Array[CharRange] -- the texts too short to be rendered in the Ruby code
       attr_reader :parse_result #: ParseResult
 
       # @rbs!
@@ -57,6 +72,7 @@ module RuboCop
       def initialize(parse_result) #: void
         @parse_result = parse_result
         @ruby_code = bleach_code(parse_result.code)
+        @short_text_ranges = []
         @in_open_tag = false
 
         super()
@@ -131,7 +147,7 @@ module RuboCop
 
       # Visit HTML attribute nodes
       # An attribute in an ERB node (e.g. `<input <% if a %>disabled<% end %>>`) is a branch of its own,
-      # so it is rendered as a marker at its first literal in which the marker fits
+      # so it is rendered as a marker at its first literal in which the marker fits (or at its first literal)
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def visit_html_attribute_node(node) #: void
         render_attribute_marker(node) unless in_open_tag
@@ -206,15 +222,14 @@ module RuboCop
       end
 
       # Render the marker of an attribute at its first literal in which the marker fits
-      # (e.g. `disabled` of `<% if a %>disabled<% end %>`)
+      # (e.g. `disabled` of `<% if a %>disabled<% end %>`), or at its first literal as a short text if it fits in none
+      # (e.g. `id` of `<% if a %>id="x"<% end %>`)
+      # An attribute without literals (e.g. `<%= k %>="<%= v %>"`) has no marker
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def render_attribute_marker(node) #: void
-        # The literals of the name and the value, except the ones in ERB nodes
-        children = [*node.name&.children, *node.value&.children]
-        literal = children.find do |child|
-          child.is_a?(::Herb::AST::LiteralNode) && RubyRenderer.text_marker_position(child.content.to_s)
-        end
-        render_text_node(literal) if literal.is_a?(::Herb::AST::LiteralNode)
+        literals = RubyRenderer.attribute_literals(node)
+        literal = literals.find { RubyRenderer.text_marker_position(_1.content.to_s) } || literals.first
+        render_text_node(literal) if literal
       end
 
       # @rbs node: erb_node
@@ -285,7 +300,7 @@ module RuboCop
       end
 
       # Render the marker of the HTML node (e.g. "tag; " for tags and "_a;" for text)
-      # Text and literals are not rendered when the marker does not fit in them (see render_text_marker)
+      # Text and literals are collected as short texts when the marker does not fit in them (see render_text_node)
       # @rbs node: ::Herb::AST::Node
       def render_marker(node) #: void
         case node
@@ -323,9 +338,20 @@ module RuboCop
       end
 
       # Render HTML text node (or literal node) as a marker (see render_text_marker)
+      # The text too short to place the marker is collected as a short text: its first 1-2 characters
+      # (e.g. `a` in `<% if x %>a<% end %>`). One short text is enough to indicate content presence,
+      # as one marker is rendered for a text
       # @rbs node: ::Herb::AST::HTMLTextNode | ::Herb::AST::LiteralNode
       def render_text_node(node) #: void
-        render_text_marker(NodeRange.compute_char_range(node, source))
+        range = NodeRange.compute_char_range(node, source)
+        text = source.slice(range)
+        return render_text_marker(range) if RubyRenderer.text_marker_position(text)
+
+        match = text.match(SHORT_TEXT)
+        return unless match
+
+        from = range.from + match.begin(0).not_nil!
+        short_text_ranges << CharRange.new(from:, to: from + match[0].not_nil!.length)
       end
 
       # Render HTML text by placing a marker ("_a;" or "_a") at the first position where it fits in the line,
