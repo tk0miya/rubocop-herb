@@ -4,36 +4,52 @@ module RuboCop
   module Herb
     # ProcessedSource subclass that transforms AST after parsing with RuboCopASTTransformer
     # to make nodes rendered from HTML unique
+    #
+    # The texts too short to be rendered in the Ruby code (short texts) get their nodes here: the code in which
+    # their markers are inserted (see ExpandedCode) is parsed instead of the Ruby code, and the positions in
+    # the result are converted back to the ones in the Ruby code (see LocationRemapper).
+    # The buffer is still the Ruby code, so the AST is not the one of parsing the buffer when the source has
+    # short texts. The cops parsing the buffer again get the AST of the buffer with untransformed_node.
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
       attr_reader parse_result: ParseResult
 
+      attr_reader short_text_ranges: Array[CharRange]
+
       attr_reader ast: RuboCop::AST::Node?
 
-      @comment_config: CommentConfig?
+      @buffer: ::Parser::Source::Buffer
 
-      @correction_validator: CorrectionValidator?
+      @buffer_ast: RuboCop::AST::Node?
+
+      @verbatim_code: VerbatimCode?
 
       @correction_adjuster: CorrectionAdjuster?
 
-      @verbatim_code: VerbatimCode?
+      @correction_validator: CorrectionValidator?
+
+      @comment_config: CommentConfig?
+
+      def diagnostics: () -> Array[::Parser::Diagnostic]
 
       # @rbs ruby_code: String
       # @rbs ruby_version: Float
       # @rbs path: String?
       # @rbs parse_result: ParseResult
+      # @rbs short_text_ranges: Array[CharRange] -- the texts too short to be rendered in the Ruby code
       # @rbs parser_engine: Symbol
-      def initialize: (String ruby_code, Float ruby_version, ?String? path, parse_result: ParseResult, ?parser_engine: Symbol) -> void
+      def initialize: (String ruby_code, Float ruby_version, ?String? path, parse_result: ParseResult, ?short_text_ranges: Array[CharRange], ?parser_engine: Symbol) -> void
 
       # Override comment_config to disable cops at the lines specified by the parse result,
       # the lines of expressions that cannot be moved out of conditionals
       # and the lines without ERB tags (for line length)
       def comment_config: () -> CommentConfig
 
-      # The node of the AST before the transformation at the same place as the given node of the transformed AST
-      # (e.g. `(send nil :div)` for `(send nil :div__html0)`), or nil if the node is not in the transformed AST.
-      # The node is found by its type and its range, as the transformation keeps them.
+      # The node of the AST of the buffer at the same place as the given node of the AST
+      # (e.g. `(send nil :div)` for `(send nil :div__html0)`), or nil if the buffer has no such node.
+      # The AST of the buffer is the one before the transformation, without the nodes of short texts.
+      # The node is found by its type and its range, as the nodes of short texts change the structure of the AST.
       # This is for the scopes of ReparsedEquivalence (the root node, method definitions, classes and modules),
-      # no two of which have the same type and range.
+      # whose ranges do not change with short texts, except the root node.
       # @rbs node: RuboCop::AST::Node
       def untransformed_node: (RuboCop::AST::Node node) -> RuboCop::AST::Node?
 
@@ -51,6 +67,10 @@ module RuboCop
 
       attr_reader untransformed_ast: RuboCop::AST::Node?
 
+      # The AST of the buffer: the AST before the transformation, or the one of parsing the buffer again
+      # if the source has short texts, as their nodes are not in the buffer
+      def buffer_ast: () -> RuboCop::AST::Node?
+
       def disabled_cops: () -> Hash[String, Array[Range[Integer]]]
 
       # Override parse to transform AST after parsing
@@ -59,6 +79,20 @@ module RuboCop
       # @rbs parser_engine: Symbol
       # @rbs prism_result: untyped
       def parse: (String ruby_code, Float ruby_version, Symbol parser_engine, untyped prism_result) -> void
+
+      # Override tokenize to parse the code in which the markers of short texts are inserted,
+      # and to move the result onto the buffer
+      # @rbs parser: untyped
+      def tokenize: (untyped parser) -> [ RuboCop::AST::Node?, Array[::Parser::Source::Comment], untyped ]
+
+      # @rbs ast: RuboCop::AST::Node?
+      # @rbs remapper: LocationRemapper
+      def remap_ast: (RuboCop::AST::Node? ast, LocationRemapper remapper) -> RuboCop::AST::Node?
+
+      # The tokens of the prism engine are built lazily (a Proc), so they are remapped when they are built
+      # @rbs tokens: untyped
+      # @rbs remapper: LocationRemapper
+      def remap_tokens: (untyped tokens, LocationRemapper remapper) -> untyped
     end
   end
 end
