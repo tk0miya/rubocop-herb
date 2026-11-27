@@ -6,7 +6,7 @@ source "https://rubygems.org", cooldown: 7
 gemspec
 
 gem "irb"
-gem "prism", "~> 1.8"
+gem "prism", "~> 2.1"
 gem "rake", "~> 13.4"
 gem "rbs-inline", "~> 0.14.0"
 gem "rspec", "~> 3.0"
