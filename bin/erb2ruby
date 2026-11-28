@@ -22,4 +22,5 @@ if result.nil?
   exit 1
 end
 
-puts result.ruby_code
+# The code RuboCop parses: the Ruby code in which the markers of HTML are inserted
+puts RuboCop::Herb::ExpandedCode.new(result.ruby_code, result.html_markers).code

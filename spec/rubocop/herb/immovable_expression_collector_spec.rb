@@ -13,7 +13,7 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
       RuboCop::Herb::ProcessedSource.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         parse_result: conversion_result.parse_result,
-        short_text_ranges: conversion_result.short_text_ranges
+        html_markers: conversion_result.html_markers
       )
     end
 
@@ -51,19 +51,19 @@ RSpec.describe RuboCop::Herb::ImmovableExpressionCollector do
       end
     end
 
-    context "with the same Ruby code at the head of multiple expressions preceded by short texts" do
-      # The texts without indentation are too short to be rendered in the Ruby code, but they have nodes in the AST
+    context "with the same Ruby code at the head of multiple expressions preceded by texts of 1 character" do
+      # The texts without indentation are of 1-2 characters, but they have nodes in the AST
       let(:code) { "<% if a %>\n(<%= x %>\n<%= y %>)\n<% else %>\n[<%= x %>\n<%= z %>]\n<% end %>" }
 
-      it "does not disable Style/IdenticalConditionalBranches as the short texts are the heads" do
+      it "does not disable Style/IdenticalConditionalBranches as the texts are the heads" do
         expect(subject).to eq({})
       end
     end
 
-    context "with the same Ruby code inside different short texts" do
+    context "with the same Ruby code inside different texts of 1 character" do
       let(:code) { "<% if a %>\n  (<%= x %>)\n<% else %>\n  [<%= x %>]\n<% end %>" }
 
-      it "does not disable Style/IdenticalConditionalBranches as the short texts are the heads and the tails" do
+      it "does not disable Style/IdenticalConditionalBranches as the texts are the heads and the tails" do
         expect(subject).to eq({})
       end
     end

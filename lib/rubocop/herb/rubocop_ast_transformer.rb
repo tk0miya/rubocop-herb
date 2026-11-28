@@ -4,10 +4,10 @@ require "parser"
 
 module RuboCop
   module Herb
-    # Visitor that makes nodes rendered from HTML unique so that they never compare equal
+    # Visitor that makes the nodes of HTML (see HtmlMarker) unique so that they never compare equal
     # Uses Parser::AST::Processor to traverse and transform the AST
     class RuboCopASTTransformer < Parser::AST::Processor
-      # Transform AST to make nodes rendered from HTML unique
+      # Transform AST to make the nodes of HTML unique
       # @rbs ast: Parser::AST::Node
       # @rbs parse_result: ParseResult
       def self.transform(ast, parse_result) #: Parser::AST::Node?
@@ -30,7 +30,7 @@ module RuboCop
 
       private
 
-      # Rename the method of a node rendered from HTML to be unique per position
+      # Rename the method of a node of HTML to be unique per position
       # so that HTML nodes never compare equal
       # (e.g. in Lint/DuplicateBranch and Style/IdenticalConditionalBranches)
       # @rbs node: Parser::AST::Node
@@ -42,7 +42,7 @@ module RuboCop
         node.updated(nil, [receiver, :"#{method_name}__html#{pos}", *args])
       end
 
-      # Check if the code at the position is rendered from HTML (i.e. outside of ERB tags)
+      # Check if the position is at HTML (i.e. outside of ERB tags)
       # @rbs pos: Integer
       def html_code?(pos) #: bool
         range = parse_result.erb_tag_ranges.bsearch { _1.to > pos }

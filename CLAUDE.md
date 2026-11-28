@@ -36,12 +36,12 @@ bin/erb2ruby < file.erb      # Convert ERB to Ruby (dev tool)
 
 #### bin/erb2ruby
 
-A development tool that reads ERB from stdin and outputs the converted Ruby code. Useful for debugging the Converter.
+A development tool that reads ERB from stdin and outputs the Ruby code RuboCop parses (the converted Ruby code with the markers of HTML inserted, see "HTML Markers" below). Useful for debugging the Converter.
 
 ```bash
 # Convert ERB from stdin
 echo '<div><%= @name %></div>' | bin/erb2ruby
-#=> div; _ = @name;  div;
+#=> div;  _ = @name;  div;
 
 # Convert ERB file
 bin/erb2ruby < app/views/users/show.html.erb
@@ -82,10 +82,9 @@ RuboCop ←── returns ─── Extractor
 2. **Extractor** calls **Converter** to convert ERB source to Ruby code
 3. **Converter** orchestrates the conversion:
    - Calls **ErbParser** to parse ERB and produce a `ParseResult` (data class holding AST, ERB locations, and metadata)
-   - Calls **RubyRenderer** to traverse the AST and render Ruby code
+   - Calls **RubyRenderer** to traverse the AST, render Ruby code and collect the markers of HTML
 4. **Extractor** returns the result to **RuboCop**
-5. **RuboCop** analyzes the Ruby code; **RuboCopASTTransformer** renames the nodes rendered from HTML uniquely. RuboCop reports offenses at the positions in the original ERB source, as the Ruby code keeps the positions of the source
-6. The AST RuboCop gets is not always the one of parsing the Ruby code: the texts too short to be rendered in it get their nodes in **ProcessedSource** (see "Short Texts" below)
+5. **RuboCop** analyzes the Ruby code. The AST it gets is not the one of parsing the Ruby code: **ProcessedSource** adds the nodes of HTML to it (see "HTML Markers" below), and **RuboCopASTTransformer** renames them uniquely. RuboCop reports offenses at the positions in the original ERB source, as the Ruby code keeps the positions of the source
 
 Data containers: `ParseResult` (holds parsed AST and metadata), `ProcessedSource` (RuboCop's source wrapper)
 
@@ -105,30 +104,32 @@ The original ERB template containing HTML markup and embedded Ruby code.
 
 #### 2. Ruby Code
 
-The input file parsed and converted to valid Ruby code. ERB tags are extracted as-is, and HTML tags are converted to Ruby-like identifiers (e.g., `<div>` → `div;`) to avoid false positives from cops like `Lint/EmptyBlock`. RuboCop parses this Ruby code to build an AST for analysis.
+The input file converted to valid Ruby code keeping the positions of the source. Only the code in ERB tags is rendered; HTML and the delimiters of ERB tags are whitespace. This is the buffer RuboCop reports offenses on.
 
 ```ruby
-div;
-  _ = @user.name;
-div;
+                  
+  _ = @user.name;  
+      
 ```
 
-#### 3. Short Texts
+#### 3. HTML Markers
 
-A text of 1-2 characters has no room for the marker (`_a;`) in the Ruby code keeping the positions of the source, so it is rendered as whitespace.
-`RubyRenderer` collects such texts (`Converter::Result#short_text_ranges`), and `ProcessedSource` parses the code in which their markers are inserted (`ExpandedCode`) instead of the Ruby code, then converts the positions in the result (AST, tokens, comments and diagnostics) back to the ones in the Ruby code (`LocationRemapper`).
+The cops need to see where HTML is (e.g. a branch containing only HTML is not empty), so HTML gets nodes in the AST: a tag is a call of its tag name (`<div>` → `div`), and text, comments and so on are calls of `_a`.
+
+The Ruby code has no room for them (e.g. text of 1 character), so `RubyRenderer` collects them as markers (`HtmlMarker`, `Converter::Result#html_markers`), and `ProcessedSource` parses the code in which they are inserted (`ExpandedCode`) instead of the Ruby code, then converts the positions in the result (AST, tokens, comments and diagnostics) back to the ones in the Ruby code (`LocationRemapper`).
 
 ```
-source:        <% if x %>a<% else %>b<% end %>
-ruby_code:        if x;       else;       end;       (the buffer RuboCop reports offenses on)
-expanded code:    if x;  _a;     else;  _a;     end;
-AST:           (if (send nil :x) (send nil :_a__html10) (send nil :_a__html21))
+source:        <p><% if x %>a<% else %>b<% end %></p>
+ruby_code:           if x;      else;      end;          (the buffer)
+expanded code: p;     if x;  _a;   else;  _a;   end;  p;
+AST:           (begin (send nil :p__html0) (if (send nil :x) (send nil :_a__html13) (send nil :_a__html24)) (send nil :p__html34))
 ```
 
-- The buffer is still the Ruby code, so that the positions and the lines are the ones of the source. The node of a short text is at the text (`a` at 10...11), and the semicolon of its marker has no token
-- Anything reading the buffer instead of the AST (e.g. the cops checking lines) does not see short texts
-- The cops parsing the corrected buffer again to compare it with the AST (`ReparsedEquivalence`) get the AST of the buffer itself (`ProcessedSource#untransformed_node`), which has no nodes of short texts
-- When all the HTML in a body has nodes in the AST, the cops for empty bodies and duplicate branches need no disabling. `Branches.unrendered_html?` tells the HTML without nodes (attributes with a value but without literals, and unknown nodes)
+- The node of a marker is at the HTML (`a` at 13...14), and the semicolon of the marker has no token
+- Anything reading the buffer instead of the AST does not see HTML: a cop checking lines sees a blank line, and a cop reading the source around a node finds no semicolon after HTML (e.g. Layout/BlockEndNewline, which is disabled at the end tags of blocks for this reason)
+- The cops parsing the corrected buffer again to compare it with the AST (`ReparsedEquivalence`) get the AST of the buffer itself (`ProcessedSource#untransformed_node`), which has no nodes of HTML
+- HTML without markers has no nodes (`Branches.unrendered_html?`: attributes with a value but without literals, and unknown nodes), so the cops for empty bodies and duplicate branches are disabled for it
+- A correction covering the HTML with a marker is trimmed to the ERB tag only if it is a removal (`CorrectionAdjuster`)
 
 ### Positions and Newlines
 
@@ -153,10 +154,10 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 
 #### Conversion
 
-- **Converter** (`converter.rb`): Orchestrates the conversion, produces `ruby_code` and `short_text_ranges`
+- **Converter** (`converter.rb`): Orchestrates the conversion, produces `ruby_code` and `html_markers`
 - **ErbParser** (`erb_parser.rb`): Parses ERB with Herb and returns a `ParseResult` (`Source`, AST, ERB locations, disabled cops)
   - `erb_parser/node_location_collector.rb`, `erb_parser/disabled_cops_collector.rb`, `erb_parser/branches.rb`
-- **RubyRenderer** (`ruby_renderer.rb`): Visitor rendering the Herb AST to Ruby code
+- **RubyRenderer** (`ruby_renderer.rb`): Visitor rendering the code in ERB tags of the Herb AST to Ruby code and collecting the markers of HTML (**HtmlMarker**)
 - **Source** (`source.rb`), **NodeRange** (`node_range.rb`), **CharRange** (`char_range.rb`): Position conversion (see above)
 - **ErbLocation**, **ErbNode**, **EscapedErbVisitor**, **RubyComment**: Helpers for ERB nodes, escaped tags (`<%%`) and ERB comments
 
@@ -164,8 +165,8 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 
 - **Plugin** / **Extractor**: Entry points registering the conversion with RuboCop
 - **ProcessedSource** (`processed_source.rb`): Transforms the AST with **RuboCopASTTransformer** and builds the **CommentConfig** from `DisabledCopsCollector`, **ImmovableExpressionCollector** and **HtmlOnlyLineCollector**
-- **ExpandedCode** (`expanded_code.rb`) + **LocationRemapper** (`location_remapper.rb`): Add the nodes of short texts to the AST (see "Short Texts" above)
-- **CopOffenseFilter** + **VerbatimCode**: Suppress offenses on the code rendered by the conversion (`Configuration::VERBATIM_CODE_COPS`)
+- **ExpandedCode** (`expanded_code.rb`) + **LocationRemapper** (`location_remapper.rb`): Add the nodes of HTML to the AST (see "HTML Markers" above)
+- **CopOffenseFilter** + **VerbatimCode**: Suppress offenses on the code rendered by the conversion and the nodes of HTML (`Configuration::VERBATIM_CODE_COPS`)
 - **CopCorrectionGuard** + **CorrectionAdjuster** + **CorrectionValidator**: Trim and validate autocorrections so that they never break ERB tags
 - **ReparsedEquivalenceAdapter**: Lets the cops reparsing their corrections compare with the AST before the transformation
 - **Configuration** (`configuration.rb`): Extensions, `EXCLUDED_COPS`, `VERBATIM_CODE_COPS`, `UNCORRECTABLE_COPS`
@@ -186,7 +187,7 @@ Paths are relative to `lib/rubocop/herb/` unless noted.
 - Autocorrections must never break ERB tags. Guard them generically with `CorrectionAdjuster` / `CorrectionValidator` (or `UNCORRECTABLE_COPS`) rather than special-casing cops elsewhere
 - Where to suppress false positives:
   - Caused by the ERB structure (e.g. tags aligned by the HTML structure, branches containing HTML without nodes in the AST) → `DisabledCopsCollector`
-  - On the code rendered by the conversion (HTML markers, delimiters, semicolons) → `VERBATIM_CODE_COPS` (`CopOffenseFilter`)
+  - On the code rendered by the conversion (delimiters, semicolons) and the nodes of HTML → `VERBATIM_CODE_COPS` (`CopOffenseFilter`)
   - Inherently incompatible with ERB → `EXCLUDED_COPS`
 - Never patch individual cops (e.g. prepending to `RuboCop::Cop::Layout::IndentationConsistency` to override its private methods): their internals change silently between RuboCop versions.
   Patch only the parts of RuboCop shared by the cops (e.g. `Cop::Base`, `Cop::ReparsedEquivalence`), as `CopOffenseFilter`, `CopCorrectionGuard` and `ReparsedEquivalenceAdapter` do.

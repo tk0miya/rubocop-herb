@@ -4,13 +4,13 @@ module RuboCop
   module Herb
     # Converts an ERB source to Ruby code keeping the positions of the source:
     # parses it with ErbParser and renders the Ruby code with RubyRenderer
-    # The texts too short to be rendered in the Ruby code are returned as ranges (see ExpandedCode)
+    # The Ruby code has only the code in ERB tags; HTML is returned as markers (see HtmlMarker)
     class Converter
       # Result of converting ERB source
       Result = Data.define(
-        :ruby_code,         #: String
-        :parse_result,      #: ParseResult
-        :short_text_ranges  #: Array[CharRange] -- the texts too short to be rendered in the Ruby code
+        :ruby_code,     #: String
+        :parse_result,  #: ParseResult
+        :html_markers   #: Array[HtmlMarker]
       )
 
       # @rbs path: String
@@ -18,7 +18,7 @@ module RuboCop
       def convert(path, code) #: Result
         parse_result = ErbParser.parse(path, code)
         renderer = RubyRenderer.render(parse_result)
-        Result.new(ruby_code: renderer.ruby_code, parse_result:, short_text_ranges: renderer.short_text_ranges)
+        Result.new(ruby_code: renderer.ruby_code, parse_result:, html_markers: renderer.html_markers)
       end
     end
   end

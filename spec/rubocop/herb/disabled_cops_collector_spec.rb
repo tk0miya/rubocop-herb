@@ -37,7 +37,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if branch containing an HTML element" do
       let(:code) { "<% if a %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables the conditional cops at the if tag, not Lint/EmptyConditionalBody as the element is rendered" do
+      it "disables the conditional cops at the if tag, not Lint/EmptyConditionalBody as the element has a node" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **end_alignment(3..3),
@@ -49,7 +49,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with unless branch containing text" do
       let(:code) { "<% unless a %>\n  a\n<% end %>" }
 
-      it "disables the conditional cops at the unless tag, not Lint/EmptyConditionalBody as the text is rendered" do
+      it "disables the conditional cops at the unless tag, not Lint/EmptyConditionalBody as the text has a node" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **end_alignment(3..3),
@@ -61,7 +61,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with elsif branch containing an HTML comment" do
       let(:code) { "<% if a %>\n  <%= a %>\n<% elsif b %>\n  <!-- b -->\n<% end %>" }
 
-      it "disables the conditional cops at the if tag, not Lint/EmptyConditionalBody as the comment is rendered" do
+      it "disables the conditional cops at the if tag, not Lint/EmptyConditionalBody as the comment has a node" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3),
@@ -74,7 +74,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if branches containing only an open tag or a close tag" do
       let(:code) { "<% if a %>\n  <a href=\"/\">\n<% end %>\ntext\n<% if a %>\n  </a>\n<% end %>" }
 
-      it "disables the conditional cops at both if tags, not Lint/EmptyConditionalBody as the tags are rendered" do
+      it "disables the conditional cops at both if tags, not Lint/EmptyConditionalBody as the tags have nodes" do
         expect(subject).to eq({
                                 **conditional_cops(1..1, 5..5),
                                 **end_alignment(3..3, 7..7),
@@ -160,7 +160,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with else branch containing an HTML element" do
       let(:code) { "<% if a %>\n  <%= a %>\n<% else %>\n  <p>b</p>\n<% end %>" }
 
-      it "does not disable Style/EmptyElse as the element is rendered" do
+      it "does not disable Style/EmptyElse as the element has a node" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3),
@@ -173,7 +173,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with when branch containing an HTML element" do
       let(:code) { "<% case a %>\n<% when 1 %>\n  <p>a</p>\n<% end %>" }
 
-      it "does not disable Lint/EmptyWhen as the element is rendered" do
+      it "does not disable Lint/EmptyWhen as the element has a node" do
         expect(subject).to eq({
                                 "Layout/CaseIndentation" => [2..2],
                                 **end_alignment(4..4),
@@ -309,7 +309,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with block containing an HTML element" do
       let(:code) { "<% items.each do |item| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables the cops for the block end at the end tag, not Lint/EmptyBlock as the element is rendered" do
+      it "disables the cops for the block end at the end tag, not Lint/EmptyBlock as the element has a node" do
         expect(subject).to eq({
                                 **block_end(3..3),
                                 **indentation_width(2..2)
@@ -320,7 +320,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with output block containing an HTML element" do
       let(:code) { "<%= form_with do |f| %>\n  <p>a</p>\n<% end %>" }
 
-      it "disables the cops for the block end at the end tag, not Lint/EmptyBlock as the element is rendered" do
+      it "disables the cops for the block end at the end tag, not Lint/EmptyBlock as the element has a node" do
         expect(subject).to eq({
                                 **block_end(3..3),
                                 **indentation_width(2..2)
@@ -351,7 +351,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with rescue clause containing an HTML element" do
       let(:code) { "<% begin %>\n  <p>x</p>\n<% rescue %>\n  <p>error</p>\n<% end %>" }
 
-      it "does not disable Lint/SuppressedException as the element is rendered" do
+      it "does not disable Lint/SuppressedException as the element has a node" do
         expect(subject).to eq({
                                 "Layout/RescueEnsureAlignment" => [3..3],
                                 "Layout/BeginEndAlignment" => [5..5],
@@ -363,7 +363,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with subsequent rescue clause containing an HTML element" do
       let(:code) { "<% begin %>\n  <%= a %>\n<% rescue A %>\n  <%= b %>\n<% rescue B %>\n  <p>error</p>\n<% end %>" }
 
-      it "does not disable Lint/SuppressedException as the element is rendered" do
+      it "does not disable Lint/SuppressedException as the element has a node" do
         expect(subject).to eq({
                                 "Layout/RescueEnsureAlignment" => [3..3, 5..5],
                                 "Layout/BeginEndAlignment" => [7..7],
@@ -375,7 +375,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with ensure clause containing an HTML element" do
       let(:code) { "<% begin %>\n  <%= a %>\n<% ensure %>\n  <p>done</p>\n<% end %>" }
 
-      it "does not disable Lint/EmptyEnsure as the element is rendered" do
+      it "does not disable Lint/EmptyEnsure as the element has a node" do
         expect(subject).to eq({
                                 "Layout/RescueEnsureAlignment" => [3..3],
                                 "Layout/BeginEndAlignment" => [5..5],
@@ -425,10 +425,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing text too short to be rendered in the Ruby code" do
+    context "with if branches containing text of 1-2 characters" do
       let(:code) { "<% if a %>\n  <%= x %>a\n<% elsif b %>\n  <%= x %>b\n<% else %>\n  <%= x %>c\n<% end %>" }
 
-      it "does not disable Lint/DuplicateBranch as the short texts have nodes in the AST" do
+      it "does not disable Lint/DuplicateBranch as the texts have nodes in the AST" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3, 5..5),
@@ -438,7 +438,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing text long enough to place the marker" do
+    context "with if branches containing longer text" do
       let(:code) { "<% if a %>\n  <%= x %>abc\n<% else %>\n  <%= x %>def\n<% end %>" }
 
       it "does not disable Lint/DuplicateBranch" do
@@ -451,7 +451,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing indented text too short to place the marker at the text" do
+    context "with if branches containing indented text of 1 character" do
       let(:code) { "<% if a %>\n  [<%= x %>\n<% elsif b %>\n  <%= y %>\n<% else %>\n  <%= y %>\n<% end %>" }
 
       it "does not disable Lint/DuplicateBranch" do
@@ -464,10 +464,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing text in an attribute value too short to be rendered in the Ruby code" do
+    context "with if branches containing text in an attribute value of 1-2 characters" do
       let(:code) { "<div class=\"<% if a %>a<%= x %><% else %>d<%= x %><% end %>\"></div>" }
 
-      it "does not disable Lint/DuplicateBranch as the short texts have nodes in the AST" do
+      it "does not disable Lint/DuplicateBranch as the texts have nodes in the AST" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
@@ -477,7 +477,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing text in an attribute value long enough to place the marker" do
+    context "with if branches containing longer text in an attribute value" do
       let(:code) { "<div class=\"<% if a %>abc <%= x %><% else %>def <%= x %><% end %>\"></div>" }
 
       it "does not disable Lint/DuplicateBranch" do
@@ -490,10 +490,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing text in a script element long enough to place the marker" do
+    context "with if branches containing text in a script element" do
       let(:code) { "<script><% if a %>abc <%= x %><% else %>def <%= x %><% end %></script>" }
 
-      it "does not disable Lint/DuplicateBranch as the text is rendered as a marker" do
+      it "does not disable Lint/DuplicateBranch as the text has a node" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
@@ -506,7 +506,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with unless branches containing attributes" do
       let(:code) { "<input <% unless a %>disabled<%= x %><% else %>readonly<%= x %><% end %>>" }
 
-      it "does not disable Lint/DuplicateBranch as the attributes are rendered as markers" do
+      it "does not disable Lint/DuplicateBranch as the attributes have nodes" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
@@ -519,7 +519,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with an if branch containing an attribute without literals" do
       let(:code) { "<input <% if a %><%= k %>=\"<%= v %>\"<% else %><%= k %><%= v %><% end %>>" }
 
-      it "disables Lint/DuplicateBranch at the line as the delimiters of the attribute are not rendered" do
+      it "disables Lint/DuplicateBranch at the line as the delimiters of the attribute have no nodes" do
         expect(subject).to eq({
                                 "Lint/DuplicateBranch" => [1..1],
                                 **conditional_cops(1..1),
@@ -618,7 +618,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if branches containing text in a doctype" do
       let(:code) { "<!DOCTYPE <% if a %>\nxyz\n<% elsif b %>\nxyz\n<% end %>>" }
 
-      it "disables Lint/EmptyConditionalBody and Lint/DuplicateBranch as the text is rendered out of the branches" do
+      it "disables Lint/EmptyConditionalBody and Lint/DuplicateBranch as the text has nodes out of the branches" do
         expect(subject).to eq({
                                 "Lint/EmptyConditionalBody" => [1..1, 3..3],
                                 "Lint/DuplicateBranch" => [3..3],
@@ -646,10 +646,10 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing attributes too short to be rendered in the Ruby code" do
+    context "with if branches containing attributes of 1-2 characters" do
       let(:code) { "<input <% if a %>id=\"ab\"<%= x %><% else %>id=\"cd\"<%= x %><% end %>>" }
 
-      it "does not disable Lint/DuplicateBranch as the short texts have nodes in the AST" do
+      it "does not disable Lint/DuplicateBranch as the texts have nodes in the AST" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(1..1),
@@ -659,13 +659,13 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with when and in branches containing text too short to be rendered in the Ruby code" do
+    context "with when and in branches containing text of 1-2 characters" do
       let(:code) do
         "<% case a %>\n<% when 1 %>\n  <%= x %>a\n<% else %>\n  <%= x %>b\n<% end %>\n" \
           "<% case a %>\n<% in 1 %>\n  <%= x %>a\n<% in 2 %>\n  <%= x %>b\n<% end %>"
       end
 
-      it "does not disable Lint/DuplicateBranch as the short texts have nodes in the AST" do
+      it "does not disable Lint/DuplicateBranch as the texts have nodes in the AST" do
         expect(subject).to eq({
                                 "Layout/CaseIndentation" => [2..2, 8..8, 10..10],
                                 **else_alignment(4..4),
@@ -675,13 +675,13 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with rescue clauses containing text too short to be rendered in the Ruby code" do
+    context "with rescue clauses containing text of 1-2 characters" do
       let(:code) do
         "<% begin %>\n  <%= y %>\n<% rescue A %>\n  <%= x %>a\n<% rescue B %>\n  <%= x %>b\n<% end %>\n" \
           "<% items.each do %>\n  <%= y %>\n<% rescue A %>\n  <%= x %>a\n<% else %>\n  <%= x %>b\n<% end %>"
       end
 
-      it "does not disable Lint/DuplicateBranch as the short texts have nodes in the AST" do
+      it "does not disable Lint/DuplicateBranch as the texts have nodes in the AST" do
         expect(subject).to eq({
                                 "Layout/BeginEndAlignment" => [7..7],
                                 "Layout/RescueEnsureAlignment" => [3..3, 5..5, 10..10],
@@ -692,13 +692,13 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
       end
     end
 
-    context "with if branches containing nested conditionals with text too short to be rendered in the Ruby code" do
+    context "with if branches containing nested conditionals with text of 1-2 characters" do
       let(:code) do
         "<% if a %>\n  <% if b %>\n    <%= x %>a\n  <% end %>\n" \
           "<% else %>\n  <% if b %>\n    <%= x %>b\n  <% end %>\n<% end %>"
       end
 
-      it "does not disable Lint/DuplicateBranch as the short texts have nodes in the AST" do
+      it "does not disable Lint/DuplicateBranch as the texts have nodes in the AST" do
         expect(subject).to eq({
                                 **conditional_cops(1..1, 2..2, 6..6),
                                 **else_alignment(5..5),
@@ -714,7 +714,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
           "<% if a %>\n  </div>\n<% else %>\n  <%= y %>\n<% end %>"
       end
 
-      it "does not disable Lint/DuplicateBranch because the tags are rendered" do
+      it "does not disable Lint/DuplicateBranch because the tags have nodes" do
         expect(subject).to eq({
                                 **conditional_cops(1..1, 8..8),
                                 **else_alignment(3..3, 5..5, 10..10),
@@ -727,7 +727,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if branches containing HTML comments with ERB" do
       let(:code) { "<% if a %>\n  <!-- a<%= x %> -->\n<% else %>\n  <!-- b<%= x %> -->\n<% end %>" }
 
-      it "does not disable Lint/DuplicateBranch as the comments are rendered at their openings" do
+      it "does not disable Lint/DuplicateBranch as the comments have nodes" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3),
@@ -740,7 +740,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if branches containing doctypes without ERB" do
       let(:code) { "<% if a %>\n  <!DOCTYPE html><%= x %>\n<% else %>\n  <!DOCTYPE svg><%= x %>\n<% end %>" }
 
-      it "does not disable Lint/DuplicateBranch as the doctypes are rendered as markers" do
+      it "does not disable Lint/DuplicateBranch as the doctypes have nodes" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3),
@@ -753,7 +753,7 @@ RSpec.describe RuboCop::Herb::DisabledCopsCollector do
     context "with if branches containing HTML comments with escaped ERB tags" do
       let(:code) { "<% if a %>\n  <!-- a<%% x %> -->\n<% else %>\n  <!-- b<%% x %> -->\n<% end %>" }
 
-      it "does not disable Lint/DuplicateBranch as the comments are rendered like comments without ERB" do
+      it "does not disable Lint/DuplicateBranch as the comments have nodes like comments without ERB" do
         expect(subject).to eq({
                                 **conditional_cops(1..1),
                                 **else_alignment(3..3),

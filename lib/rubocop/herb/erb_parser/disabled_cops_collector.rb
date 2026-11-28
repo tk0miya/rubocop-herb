@@ -16,12 +16,12 @@ module RuboCop
     # written across ERB tags, because the columns of the tags are the layout of HTML, which is left to
     # herb-format (herb-lint has no rule for them). herb-format indents the tags by the HTML structure,
     # and even then the cops report the tags formatted by it: the Ruby code starts after the tag opening,
-    # whose width differs (`<%`, `<%=` and `<%-`), while the output marker (`_ =`) and the HTML markers
+    # whose width differs (`<%`, `<%=` and `<%-`), while the output marker (`_ =`) and the nodes of HTML
     # start at the tag opening
     # (e.g. `<%= form_with do %>` and `<% end %>` are rendered as `_ = form_with do;` and `   end;`).
     # The Ruby code cannot be moved to the tag opening as it keeps the positions of the source.
     # The structures written within a single ERB tag are still checked.
-    # False positives on the code rendered by the conversion itself (HTML markers, delimiters and semicolons)
+    # False positives on the code rendered by the conversion itself (delimiters and semicolons)
     # are left to CopOffenseFilter.
     # Escaped ERB tags (e.g. `<%% if a %>`) are text, so no cops are disabled for them.
     class DisabledCopsCollector < ::Herb::Visitor
@@ -236,9 +236,9 @@ module RuboCop
         disable_cop("Layout/BlockAlignment", end_node) if end_node
       end
 
-      # HTML and the code before the end tag are rendered with a semicolon, which Layout/BlockEndNewline skips,
-      # but the nodes of short texts have none (see ExpandedCode), so the cop reports the end tag following one
-      # (e.g. `<%= x %>,<% end %>`). Blocks written within a single ERB tag are still checked.
+      # Layout/BlockEndNewline skips `end` following a semicolon, but the nodes of HTML have none in the Ruby code
+      # (see ExpandedCode), so the cop reports the end tag following HTML (e.g. `<p>x</p><% end %>`).
+      # Blocks written within a single ERB tag are still checked.
       # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
       def disable_block_end_newline(end_node) #: void
         disable_cop("Layout/BlockEndNewline", end_node) if end_node
@@ -357,7 +357,7 @@ module RuboCop
 
       # Check if the nodes contain HTML without nodes in the Ruby AST (see Branches.unrendered_html?)
       # Herb locates the literals in the ERB nodes of a doctype (e.g. `<!DOCTYPE <% if a %>html<% end %>>`) before
-      # the ERB nodes, so their markers are rendered out of the bodies of the ERB nodes
+      # the ERB nodes, so their markers are out of the bodies of the ERB nodes
       # @rbs nodes: Array[::Herb::AST::Node]
       def unrendered_html?(nodes) #: bool
         (in_doctype && literal?(nodes)) || Branches.unrendered_html?(nodes)

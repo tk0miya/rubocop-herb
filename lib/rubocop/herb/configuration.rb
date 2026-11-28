@@ -28,11 +28,11 @@ module RuboCop
         "Style/FrozenStringLiteralComment" # ERB files don't support frozen string literal comments
       ].freeze #: Array[String]
 
-      # Cops reporting the code rendered by the conversion (HTML, the delimiters of ERB tags and semicolons
-      # rendered at their closings), which are disabled except for the code copied verbatim from ERB tags
+      # Cops reporting the code rendered by the conversion (the delimiters of ERB tags and semicolons
+      # rendered at their closings) and the nodes of HTML, which are disabled except for the code copied
+      # verbatim from ERB tags
       # (see VerbatimCode and CopOffenseFilter)
       VERBATIM_CODE_COPS = [
-        "Layout/BlockEndNewline", # HTML before the end tag is rendered as an expression before `end`
         "Layout/EmptyComment", # The first line of a multi-line ERB comment is rendered as an empty comment
         "Layout/EmptyLines", # Blank lines between ERB tags are in HTML and text (herb-lint: erb-no-extra-newline)
         # Blank lines between ERB tags are in HTML and text (no herb-lint rule)
@@ -44,8 +44,6 @@ module RuboCop
         "Layout/EmptyLinesAroundMethodBody",
         "Layout/EmptyLinesAroundModuleBody",
         "Layout/ExtraSpacing", # The delimiters of ERB tags and HTML are rendered as whitespace
-        # The marker of a text node is rendered right before the code following it (`abc<%= x %>` becomes `_a;_ = x;`)
-        "Layout/SpaceAfterSemicolon",
         "Layout/SpaceAroundOperators", # The tag opening of an output tag is rendered as `_ =`
         # The closing delimiters of ERB tags are rendered as whitespace,
         # and trailing whitespace in HTML and text is left to herb-lint (erb-no-trailing-whitespace)

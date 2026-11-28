@@ -16,21 +16,21 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         parse_result: conversion_result.parse_result,
-        short_text_ranges: conversion_result.short_text_ranges
+        html_markers: conversion_result.html_markers
       )
     end
 
     context "with HTML tags" do
       let(:erb_source) { "<ul><li><%= item %></li></ul>" }
 
-      it "renames the methods rendered from HTML uniquely per position" do
+      it "renames the methods of the HTML markers uniquely per position" do
         expect(processed_source.ast).to be_a(RuboCop::AST::Node)
         expect(collect_method_names(processed_source.ast)).to eq(%i[ul__html0 li__html4 item li__html19 ul__html24])
       end
     end
   end
 
-  describe "short texts" do
+  describe "HTML markers" do
     include RuboCop::AST::Sexp
 
     let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", erb_source) }
@@ -38,7 +38,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         parse_result: conversion_result.parse_result,
-        short_text_ranges: conversion_result.short_text_ranges,
+        html_markers: conversion_result.html_markers,
         parser_engine:
       )
     end
@@ -90,7 +90,7 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
           end
         end
 
-        context "with a syntax error after a short text" do
+        context "with a syntax error after text" do
           let(:erb_source) { "a<%= foo( %>b" }
 
           # The parsers differ in the number of the diagnostics and in the recovery from the error
@@ -103,16 +103,36 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       end
     end
 
-    context "without short texts" do
+    context "with tags and text" do
       let(:parser_engine) { :default }
-      let(:erb_source) { "<% if x %>abc<% end %>" }
+      let(:erb_source) { "<p><% if x %>abc<% end %></p>" }
+
+      it "adds the nodes and the tokens of the markers without their semicolons, keeping the buffer" do
+        expect(processed_source.buffer.source).to eq "      if x;        end;      "
+        expect(processed_source.ast).to eq(
+          s(:begin, s(:send, nil, :p__html0), s(:if, s(:send, nil, :x), s(:send, nil, :_a__html13), nil),
+            s(:send, nil, :p__html25))
+        )
+        expect(tokens(processed_source)).to eq [
+          [:tIDENTIFIER, "p", 0, 1],
+          [:kIF, "if", 6, 8], [:tIDENTIFIER, "x", 9, 10], [:tSEMI, ";", 10, 11],
+          [:tIDENTIFIER, "_a", 13, 15],
+          [:kEND, "end", 19, 22], [:tSEMI, ";", 22, 23],
+          [:tIDENTIFIER, "p", 25, 26]
+        ]
+      end
+    end
+
+    context "without HTML" do
+      let(:parser_engine) { :default }
+      let(:erb_source) { "<% if x %><%= y %><% end %>" }
 
       it "parses the buffer" do
-        expect(processed_source.ast).to eq s(:if, s(:send, nil, :x), s(:send, nil, :_a__html10), nil)
+        expect(processed_source.ast).to eq s(:if, s(:send, nil, :x), s(:lvasgn, :_, s(:send, nil, :y)), nil)
         expect(tokens(processed_source)).to eq [
           [:kIF, "if", 3, 5], [:tIDENTIFIER, "x", 6, 7], [:tSEMI, ";", 7, 8],
-          [:tIDENTIFIER, "_a", 10, 12], [:tSEMI, ";", 12, 13],
-          [:kEND, "end", 16, 19], [:tSEMI, ";", 19, 20]
+          [:tIDENTIFIER, "_", 10, 11], [:tEQL, "=", 12, 13], [:tIDENTIFIER, "y", 14, 15], [:tSEMI, ";", 15, 16],
+          [:kEND, "end", 21, 24], [:tSEMI, ";", 24, 25]
         ]
       end
     end
@@ -126,56 +146,47 @@ RSpec.describe RuboCop::Herb::ProcessedSource do
       described_class.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
         parse_result: conversion_result.parse_result,
-        short_text_ranges: conversion_result.short_text_ranges
+        html_markers: conversion_result.html_markers
       )
     end
-    let(:erb_source) { "<div><% def foo %><p><%= bar %></p><% end %></div>" }
+    let(:erb_source) { "a<% def foo %>b<p><%= bar %></p><% end %>c" }
 
     context "with the root node" do
       let(:node) { processed_source.ast }
 
-      it "returns the root node before the transformation" do
-        expect(collect_method_names(subject)).to eq(%i[div p bar p div])
+      it "returns the root node of the AST of the buffer, which has no nodes of HTML" do
+        expect(collect_method_names(node)).to eq(%i[_a__html0 _a__html14 p__html15 bar p__html28 _a__html41])
+        expect(subject.type).to eq :def
+        expect(collect_method_names(subject)).to eq(%i[bar])
       end
     end
 
-    context "with a node in the transformed AST" do
+    context "with a node in the AST" do
       let(:node) { processed_source.ast.each_descendant(:def).first }
 
-      it "returns the node at the same place before the transformation" do
+      it "returns the node at the same range in the AST of the buffer" do
+        expect(collect_method_names(node)).to eq(%i[_a__html14 p__html15 bar p__html28])
         expect(subject.type).to eq :def
-        expect(subject.source_range).to eq node.source_range
-        expect(collect_method_names(subject)).to eq(%i[p bar p])
+        expect([subject.source_range.begin_pos, subject.source_range.end_pos])
+          .to eq [node.source_range.begin_pos, node.source_range.end_pos]
+        expect(collect_method_names(subject)).to eq(%i[bar])
       end
     end
 
-    context "with short texts" do
-      let(:erb_source) { "a<% def foo %>b<p><%= bar %></p><% end %>c" }
+    context "without HTML" do
+      let(:erb_source) { "<% def foo %><%= bar %><% end %>" }
 
       context "with the root node" do
         let(:node) { processed_source.ast }
 
-        it "returns the root node of the AST of the buffer, which has no nodes of the short texts" do
-          expect(collect_method_names(node)).to eq(%i[_a__html0 _a__html14 p__html15 bar p__html28 _a__html41])
-          expect(subject.type).to eq :def
-          expect(collect_method_names(subject)).to eq(%i[p bar p])
-        end
-      end
-
-      context "with a node in the transformed AST" do
-        let(:node) { processed_source.ast.each_descendant(:def).first }
-
-        it "returns the node at the same range in the AST of the buffer" do
-          expect(collect_method_names(node)).to eq(%i[_a__html14 p__html15 bar p__html28])
-          expect(subject.type).to eq :def
-          expect([subject.source_range.begin_pos, subject.source_range.end_pos])
-            .to eq [node.source_range.begin_pos, node.source_range.end_pos]
-          expect(collect_method_names(subject)).to eq(%i[p bar p])
+        it "returns the root node before the transformation, which is the AST of the buffer" do
+          expect(subject).to eq(node)
+          expect(collect_method_names(subject)).to eq(%i[bar])
         end
       end
     end
 
-    context "with a node not in the transformed AST" do
+    context "with a node not in the AST" do
       let(:node) { RuboCop::AST::ProcessedSource.new("div", 3.3).ast }
 
       it { is_expected.to be_nil }

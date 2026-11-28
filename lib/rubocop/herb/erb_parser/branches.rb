@@ -38,9 +38,9 @@ module RuboCop
       # attributes in ERB nodes with a value but without literals (see RubyRenderer#visit_html_attribute_node)
       # and the nodes unknown to RubyRenderer
       # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
-      # the branch. Text and literals (including the ones too short to be rendered in the Ruby code, whose nodes are
-      # added to the AST, see ExpandedCode), HTML elements, tags, comments, doctypes, CDATA and XML declarations,
-      # and the attributes with literals are not because they have nodes in the AST and make the branch unique.
+      # the branch. Text, literals, HTML elements, tags, comments, doctypes, CDATA and XML declarations,
+      # and the attributes with literals are not because they have markers (see HtmlMarker), whose nodes
+      # make the branch unique.
       # @rbs nodes: Array[::Herb::AST::Node]
       def unrendered_html?(nodes) #: bool
         nodes.any? { unrendered_html_node?(_1) }
@@ -62,7 +62,7 @@ module RuboCop
       end
 
       # Check if the attribute in an ERB node has no literal to place the marker at
-      # (e.g. `<%= k %>="<%= v %>"`), as it is rendered at one of its literals
+      # (e.g. `<%= k %>="<%= v %>"`), as it is marked at its first literal
       # An attribute without a value and literals (e.g. `<%= x %>` in `<input <%= x %>>`) has only ERB nodes,
       # which are rendered as Ruby code, so it has no HTML
       # @rbs node: ::Herb::AST::HTMLAttributeNode

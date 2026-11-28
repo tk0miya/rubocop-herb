@@ -5,16 +5,16 @@ require "parser/current"
 RSpec.describe RuboCop::Herb::LocationRemapper do
   let(:remapper) { described_class.new(buffer, expanded_code) }
   let(:buffer) { Parser::Source::Buffer.new("test.html.erb", 1, source: ruby_code) }
-  let(:expanded_code) { RuboCop::Herb::ExpandedCode.new(ruby_code, short_text_ranges) }
+  let(:expanded_code) { RuboCop::Herb::ExpandedCode.new(ruby_code, markers) }
   let(:expanded_buffer) { Parser::Source::Buffer.new("test.html.erb", 1, source: expanded_code.code) }
   let(:parser) { Parser::CurrentRuby.new.tap { _1.diagnostics.all_errors_are_fatal = false } }
   let(:parsed) { parser.tokenize(expanded_buffer, true) }
   # source: "あ<% if x %>a<% else %>bc<% end %> <%# note %>"
   let(:ruby_code) { "    if x;      else;       end;     # note   " }
-  let(:short_text_ranges) { [range(0, 1), range(11, 12), range(22, 24)] }
+  let(:markers) { [marker(0, 1), marker(11, 12), marker(22, 24)] }
 
-  def range(from, to)
-    RuboCop::Herb::CharRange.new(from:, to:)
+  def marker(from, to)
+    RuboCop::Herb::HtmlMarker.new(range: RuboCop::Herb::CharRange.new(from:, to:), name: "_a")
   end
 
   def positions(range)
@@ -39,8 +39,8 @@ RSpec.describe RuboCop::Herb::LocationRemapper do
       expect(node).to eq parsed[0]
       expect(source_buffers(node)).to eq [buffer]
 
-      short_text, conditional = node.children
-      expect(positions(short_text.location.expression)).to eq [0, 1]
+      text, conditional = node.children
+      expect(positions(text.location.expression)).to eq [0, 1]
       expect(positions(conditional.location.expression)).to eq [4, 30]
       expect(positions(conditional.loc.keyword)).to eq [4, 6]
       expect(positions(conditional.loc.else)).to eq [15, 19]

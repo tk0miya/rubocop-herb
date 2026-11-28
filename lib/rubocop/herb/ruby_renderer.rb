@@ -10,24 +10,18 @@ module RuboCop
     # Visitor-based renderer that traverses Herb AST and renders Ruby code.
     # Comments are retrieved from ParseResult and rendered at the end
     # with filtering applied.
-    # The texts too short for the marker are not rendered in the Ruby code, as it keeps the positions of the source.
-    # They are collected in short_text_ranges instead (see ExpandedCode).
+    # Only the code in ERB tags is rendered in the Ruby code, which keeps the positions of the source.
+    # HTML is rendered as whitespace, and its markers are collected in html_markers (see HtmlMarker).
     class RubyRenderer < ::Herb::Visitor
       extend Forwardable
       include EscapedErbVisitor
 
-      # The position to render the marker of a text node:
-      # 3 characters in the line for "_a;" (the code following the text may follow the semicolon: `_a;_ = x;`),
-      # or 2 characters followed by a newline for "_a" (the newline terminates the statement)
-      TEXT_MARKER_POSITION = /\S(?:[^\r\n]{2}|[^\r\n](?=\r?\n))/ #: Regexp
+      # The marker of text, comments and so on, which have no name as tags have
+      # Uses an alphabetic marker to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
+      TEXT_MARKER = "_a" #: String
 
-      # The position to render the marker of a text node too short for TEXT_MARKER_POSITION
-      # (e.g. `[` in `  [<%= x %>]`): the marker starts at the whitespace before the text in the line
-      # (part of the text node), so that the text is not rendered as whitespace
-      INDENTED_TEXT_MARKER_POSITION = /[^\S\r\n](?:[^\S\r\n]\S|\S[^\r\n]|\S(?=\r?\n))/ #: Regexp
-
-      # The short text to collect in a text too short to place the marker: 1-2 characters
-      SHORT_TEXT = /\S\S?/ #: Regexp
+      # The text to place the marker at: its first 1-2 characters
+      MARKED_TEXT = /\S\S?/ #: Regexp
 
       # Render ERB source to Ruby code
       # @rbs parse_result: ParseResult
@@ -35,15 +29,6 @@ module RuboCop
         renderer = new(parse_result)
         parse_result.ast.visit(renderer)
         renderer
-      end
-
-      # Find the position to render the marker of a text node (nil if the text is too short to place it)
-      # The marker is placed at the text (see TEXT_MARKER_POSITION) and, only when the text is too short in every line,
-      # over the whitespace before the text (see INDENTED_TEXT_MARKER_POSITION), so that the offenses on the marker
-      # (e.g. Lint/UnreachableCode) point at the text as much as possible
-      # @rbs text: String
-      def self.text_marker_position(text) #: MatchData?
-        text.match(TEXT_MARKER_POSITION) || text.match(INDENTED_TEXT_MARKER_POSITION)
       end
 
       # The literals of the name and the value of an attribute (except the ones in ERB nodes) to place the marker of
@@ -56,7 +41,7 @@ module RuboCop
       end
 
       attr_reader :ruby_code #: String
-      attr_reader :short_text_ranges #: Array[CharRange] -- the texts too short to be rendered in the Ruby code
+      attr_reader :html_markers #: Array[HtmlMarker]
       attr_reader :parse_result #: ParseResult
 
       # @rbs!
@@ -72,7 +57,7 @@ module RuboCop
       def initialize(parse_result) #: void
         @parse_result = parse_result
         @ruby_code = bleach_code(parse_result.code)
-        @short_text_ranges = []
+        @html_markers = []
         @in_open_tag = false
 
         super()
@@ -123,70 +108,70 @@ module RuboCop
       end
 
       # Visit HTML element nodes (container for open tag, content, and close tag)
-      # If the element contains ERB nodes, its children are processed (the tags are rendered by the visitors below)
-      # If the element contains no ERB nodes, renders only the open tag name with full element range
+      # If the element contains ERB nodes, its children are processed (the tags are marked by the visitors below)
+      # If the element contains no ERB nodes, only its open tag is marked
       # HTML elements are not rendered as Ruby blocks because ERB does not create a scope for them
       # (e.g. a local variable assigned in an element is available after the element)
       # @rbs node: ::Herb::AST::HTMLElementNode
       def visit_html_element_node(node) #: void
         return super if contains_erb?(node)
 
-        render_marker(node)
+        mark_html(node)
       end
 
-      # Visit HTML open tag nodes and render them as "tag; "
-      # This also renders open tags not wrapped by an element
+      # Visit HTML open tag nodes and mark them with their tag names
+      # This also marks open tags not wrapped by an element
       # (e.g. an open tag without the close tag, or open tags in the branches of a conditional)
-      # The attributes in the open tag (e.g. `class="a"`) are a part of the tag, so they are not rendered,
+      # The attributes in the open tag (e.g. `class="a"`) are a part of the tag, so they are not marked,
       # except the ones in ERB nodes (see visit_html_attribute_node)
       # @rbs node: ::Herb::AST::HTMLOpenTagNode
       def visit_html_open_tag_node(node) #: void
-        render_marker(node)
+        mark_html(node)
         within_open_tag(true) { super }
       end
 
       # Visit HTML attribute nodes
       # An attribute in an ERB node (e.g. `<input <% if a %>disabled<% end %>>`) is a branch of its own,
-      # so it is rendered as a marker at its first literal in which the marker fits (or at its first literal)
+      # so it is marked at its first literal
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def visit_html_attribute_node(node) #: void
-        render_attribute_marker(node) unless in_open_tag
+        mark_attribute(node) unless in_open_tag
         within_open_tag(true) { super }
       end
 
-      # Visit HTML close tag nodes and render them as "tag; "
-      # This also renders close tags not wrapped by an element (e.g. a close tag in a conditional)
+      # Visit HTML close tag nodes and mark them with their tag names
+      # This also marks close tags not wrapped by an element (e.g. a close tag in a conditional)
       # @rbs node: ::Herb::AST::HTMLCloseTagNode
       def visit_html_close_tag_node(node) #: void
-        render_marker(node)
+        mark_html(node)
         super
       end
 
       # Visit HTML text nodes (plain text content between tags)
-      # Renders a marker to indicate content presence
+      # Marks them to indicate content presence
       # @rbs node: ::Herb::AST::HTMLTextNode
       def visit_html_text_node(node) #: void
-        render_marker(node)
+        mark_html(node)
         super
       end
 
       # Visit literal nodes (e.g. the contents of script elements and comments, and the text in the ERB nodes of
       # attribute values)
-      # Renders a marker to indicate content presence, as text nodes do. Otherwise the bodies containing only
+      # Marks them to indicate content presence, as text nodes are. Otherwise the bodies containing only
       # literals (e.g. `class="<% if a %>active<% end %>"`) become empty in the Ruby code, and the cops skipping
       # empty bodies (e.g. Style/NegatedIfElseCondition) miss offenses.
       # The literals of the attributes in open tags are a part of the tags (see visit_html_open_tag_node)
       # @rbs node: ::Herb::AST::LiteralNode
       def visit_literal_node(node) #: void
-        render_marker(node) unless in_open_tag
+        mark_html(node) unless in_open_tag
         super
       end
 
       # Visit escaped ERB tags (e.g. `<%% x %>`), which are text
-      # Renders the tag marker ("_a;") over the tag opening (`<%%`) to indicate content presence (like text nodes)
+      # Marks the tag opening (`<%%`) to indicate content presence (like text nodes)
       # @rbs node: ::Herb::AST::Node
       def visit_escaped_erb_node(node) #: void
-        render_marker(node)
+        mark_html(node)
         super
       end
 
@@ -197,12 +182,12 @@ module RuboCop
       #   def visit_xml_declaration_node: (::Herb::AST::XMLDeclarationNode node) -> void
 
       # Define visit methods for comments (<!-- ... -->), doctypes (<!DOCTYPE ...>), CDATA (<![CDATA[ ... ]]>)
-      # and XML declarations (<?xml ... ?>) (see render_opening_node)
+      # and XML declarations (<?xml ... ?>) (see mark_opening_node)
       %i[html_comment html_doctype cdata xml_declaration].each do |type|
         define_method(:"visit_#{type}_node") do |node|
           # @type self: RubyRenderer
           # @type var node: html_opening_node
-          render_opening_node(node)
+          mark_opening_node(node)
         end
       end
 
@@ -221,15 +206,12 @@ module RuboCop
         @in_open_tag = saved || false
       end
 
-      # Render the marker of an attribute at its first literal in which the marker fits
-      # (e.g. `disabled` of `<% if a %>disabled<% end %>`), or at its first literal as a short text if it fits in none
-      # (e.g. `id` of `<% if a %>id="x"<% end %>`)
+      # Mark an attribute at its first literal (e.g. `disabled` of `<% if a %>disabled<% end %>`)
       # An attribute without literals (e.g. `<%= k %>="<%= v %>"`) has no marker
       # @rbs node: ::Herb::AST::HTMLAttributeNode
-      def render_attribute_marker(node) #: void
-        literals = RubyRenderer.attribute_literals(node)
-        literal = literals.find { RubyRenderer.text_marker_position(_1.content.to_s) } || literals.first
-        render_text_node(literal) if literal
+      def mark_attribute(node) #: void
+        literal = RubyRenderer.attribute_literals(node).first
+        mark_text_node(literal) if literal
       end
 
       # @rbs node: erb_node
@@ -290,80 +272,61 @@ module RuboCop
         code.lines.any? { !_1.sub(/#.*/, "").strip.empty? }
       end
 
-      # Render a comment, doctype, CDATA or XML declaration as a marker at its opening (e.g. `<!--`),
+      # Mark a comment, doctype, CDATA or XML declaration at its opening (e.g. `<!--`),
       # and process its children (the literals and the ERB nodes) if it contains ERB nodes,
       # as HTML elements are (see visit_html_element_node)
       # @rbs node: html_opening_node
-      def render_opening_node(node) #: void
-        render_marker(node)
+      def mark_opening_node(node) #: void
+        mark_html(node)
         visit_child_nodes(node) if contains_erb?(node)
       end
 
-      # Render the marker of the HTML node (e.g. "tag; " for tags and "_a;" for text)
-      # Text and literals are collected as short texts when the marker does not fit in them (see render_text_node)
+      # Mark the HTML node (e.g. with the tag name for tags and "_a" for text)
       # @rbs node: ::Herb::AST::Node
-      def render_marker(node) #: void
+      def mark_html(node) #: void
         case node
-        when ::Herb::AST::HTMLElementNode then render_tag_node(node.open_tag)
-        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode then render_tag_node(node)
-        when ::Herb::AST::HTMLTextNode, ::Herb::AST::LiteralNode then render_text_node(node)
-        when ::Herb::AST::HTMLCommentNode then render_tag_marker(node.comment_start.not_nil!)
+        when ::Herb::AST::HTMLElementNode then mark_tag_node(node.open_tag)
+        when ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode then mark_tag_node(node)
+        when ::Herb::AST::HTMLTextNode, ::Herb::AST::LiteralNode then mark_text_node(node)
+        when ::Herb::AST::HTMLCommentNode then mark_opening(node.comment_start.not_nil!)
         when ::Herb::AST::HTMLDoctypeNode, ::Herb::AST::CDATANode, ::Herb::AST::XMLDeclarationNode
-          render_tag_marker(node.tag_opening.not_nil!)
+          mark_opening(node.tag_opening.not_nil!)
         else # escaped ERB tags
           erb = node #: erb_node
-          render_tag_marker(erb.tag_opening.not_nil!)
+          mark_opening(erb.tag_opening.not_nil!)
         end
       end
 
-      # Render HTML open tag or close tag as Ruby code: "tag; "
-      # The tag name and "; " always fit in the tag ("<tag>" or "</tag>")
-      # When the tag name is followed by a newline (e.g. `<div\n  class="a">`), the space is dropped ("tag;")
-      # so as not to overwrite the newline and shift the following lines
+      # Mark an HTML open tag or close tag with its tag name, at the tag opening (`<` or `</`)
       # @rbs node: ::Herb::AST::Node?
-      def render_tag_node(node) #: void
+      def mark_tag_node(node) #: void
         return unless node.is_a?(::Herb::AST::HTMLOpenTagNode) || node.is_a?(::Herb::AST::HTMLCloseTagNode)
 
         tag_name = node.tag_name.not_nil!.value
-        code = "#{tag_name}; "
-
-        start_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.from)
-        code = code.rstrip if newline_at?(start_pos + code.length - 1)
-        ruby_code[start_pos, code.length] = code
+        add_marker(byte_to_char_pos(node.tag_opening.not_nil!.range.from), tag_name.length, tag_name)
       end
 
-      # @rbs pos: Integer -- character position in ruby_code
-      def newline_at?(pos) #: bool
-        ruby_code[pos]&.match?(/[\r\n]/) || false
-      end
-
-      # Render HTML text node (or literal node) as a marker (see render_text_marker)
-      # The text too short to place the marker is collected as a short text: its first 1-2 characters
-      # (e.g. `a` in `<% if x %>a<% end %>`). One short text is enough to indicate content presence,
-      # as one marker is rendered for a text
+      # Mark an HTML text node (or a literal node) (see mark_text)
       # @rbs node: ::Herb::AST::HTMLTextNode | ::Herb::AST::LiteralNode
-      def render_text_node(node) #: void
-        range = NodeRange.compute_char_range(node, source)
-        text = source.slice(range)
-        return render_text_marker(range) if RubyRenderer.text_marker_position(text)
-
-        match = text.match(SHORT_TEXT)
-        return unless match
-
-        from = range.from + match.begin(0).not_nil!
-        short_text_ranges << CharRange.new(from:, to: from + match[0].not_nil!.length)
+      def mark_text_node(node) #: void
+        mark_text(NodeRange.compute_char_range(node, source))
       end
 
-      # Render HTML text by placing a marker ("_a;" or "_a") at the first position where it fits in the line,
-      # or over the whitespace before it (see RubyRenderer.text_marker_position)
+      # Mark text at its first 1-2 characters (e.g. `a` in `<% if x %>a<% end %>`)
+      # One marker is enough to indicate content presence, so the rest of the text has none
       # @rbs range: CharRange -- range of the text
-      def render_text_marker(range) #: void
-        match = RubyRenderer.text_marker_position(source.slice(range))
+      def mark_text(range) #: void
+        match = source.slice(range).match(MARKED_TEXT)
         return unless match
 
-        pos = range.from + match.begin(0).not_nil!
-        marker = match[0].not_nil!.length > 2 ? "_a;" : "_a"
-        ruby_code[pos, marker.length] = marker
+        add_marker(range.from + match.begin(0).not_nil!, match[0].not_nil!.length, TEXT_MARKER)
+      end
+
+      # @rbs pos: Integer -- character position
+      # @rbs length: Integer
+      # @rbs name: String
+      def add_marker(pos, length, name) #: void
+        html_markers << HtmlMarker.new(range: CharRange.new(from: pos, to: pos + length), name:)
       end
 
       # Render collected comments that can be safely converted to Ruby comments
@@ -377,26 +340,33 @@ module RuboCop
 
       # @rbs node: ::Herb::AST::ERBCommentNode
       def render_erb_comment_node(node) #: void
-        render_marker_before_comment(byte_to_char_pos(node.tag_opening.not_nil!.range.from))
+        mark_html_before_comment(byte_to_char_pos(node.tag_opening.not_nil!.range.from))
         hash_pos = byte_to_char_pos(node.tag_opening.not_nil!.range.to - 1)
         comment = RubyComment.render(node)
         ruby_code[hash_pos, comment.length] = comment
       end
 
-      # Render a marker in the HTML preceding an ERB comment in its line when the line has no code,
-      # because the marker of the HTML may be rendered in an earlier line (e.g. multi-line text).
+      # Mark the HTML preceding an ERB comment in its line when the line has neither code nor markers,
+      # because the marker of the HTML may be in an earlier line (e.g. multi-line text).
       # Otherwise RuboCop regards the comment as a comment on its own line, which changes the meaning of
       # the directives in it (e.g. a directive disabling a cop after `de` of `<div>abc\n  de` disables the cop
-      # until the end of the file instead of the line, as the marker of the text is rendered at `abc`)
+      # until the end of the file instead of the line, as the marker of the text is at `abc`)
       # Only the HTML after the last ERB tag in the line is used, as the ERB tags without code
       # (e.g. `<% %>` and `%>` of a multi-line tag) are not HTML
       # @rbs tag_start: Integer -- character position of the tag opening of the comment
-      def render_marker_before_comment(tag_start) #: void
+      def mark_html_before_comment(tag_start) #: void
         line_start = tag_start.positive? ? (ruby_code.rindex("\n", tag_start - 1) || -1) + 1 : 0
-        return if ruby_code[line_start...tag_start].to_s.match?(/\S/)
+        return if code_or_marker?(line_start, tag_start)
 
         html_start = [line_start, preceding_erb_tag_end(tag_start)].max.not_nil!
-        render_text_marker(CharRange.new(from: html_start, to: tag_start))
+        mark_text(CharRange.new(from: html_start, to: tag_start))
+      end
+
+      # Check if the range has code or a marker starts in it
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def code_or_marker?(from, to) #: bool
+        ruby_code[from...to].to_s.match?(/\S/) || html_markers.any? { from <= _1.from && _1.from < to }
       end
 
       # The end of the last ERB tag before the position (0 if none)
@@ -407,12 +377,11 @@ module RuboCop
         index.positive? ? ranges[index - 1].not_nil!.to : 0
       end
 
-      # Render tag marker "_a;" at the opening of a node (e.g. `<!--` of comments and `<%%` of escaped ERB tags),
-      # which has 3 characters or more
-      # Uses an alphabetic marker to avoid conflict with Ruby's numbered parameters (_1, _2, etc.)
+      # Mark the opening of a node (e.g. `<!--` of comments and `<%%` of escaped ERB tags),
+      # which has 2 characters or more
       # @rbs opening: ::Herb::Token
-      def render_tag_marker(opening) #: void
-        ruby_code[byte_to_char_pos(opening.range.from), 3] = "_a;"
+      def mark_opening(opening) #: void
+        add_marker(byte_to_char_pos(opening.range.from), 2, TEXT_MARKER)
       end
 
       # @rbs code: String

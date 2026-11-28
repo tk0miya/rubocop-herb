@@ -4,8 +4,8 @@ module RuboCop
   module Herb
     # Rebuilds the result of parsing the expanded code (AST, comments, tokens and diagnostics) on the buffer of
     # the Ruby code keeping the positions of the source, converting the positions with ExpandedCode.
-    # The buffer does not have the markers of short texts, so the result is not the one of parsing the buffer:
-    # it has the nodes and the tokens of the markers at the short texts.
+    # The buffer does not have the markers of HTML, so the result is not the one of parsing the buffer:
+    # it has the nodes and the tokens of the markers at the HTML.
     # The semicolons of the markers have no character in the source, so their tokens are dropped.
     class LocationRemapper
       attr_reader buffer: ::Parser::Source::Buffer

@@ -10,6 +10,11 @@ module RuboCop
     # outside ERB tags to the content of the ERB tag it ends (or starts) in, if the trimmed part
     # is whitespace in the Ruby code (#trim), so that the correction keeps the delimiters.
     #
+    # HTML is whitespace in the Ruby code as well, so the trimmed part may cover the HTML with a marker,
+    # whose node may be a part of what the cop corrects (e.g. swapping it with the code). A removal is still
+    # trimmed, as the trimmed one removes the code in the ERB tag only, but a replacement with text is not,
+    # as the text would be written into the ERB tag for the HTML as well.
+    #
     # An ERB comment rendered as a Ruby comment continues over its closing delimiter rendered as whitespace,
     # so the corrections of rubocop directives in it (e.g. Lint/RedundantCopDisableDirective) are also adjusted
     # to keep the delimiters (`<%#` and `%>`) of the comment.  A comment emptied by a correction is removed
@@ -49,13 +54,16 @@ module RuboCop
 
       attr_reader ruby_code: String
 
+      attr_reader html_markers: Array[HtmlMarker]
+
       @comment_contents: Array[CharRange]?
 
       @contents: Array[Content]?
 
       # @rbs parse_result: ParseResult
       # @rbs ruby_code: String -- Ruby code converted from the ERB source
-      def initialize: (ParseResult parse_result, String ruby_code) -> void
+      # @rbs html_markers: Array[HtmlMarker]
+      def initialize: (ParseResult parse_result, String ruby_code, Array[HtmlMarker] html_markers) -> void
 
       # Returns the trimmed correction, or nil if there is nothing to trim
       # @rbs corrector: ::RuboCop::Cop::Corrector -- corrector for the converted Ruby code
@@ -136,6 +144,18 @@ module RuboCop
       # @rbs from: Integer
       # @rbs to: Integer
       def trim_to: (Replacement replacement, ?from: Integer, ?to: Integer) -> Replacement
+
+      # Check if the part of the replacement can be trimmed: whitespace in the Ruby code,
+      # which is not the HTML with a marker unless the replacement is a removal
+      # @rbs replacement: Replacement
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def trimmable?: (Replacement replacement, Integer from, Integer to) -> bool
+
+      # Check if the range covers HTML with a marker, even partly
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def marker?: (Integer from, Integer to) -> bool
 
       # @rbs from: Integer
       # @rbs to: Integer

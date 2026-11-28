@@ -2,68 +2,60 @@
 
 module RuboCop
   module Herb
-    # The Ruby code to parse: the Ruby code rendered by RubyRenderer in which the markers of short texts are inserted.
-    # A text of 1-2 characters has no room for the marker ("_a;") in the Ruby code keeping the positions of the source,
-    # so it is replaced with the marker here, which shifts the code after it.
+    # The Ruby code to parse: the Ruby code rendered by RubyRenderer in which the markers of HTML are inserted.
+    # The Ruby code keeps the positions of the source and has whitespace at HTML, so each range of HTML with a marker
+    # is replaced with the code of the marker here, which shifts the code after it.
     # The positions in the result of parsing this code are converted back to the ones in the source
-    # (see LocationRemapper), so that RuboCop gets an AST with the nodes of short texts at their positions.
+    # (see LocationRemapper), so that RuboCop gets an AST with the nodes of the markers at the HTML.
     #
-    #     source:    "<% if x %>a<% else %>b<% end %>"
-    #     ruby_code: "   if x;       else;       end;  "
-    #     code:      "   if x;  _a;     else;  _a;     end;  "
+    #     source:    "<p><% if x %>a<% else %>b<% end %></p>"
+    #     ruby_code: "      if x;      else;      end;      "
+    #     code:      "p;     if x;  _a;   else;  _a;   end;  p;   "
     class ExpandedCode
-      # The marker of a short text, which is the same as the one of a text (see RubyRenderer)
-      MARKER = "_a;" #: String
-
-      # The offset of the semicolon in the marker
-      SEMICOLON_OFFSET = MARKER.length - 1 #: Integer
-
-      # A short text replaced with the marker
+      # A range of HTML replaced with the code of its marker
       Replacement = Data.define(
-        :range,        #: CharRange -- the range of the short text in the source
-        :expanded_pos  #: Integer -- the position of the marker in the expanded code
+        :marker,       #: HtmlMarker
+        :expanded_pos  #: Integer -- the position of the code of the marker in the expanded code
       )
 
       attr_reader :code #: String
       attr_reader :replacements #: Array[Replacement] -- sorted by position
 
       # @rbs ruby_code: String
-      # @rbs short_text_ranges: Array[CharRange] -- the ranges of the short texts in the source
-      def initialize(ruby_code, short_text_ranges) #: void
+      # @rbs markers: Array[HtmlMarker] -- the ranges of the markers must not overlap
+      def initialize(ruby_code, markers) #: void
         @code = ruby_code.dup
         @replacements = []
-        # Each replacement shifts the code after it by the difference of the lengths of the marker and the text
+        # Each replacement shifts the code after it by the difference of the lengths of the marker and the HTML
         shift = 0
-        short_text_ranges.sort_by(&:from).each do |range|
-          length = range.to - range.from
-          replacements << Replacement.new(range:, expanded_pos: range.from + shift)
-          code[range.from + shift, length] = MARKER
-          shift += MARKER.length - length
+        markers.sort_by(&:from).each do |marker|
+          replacements << Replacement.new(marker:, expanded_pos: marker.from + shift)
+          code[marker.from + shift, marker.length] = marker.code
+          shift += marker.code.length - marker.length
         end
       end
 
       # Convert a position in the expanded code to the one in the source
-      # The identifier of a marker (`_a`) is mapped to the short text, and its semicolon to the end of the text
+      # The identifier of a marker is mapped to its range in the source, and its semicolon to the end of the range
       # @rbs pos: Integer
       def to_source_pos(pos) #: Integer
         replacement = preceding_replacement(pos)
         return pos unless replacement
 
-        range = replacement.range
+        marker = replacement.marker
         offset = pos - replacement.expanded_pos
-        if offset >= SEMICOLON_OFFSET
-          # The semicolon has no character in the source, so it is mapped to the end of the text
-          range.to + [offset - MARKER.length, 0].max.not_nil!
-        else
-          range.from + [offset, range.to - range.from].min.not_nil!
-        end
+        following = offset - marker.code.length
+        # The semicolon has no character in the source, so it is mapped to the end of the range
+        return marker.to + [following, 0].max.not_nil! if following >= -1
+
+        marker.from + [offset, marker.length].min.not_nil!
       end
 
       # Whether the position in the expanded code is the semicolon of a marker
       # @rbs pos: Integer
       def marker_semicolon?(pos) #: bool
         replacement = preceding_replacement(pos)
-        !replacement.nil? && pos - replacement.expanded_pos == SEMICOLON_OFFSET
+        !replacement.nil? && pos - replacement.expanded_pos == replacement.marker.code.length - 1
       end
 
       private

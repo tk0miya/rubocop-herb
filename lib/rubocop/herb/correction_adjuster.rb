@@ -12,6 +12,11 @@ module RuboCop
     # outside ERB tags to the content of the ERB tag it ends (or starts) in, if the trimmed part
     # is whitespace in the Ruby code (#trim), so that the correction keeps the delimiters.
     #
+    # HTML is whitespace in the Ruby code as well, so the trimmed part may cover the HTML with a marker,
+    # whose node may be a part of what the cop corrects (e.g. swapping it with the code). A removal is still
+    # trimmed, as the trimmed one removes the code in the ERB tag only, but a replacement with text is not,
+    # as the text would be written into the ERB tag for the HTML as well.
+    #
     # An ERB comment rendered as a Ruby comment continues over its closing delimiter rendered as whitespace,
     # so the corrections of rubocop directives in it (e.g. Lint/RedundantCopDisableDirective) are also adjusted
     # to keep the delimiters (`<%#` and `%>`) of the comment.  A comment emptied by a correction is removed
@@ -32,15 +37,18 @@ module RuboCop
 
       attr_reader :parse_result #: ParseResult
       attr_reader :ruby_code #: String
+      attr_reader :html_markers #: Array[HtmlMarker]
 
       # @rbs @contents: Array[Content]?
       # @rbs @comment_contents: Array[CharRange]?
 
       # @rbs parse_result: ParseResult
       # @rbs ruby_code: String -- Ruby code converted from the ERB source
-      def initialize(parse_result, ruby_code) #: void
+      # @rbs html_markers: Array[HtmlMarker]
+      def initialize(parse_result, ruby_code, html_markers) #: void
         @parse_result = parse_result
         @ruby_code = ruby_code
+        @html_markers = html_markers.sort_by(&:from)
       end
 
       # Returns the trimmed correction, or nil if there is nothing to trim
@@ -203,9 +211,27 @@ module RuboCop
 
         trimmed = replacement.with(from:, to:)
         return replacement if whitespace?(trimmed.from, trimmed.to)
-        return replacement unless whitespace?(replacement.from, from) && whitespace?(to, replacement.to)
+        return replacement unless trimmable?(replacement, replacement.from, from) &&
+                                  trimmable?(replacement, to, replacement.to)
 
         trimmed
+      end
+
+      # Check if the part of the replacement can be trimmed: whitespace in the Ruby code,
+      # which is not the HTML with a marker unless the replacement is a removal
+      # @rbs replacement: Replacement
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def trimmable?(replacement, from, to) #: bool
+        whitespace?(from, to) && (replacement.text.empty? || !marker?(from, to))
+      end
+
+      # Check if the range covers HTML with a marker, even partly
+      # @rbs from: Integer
+      # @rbs to: Integer
+      def marker?(from, to) #: bool
+        marker = html_markers.bsearch { _1.to > from }
+        !marker.nil? && marker.from < to
       end
 
       # @rbs from: Integer

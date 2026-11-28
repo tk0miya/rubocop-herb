@@ -5,16 +5,17 @@ require "rubocop"
 module RuboCop
   module Herb
     # ProcessedSource subclass that transforms AST after parsing with RuboCopASTTransformer
-    # to make nodes rendered from HTML unique
+    # to make the nodes of HTML unique
     #
-    # The texts too short to be rendered in the Ruby code (short texts) get their nodes here: the code in which
-    # their markers are inserted (see ExpandedCode) is parsed instead of the Ruby code, and the positions in
-    # the result are converted back to the ones in the Ruby code (see LocationRemapper).
-    # The buffer is still the Ruby code, so the AST is not the one of parsing the buffer when the source has
-    # short texts. The cops parsing the buffer again get the AST of the buffer with untransformed_node.
+    # HTML gets its nodes here: the code in which the markers of HTML are inserted (see ExpandedCode) is parsed
+    # instead of the Ruby code, and the positions in the result are converted back to the ones in the Ruby code
+    # (see LocationRemapper).
+    # The buffer is still the Ruby code, which has only the code in ERB tags, so the AST is not the one of parsing
+    # the buffer when the source has HTML. The cops parsing the buffer again get the AST of the buffer with
+    # untransformed_node.
     class ProcessedSource < ::RuboCop::AST::ProcessedSource
       attr_reader :parse_result #: ParseResult
-      attr_reader :short_text_ranges #: Array[CharRange]
+      attr_reader :html_markers #: Array[HtmlMarker]
       attr_reader :ast #: RuboCop::AST::Node?
 
       # @rbs @comment_config: CommentConfig?
@@ -31,12 +32,12 @@ module RuboCop
       # @rbs ruby_version: Float
       # @rbs path: String?
       # @rbs parse_result: ParseResult
-      # @rbs short_text_ranges: Array[CharRange] -- the texts too short to be rendered in the Ruby code
+      # @rbs html_markers: Array[HtmlMarker]
       # @rbs parser_engine: Symbol
       def initialize(ruby_code, ruby_version, path = nil,
-                     parse_result:, short_text_ranges: [], parser_engine: :default) #: void
+                     parse_result:, html_markers: [], parser_engine: :default) #: void
         @parse_result = parse_result
-        @short_text_ranges = short_text_ranges
+        @html_markers = html_markers
         super(ruby_code, ruby_version, path, parser_engine:)
       end
 
@@ -47,12 +48,11 @@ module RuboCop
         @comment_config ||= CommentConfig.new(self, disabled_cops:)
       end
 
-      # The node of the AST of the buffer at the same place as the given node of the AST
-      # (e.g. `(send nil :div)` for `(send nil :div__html0)`), or nil if the buffer has no such node.
-      # The AST of the buffer is the one before the transformation, without the nodes of short texts.
-      # The node is found by its type and its range, as the nodes of short texts change the structure of the AST.
+      # The node of the AST of the buffer at the same place as the given node of the AST,
+      # or nil if the buffer has no such node. The AST of the buffer has no nodes of HTML.
+      # The node is found by its type and its range, as the nodes of HTML change the structure of the AST.
       # This is for the scopes of ReparsedEquivalence (the root node, method definitions, classes and modules),
-      # whose ranges do not change with short texts, except the root node.
+      # whose ranges do not change with the nodes of HTML, except the root node.
       # @rbs node: RuboCop::AST::Node
       def untransformed_node(node) #: RuboCop::AST::Node?
         return buffer_ast if node.equal?(ast)
@@ -79,7 +79,7 @@ module RuboCop
       # Adjuster to trim autocorrections to the content of ERB tags
       # The raw source is normalized as the buffer is (CRLF to LF), on which the positions of corrections are based
       def correction_adjuster #: CorrectionAdjuster
-        @correction_adjuster ||= CorrectionAdjuster.new(parse_result, raw_source.gsub("\r\n", "\n"))
+        @correction_adjuster ||= CorrectionAdjuster.new(parse_result, raw_source.gsub("\r\n", "\n"), html_markers)
       end
 
       private
@@ -87,9 +87,9 @@ module RuboCop
       attr_reader :untransformed_ast #: RuboCop::AST::Node?
 
       # The AST of the buffer: the AST before the transformation, or the one of parsing the buffer again
-      # if the source has short texts, as their nodes are not in the buffer
+      # if the source has HTML markers, as their nodes are not in the buffer
       def buffer_ast #: RuboCop::AST::Node?
-        return untransformed_ast if short_text_ranges.empty?
+        return untransformed_ast if html_markers.empty?
 
         @buffer_ast ||= ::RuboCop::AST::ProcessedSource.new(raw_source, ruby_version, path, parser_engine:).ast
       end
@@ -114,14 +114,14 @@ module RuboCop
         @ast = RuboCopASTTransformer.transform(ast, parse_result) if ast
       end
 
-      # Override tokenize to parse the code in which the markers of short texts are inserted,
+      # Override tokenize to parse the code in which the markers of HTML are inserted,
       # and to move the result onto the buffer
       # @rbs parser: untyped
       def tokenize(parser) #: [RuboCop::AST::Node?, Array[::Parser::Source::Comment], untyped]
-        return super if short_text_ranges.empty?
+        return super if html_markers.empty?
 
         source_buffer = buffer
-        expanded_code = ExpandedCode.new(source_buffer.source, short_text_ranges)
+        expanded_code = ExpandedCode.new(source_buffer.source, html_markers)
         @buffer = ::Parser::Source::Buffer.new(source_buffer.name, 1, source: expanded_code.code)
         ast, comments, tokens = super
         @buffer = source_buffer
