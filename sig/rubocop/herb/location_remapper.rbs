@@ -1,0 +1,44 @@
+# Generated from lib/rubocop/herb/location_remapper.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # Rebuilds the result of parsing the expanded code (AST, comments, tokens and diagnostics) on the buffer of
+    # the Ruby code keeping the positions of the source, converting the positions with ExpandedCode.
+    # The buffer does not have the markers of HTML, so the result is not the one of parsing the buffer:
+    # it has the nodes and the tokens of the markers at the HTML.
+    # The semicolons of the markers have no character in the source, so their tokens are dropped.
+    class LocationRemapper
+      attr_reader buffer: ::Parser::Source::Buffer
+
+      attr_reader expanded_code: ExpandedCode
+
+      # @rbs buffer: ::Parser::Source::Buffer -- the buffer of the Ruby code keeping the positions of the source
+      # @rbs expanded_code: ExpandedCode
+      def initialize: (::Parser::Source::Buffer buffer, ExpandedCode expanded_code) -> void
+
+      # @rbs node: ::Parser::AST::Node
+      def remap_node: (::Parser::AST::Node node) -> ::Parser::AST::Node
+
+      # @rbs comments: Array[::Parser::Source::Comment]
+      def remap_comments: (Array[::Parser::Source::Comment] comments) -> Array[::Parser::Source::Comment]
+
+      # @rbs tokens: Array[untyped] -- the tokens of the parser: [type, [value, range]]
+      def remap_tokens: (Array[untyped] tokens) -> Array[untyped]
+
+      # The diagnostic is copied instead of being built again, as the parsers have their own diagnostics
+      # (e.g. the one of Prism keeps its message, which is not built from the reason and the arguments)
+      # @rbs diagnostic: ::Parser::Diagnostic
+      def remap_diagnostic: (::Parser::Diagnostic diagnostic) -> ::Parser::Diagnostic
+
+      private
+
+      # The maps keep their ranges in instance variables (e.g. @expression, @keyword and @heredoc_body),
+      # which differ by the type of the node, so all of them are converted
+      # @rbs map: ::Parser::Source::Map?
+      def remap_map: (::Parser::Source::Map? map) -> ::Parser::Source::Map?
+
+      # @rbs range: ::Parser::Source::Range
+      def remap_range: (::Parser::Source::Range range) -> ::Parser::Source::Range
+    end
+  end
+end

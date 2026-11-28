@@ -8,20 +8,20 @@ module RuboCop
   module Herb
     # Visitor that collects the lines where cops should be disabled.
     # Some cops report false positives caused by the conversion
-    # (e.g. short text is rendered as whitespace, output tags are rendered as `_ = expr`).
+    # (e.g. some HTML has no node in the Ruby AST, output tags are rendered as `_ = expr`).
     # This collector finds such lines from the ERB structure (e.g. conditional branches containing only HTML
-    # not rendered in the Ruby code, and the alignment of tags following the HTML structure).
+    # without nodes in the Ruby AST, and the alignment of tags following the HTML structure).
     #
     # The layout cops (e.g. Layout/BlockAlignment and Layout/IndentationWidth) are disabled for the structures
     # written across ERB tags, because the columns of the tags are the layout of HTML, which is left to
     # herb-format (herb-lint has no rule for them). herb-format indents the tags by the HTML structure,
     # and even then the cops report the tags formatted by it: the Ruby code starts after the tag opening,
-    # whose width differs (`<%`, `<%=` and `<%-`), while the output marker (`_ =`) and the HTML markers
+    # whose width differs (`<%`, `<%=` and `<%-`), while the output marker (`_ =`) and the nodes of HTML
     # start at the tag opening
     # (e.g. `<%= form_with do %>` and `<% end %>` are rendered as `_ = form_with do;` and `   end;`).
     # The Ruby code cannot be moved to the tag opening as it keeps the positions of the source.
     # The structures written within a single ERB tag are still checked.
-    # False positives on the code rendered by the conversion itself (HTML markers, delimiters and semicolons)
+    # False positives on the code rendered by the conversion itself (delimiters and semicolons)
     # are left to CopOffenseFilter.
     # Escaped ERB tags (e.g. `<%% if a %>`) are text, so no cops are disabled for them.
     class DisabledCopsCollector < ::Herb::Visitor
@@ -53,7 +53,7 @@ module RuboCop
         @in_doctype = false
       end
 
-      # Conditional branches containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # Conditional branches containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBIfNode
       def visit_erb_if_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if unrendered_body?(node.statements)
@@ -66,7 +66,7 @@ module RuboCop
         super
       end
 
-      # Conditional branches containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # Conditional branches containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBUnlessNode
       def visit_erb_unless_node(node) #: void
         disable_cop("Lint/EmptyConditionalBody", node) if unrendered_body?(node.statements)
@@ -131,7 +131,7 @@ module RuboCop
         super
       end
 
-      # Else branches containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # Else branches containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBElseNode
       def visit_erb_else_node(node) #: void
         disable_cop("Style/EmptyElse", node) if unrendered_body?(node.statements)
@@ -142,7 +142,7 @@ module RuboCop
         super
       end
 
-      # When branches containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # When branches containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBWhenNode
       def visit_erb_when_node(node) #: void
         disable_cop("Lint/EmptyWhen", node) if unrendered_body?(node.statements)
@@ -152,7 +152,7 @@ module RuboCop
         super
       end
 
-      # Rescue clauses containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # Rescue clauses containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBRescueNode
       def visit_erb_rescue_node(node) #: void
         disable_cop("Lint/SuppressedException", node) if unrendered_body?(node.statements)
@@ -162,7 +162,7 @@ module RuboCop
         super
       end
 
-      # Ensure clauses containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # Ensure clauses containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBEnsureNode
       def visit_erb_ensure_node(node) #: void
         disable_cop("Lint/EmptyEnsure", node) if unrendered_body?(node.statements)
@@ -172,7 +172,7 @@ module RuboCop
         super
       end
 
-      # In branches containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # In branches containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBInNode
       def visit_erb_in_node(node) #: void
         disable_cop("Lint/EmptyInPattern", node) if unrendered_body?(node.statements)
@@ -182,12 +182,13 @@ module RuboCop
         super
       end
 
-      # Blocks containing only HTML not rendered in the Ruby code look empty (see unrendered_body?)
+      # Blocks containing only HTML without nodes in the Ruby AST look empty (see unrendered_body?)
       # @rbs node: ::Herb::AST::ERBBlockNode
       def visit_erb_block_node(node) #: void
         disable_cop("Lint/EmptyBlock", node) if unrendered_body?(node.body)
         disable_single_line_block(node)
         disable_block_alignment(node.end_node)
+        disable_block_end_newline(node.end_node)
         disable_body_indentation(node.body)
         disable_duplicate_branch(Branches.of_rescue(node))
         super
@@ -197,9 +198,9 @@ module RuboCop
 
       attr_reader :in_doctype #: bool -- whether the visitor is in a doctype
 
-      # Lint/DuplicateBranch compares the branches in the Ruby code, but some HTML is not rendered there
+      # Lint/DuplicateBranch compares the branches in the Ruby AST, but some HTML has no node there
       # (see Branches.unrendered_html?), so branches differing only in such HTML look identical
-      # (e.g. `<% if a %>x<%= y %><% else %>z<%= y %><% end %>`).
+      # (e.g. `<input <% if a %><%= k %>="<%= v %>"<% else %><%= k %>='<%= v %>'<% end %>>`).
       # The cop is disabled at the branches if any of them contains such HTML.
       # The first branch is skipped because the cop never reports it.
       # @rbs branches: Array[branch_node]
@@ -233,6 +234,14 @@ module RuboCop
       # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
       def disable_block_alignment(end_node) #: void
         disable_cop("Layout/BlockAlignment", end_node) if end_node
+      end
+
+      # Layout/BlockEndNewline skips `end` following a semicolon, but the nodes of HTML have none in the Ruby code
+      # (see ExpandedCode), so the cop reports the end tag following HTML (e.g. `<p>x</p><% end %>`).
+      # Blocks written within a single ERB tag are still checked.
+      # @rbs end_node: ::Herb::AST::ERBEndNode? -- nil if the end tag is missing
+      def disable_block_end_newline(end_node) #: void
+        disable_cop("Layout/BlockEndNewline", end_node) if end_node
       end
 
       # The bodies of conditionals, loops and blocks written across ERB tags are indented
@@ -338,7 +347,7 @@ module RuboCop
         (disabled_cops[cop_name] ||= []) << (first_line..last_line)
       end
 
-      # Check if the body has no Ruby code but HTML not rendered in the Ruby code, so that it looks empty
+      # Check if the body has no Ruby code but HTML without nodes in the Ruby AST, so that it looks empty
       # to the cops reporting empty bodies. A body with Ruby code (including the one in nested ERB nodes and
       # in attributes, e.g. `<%= k %>="<%= v %>"`) is not empty
       # @rbs nodes: Array[::Herb::AST::Node]
@@ -346,9 +355,9 @@ module RuboCop
         first_erb_line(nodes).nil? && unrendered_html?(nodes)
       end
 
-      # Check if the nodes contain HTML not rendered in the Ruby code (see Branches.unrendered_html?)
+      # Check if the nodes contain HTML without nodes in the Ruby AST (see Branches.unrendered_html?)
       # Herb locates the literals in the ERB nodes of a doctype (e.g. `<!DOCTYPE <% if a %>html<% end %>>`) before
-      # the ERB nodes, so their markers are rendered out of the bodies of the ERB nodes
+      # the ERB nodes, so their markers are out of the bodies of the ERB nodes
       # @rbs nodes: Array[::Herb::AST::Node]
       def unrendered_html?(nodes) #: bool
         (in_doctype && literal?(nodes)) || Branches.unrendered_html?(nodes)

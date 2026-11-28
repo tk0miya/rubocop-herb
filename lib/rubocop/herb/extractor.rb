@@ -41,6 +41,7 @@ module RuboCop
           processed_source.ruby_version,
           processed_source.path,
           parse_result: result.parse_result,
+          html_markers: result.html_markers,
           parser_engine: processed_source.parser_engine
         ).tap do |ps|
           ps.config = processed_source.config

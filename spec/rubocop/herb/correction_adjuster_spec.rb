@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 RSpec.describe RuboCop::Herb::CorrectionAdjuster do
-  let(:adjuster) { described_class.new(conversion_result.parse_result, conversion_result.ruby_code) }
+  let(:adjuster) do
+    described_class.new(conversion_result.parse_result, conversion_result.ruby_code, conversion_result.html_markers)
+  end
   let(:conversion_result) { RuboCop::Herb::Converter.new.convert("test.html.erb", source) }
   let(:buffer) { Parser::Source::Buffer.new("test.html.erb", source: conversion_result.ruby_code) }
   let(:corrector) { RuboCop::Cop::Corrector.new(buffer) }
@@ -126,12 +128,30 @@ RSpec.describe RuboCop::Herb::CorrectionAdjuster do
       it { is_expected.to eq "<p>a</p><% %>" }
     end
 
-    context "when the correction removes HTML rendered as code before an ERB tag" do
+    # HTML is whitespace in the Ruby code, so the removal of the whitespace around the code may cover it
+    context "when the correction removes HTML with markers before an ERB tag" do
       let(:source) { "<p>a</p>\n<% 1 %>" }
 
-      before { corrector.remove(range(1, 13)) }
+      before { corrector.remove(range(0, 13)) }
+
+      it { is_expected.to eq "<p>a</p>\n<% %>" }
+    end
+
+    # The text would be written into the ERB tag for the HTML as well
+    context "when the correction replaces HTML with markers before an ERB tag with text" do
+      let(:source) { "<p>a</p>\n<% 1 %>" }
+
+      before { corrector.replace(range(0, 13), "2") }
 
       it { is_expected.to be_nil }
+    end
+
+    context "when the correction replaces HTML without markers before an ERB tag with text" do
+      let(:source) { "<p>a</p>\n<% 1 %>" }
+
+      before { corrector.replace(range(4, 13), "2") }
+
+      it { is_expected.to eq "<p>a</p>\n<%2 %>" }
     end
 
     context "when the correction removes only whitespace along with the delimiters" do

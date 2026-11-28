@@ -34,12 +34,13 @@ module RuboCop
         branches
       end
 
-      # Check if the nodes contain HTML not rendered in the Ruby code (except whitespace):
-      # text and literals too short to place the marker (see RubyRenderer.text_marker_position)
-      # and attributes in ERB nodes none of whose literals fit the marker (see RubyRenderer#visit_html_attribute_node)
+      # Check if the nodes contain HTML which has no node in the Ruby AST (except whitespace):
+      # attributes in ERB nodes with a value but without literals (see RubyRenderer#visit_html_attribute_node)
+      # and the nodes unknown to RubyRenderer
       # ERB nodes are checked recursively because their bodies (e.g. nested conditionals and blocks) are a part of
-      # the branch. HTML elements, tags, comments, doctypes, CDATA and XML declarations, and the attributes rendered
-      # as markers are not because they are rendered as markers and make the branch unique.
+      # the branch. Text, literals, HTML elements, tags, comments, doctypes, CDATA and XML declarations,
+      # and the attributes with literals are not because they have markers (see HtmlMarker), whose nodes
+      # make the branch unique.
       # @rbs nodes: Array[::Herb::AST::Node]
       def unrendered_html?(nodes) #: bool
         nodes.any? { unrendered_html_node?(_1) }
@@ -48,9 +49,8 @@ module RuboCop
       # @rbs node: ::Herb::AST::Node
       def unrendered_html_node?(node) #: bool
         case node
-        when ::Herb::AST::HTMLTextNode, ::Herb::AST::LiteralNode
-          unrendered_text?(node.content.to_s)
-        when ::Herb::AST::HTMLElementNode, ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode,
+        when ::Herb::AST::HTMLTextNode, ::Herb::AST::LiteralNode,
+             ::Herb::AST::HTMLElementNode, ::Herb::AST::HTMLOpenTagNode, ::Herb::AST::HTMLCloseTagNode,
              ::Herb::AST::HTMLCommentNode, ::Herb::AST::HTMLDoctypeNode, ::Herb::AST::CDATANode,
              ::Herb::AST::XMLDeclarationNode, ::Herb::AST::WhitespaceNode
           false
@@ -61,22 +61,13 @@ module RuboCop
         end
       end
 
-      # @rbs text: String
-      def unrendered_text?(text) #: bool
-        text.match?(/\S/) && !RubyRenderer.text_marker_position(text)
-      end
-
-      # Check if the attribute in an ERB node has no literal to place the marker in
-      # (e.g. `id="ab"` and `<%= k %>="<%= v %>"`), as it is rendered at one of its literals
+      # Check if the attribute in an ERB node has no literal to place the marker at
+      # (e.g. `<%= k %>="<%= v %>"`), as it is marked at its first literal
       # An attribute without a value and literals (e.g. `<%= x %>` in `<input <%= x %>>`) has only ERB nodes,
       # which are rendered as Ruby code, so it has no HTML
       # @rbs node: ::Herb::AST::HTMLAttributeNode
       def unrendered_attribute?(node) #: bool
-        children = [*node.name&.children, *node.value&.children] #: Array[::Herb::AST::Node]
-        literals = children.grep(::Herb::AST::LiteralNode) #: Array[::Herb::AST::LiteralNode]
-        return false if node.value.nil? && literals.empty?
-
-        literals.none? { RubyRenderer.text_marker_position(_1.content.to_s) }
+        !node.value.nil? && RubyRenderer.attribute_literals(node).empty?
       end
     end
   end

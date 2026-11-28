@@ -15,8 +15,9 @@ module RuboCop
       # with extracted Ruby code from ERB templates.
       EXCLUDED_COPS: Array[String]
 
-      # Cops reporting the code rendered by the conversion (HTML, the delimiters of ERB tags and semicolons
-      # rendered at their closings), which are disabled except for the code copied verbatim from ERB tags
+      # Cops reporting the code rendered by the conversion (the delimiters of ERB tags and semicolons
+      # rendered at their closings) and the nodes of HTML, which are disabled except for the code copied
+      # verbatim from ERB tags
       # (see VerbatimCode and CopOffenseFilter)
       VERBATIM_CODE_COPS: Array[String]
 

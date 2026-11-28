@@ -5,16 +5,29 @@ require "spec_helper"
 require "prism"
 
 RSpec.describe RuboCop::Herb::Converter do
+  # The Ruby code in which the ranges of the HTML markers are filled with their names (e.g. `div` at `<div`,
+  # and `_` or `_a` at the first 1-2 characters of text), to show where the markers are
+  def marked_code(result)
+    code = result.ruby_code.dup
+    result.html_markers.each do |marker|
+      length = marker.range.to - marker.range.from
+      code[marker.range.from, length] = marker.name[0, length].ljust(length, "_")
+    end
+    code
+  end
+
   shared_examples "a Ruby code extractor for ERB" do
-    describe "ruby_code" do
-      it "matches the expected code, preserves source length and lines, and is valid Ruby" do
-        expect(subject.ruby_code).to eq(expected)
+    describe "ruby_code and html_markers" do
+      it "matches the expected code with markers, preserves source length and lines, and is valid Ruby" do
+        expect(marked_code(subject)).to eq(expected)
         expect(subject.ruby_code.lines.map(&:length)).to eq(source.lines.map(&:length))
+        # The markers are at HTML, which is whitespace in the Ruby code
+        expect(subject.html_markers.map { subject.ruby_code[_1.range.from..._1.range.to] }.join.strip).to eq ""
 
         # Skip for yield tests - yield is not valid Ruby outside of a method
         unless defined?(skip_valid_ruby_check) && skip_valid_ruby_check
-          parse_result = Prism.parse(subject.ruby_code)
-          expect(parse_result.errors).to be_empty
+          expanded_code = RuboCop::Herb::ExpandedCode.new(subject.ruby_code, subject.html_markers)
+          expect(Prism.parse(expanded_code.code).errors).to be_empty
         end
       end
     end
@@ -26,28 +39,28 @@ RSpec.describe RuboCop::Herb::Converter do
     # Basic ERB tags with HTML open/close tag rendering
     describe "with a content ERB tag" do
       let(:source) { "<div><%= user.name %></div>" }
-      let(:expected) { "div; _ = user.name;  div;  " }
+      let(:expected) { "div  _ = user.name;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a raw output ERB tag" do
       let(:source) { "<div><%== user.name %></div>" }
-      let(:expected) { "div;  _ = user.name;  div;  " }
+      let(:expected) { "div   _ = user.name;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a raw output ERB tag following multi-byte characters" do
       let(:source) { "<div>表示件数<%== @count %></div>" }
-      let(:expected) { "div; _a;  _ = @count;  div;  " }
+      let(:expected) { "div  _a   _ = @count;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an empty output ERB tag" do
       let(:source) { "<div><%= %></div>" }
-      let(:expected) { "div;       div;  " }
+      let(:expected) { "div        div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -55,21 +68,21 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with an output ERB tag with only a comment terminated by a newline in the tag" do
       let(:source) { "<div><%= # note\n  %></div>" }
       # The tag outputs nothing, so no marker is rendered and the close tag is not the value of the tag
-      let(:expected) { "div;     # note\n    div;  " }
+      let(:expected) { "div      # note\n    div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a comment ERB tag" do
       let(:source) { "<div><%# user.name %>\n</div>" }
-      let(:expected) { "div;   # user.name   \ndiv;  " }
+      let(:expected) { "div    # user.name   \ndiv   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an HTML comment tag" do
       let(:source) { "<div><!-- user.name --></div>" }
-      let(:expected) { "div;                         " }
+      let(:expected) { "div                          " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -81,7 +94,7 @@ RSpec.describe RuboCop::Herb::Converter do
          "<% end %>"].join("\n")
       end
       let(:expected) do
-        ["_a;             ",
+        ["_a              ",
          "   if :cond;  ",
          "   end;  "].join("\n")
       end
@@ -91,43 +104,42 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with an HTML comment containing ERB" do
       let(:source) { "<div><!-- <%= foo %> --></div>" }
-      let(:expected) { "div; _a;  _ = foo;      div;  " }
+      let(:expected) { "div  _a   _ = foo;      div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an HTML comment containing multi-byte characters" do
       let(:source) { "<body><!-- あいう --><%= render 'foo' %></body>" }
-      # The comment "<!-- あいう -->" is 14 characters, rendered as "_a;" at start + spaces
+      # The comment "<!-- あいう -->" is 14 characters, marked with "_a" at its start
       # Source: 44 chars -> Ruby: 44 chars
-      let(:expected) { "body; _a;         _ = render 'foo';  body;  " }
+      let(:expected) { "body  _a          _ = render 'foo';  body   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    describe "with text node shorter than 3 characters" do
+    # The marker is at the first 1-2 characters of text
+    describe "with text node of 2 characters" do
       let(:source) { "<div>ab<%= x %></div>" }
-      let(:expected) { "div;   _ = x;  div;  " }
+      let(:expected) { "div  _a_ = x;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The marker is rendered right before the code following the text
     describe "with text node of 3 characters" do
       let(:source) { "<div>abc<%= x %></div>" }
-      let(:expected) { "div; _a;_ = x;  div;  " }
+      let(:expected) { "div  _a _ = x;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with text node of 4 characters" do
       let(:source) { "<div>abcd<%= x %></div>" }
-      let(:expected) { "div; _a; _ = x;  div;  " }
+      let(:expected) { "div  _a  _ = x;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # "_a" is rendered without ";" because the newline terminates the statement
     describe "with text node of 2 characters followed by a newline" do
       let(:source) { "<%= x %>ab\n<%= y %>" }
       let(:expected) { "_ = x;  _a\n_ = y;  " }
@@ -135,69 +147,88 @@ RSpec.describe RuboCop::Herb::Converter do
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The marker is placed over the whitespace before the text when the text is too short
+    # The marker is at the text, not at the whitespace before it
     describe "with indented text node of 1 character followed by an ERB tag" do
       let(:source) { "<% if a %>\n  [<%= a %>]\n<% end %>\n" }
-      let(:expected) { "   if a;  \n_a;_ = a;   \n   end;  \n" }
+      let(:expected) { "   if a;  \n  __ = a;  _\n   end;  \n" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with indented text node of 1 character followed by a newline" do
       let(:source) { "<% if a %>\n  H\n<% end %>\n" }
-      let(:expected) { "   if a;  \n_a;\n   end;  \n" }
+      let(:expected) { "   if a;  \n  _\n   end;  \n" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with text node of 1 character after a space followed by a newline" do
       let(:source) { "<%= x %> H\n<%= y %>" }
-      let(:expected) { "_ = x;  _a\n_ = y;  " }
+      let(:expected) { "_ = x;   _\n_ = y;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with text node of 2 characters after a space followed by an ERB tag" do
       let(:source) { "<%= x %> ab<%= y %>" }
-      let(:expected) { "_ = x;  _a;_ = y;  " }
+      let(:expected) { "_ = x;   _a_ = y;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The whitespace before the text is used only when the text is too short in every line
+    # One marker is enough to indicate content presence, so only the first line of the text has it
     describe "with indented text node of 1 character followed by a longer line" do
       let(:source) { "<% if a %>\n  H\n  Hello\n<% end %>\n" }
-      let(:expected) { "   if a;  \n   \n  _a;  \n   end;  \n" }
+      let(:expected) { "   if a;  \n  _\n       \n   end;  \n" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The whitespace before the text in the line is required (the newline is not overwritten)
     describe "with text node of 1 character without indentation" do
       let(:source) { "<% if a %>\nH\n<% end %>\n" }
-      let(:expected) { "   if a;  \n \n   end;  \n" }
+      let(:expected) { "   if a;  \n_\n   end;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text node of 1 character in multiple lines" do
+      let(:source) { "<% if a %>\nH\nI\n<% end %>\n" }
+      let(:expected) { "   if a;  \n_\n \n   end;  \n" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text nodes of 1 and 2 characters at the end of the source" do
+      let(:source) { "<%= x %>a<%= y %>bc" }
+      let(:expected) { "_ = x;  __ = y;  _a" }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with text nodes of 1 character containing multi-byte characters" do
+      let(:source) { "あ<%= x %>🍣<%= y %>" }
+      let(:expected) { "__ = x;  __ = y;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with indented text node of 1 character containing a multi-byte character" do
       let(:source) { "<% if a %>\n  「<%= a %>」\n<% end %>\n" }
-      let(:expected) { "   if a;  \n_a;_ = a;   \n   end;  \n" }
+      let(:expected) { "   if a;  \n  __ = a;  _\n   end;  \n" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The marker is placed at the line where it fits not to overwrite the newline
     describe "with text node spanning multiple lines" do
       let(:source) { "<div>a\nbcde<%= x %></div>" }
-      let(:expected) { "div;  \n_a; _ = x;  div;  " }
+      let(:expected) { "div  _\n    _ = x;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with lone carriage returns" do
       let(:source) { "<div>\r<%= x %>\r</div>\n<%= y %>\n" }
-      let(:expected) { "div; \r_ = x;  \rdiv;  \n_ = y;  \n" }
+      let(:expected) { "div  \r_ = x;  \rdiv   \n_ = y;  \n" }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -206,78 +237,78 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:source) { "<div>表示件数<%= @count %></div>" }
       # "表示件数" is 4 characters, bleached to 4 spaces with "_a;" marker (leaves 1 space)
       # Source: 28 chars -> Ruby: 28 chars
-      let(:expected) { "div; _a; _ = @count;  div;  " }
+      let(:expected) { "div  _a  _ = @count;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with multi-byte characters in an HTML attribute and an ERB tag" do
       let(:source) { '<div title="あ"><%= "い" %></div>' }
-      let(:expected) { 'div;           _ = "い";  div;  ' }
+      let(:expected) { "div            _ = \"い\";  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # Escaped ERB tags (`<%%`) output the tag as text, so they are rendered like text nodes
+    # Escaped ERB tags (`<%%`) output the tag as text, so they are marked like text nodes
     describe "with an escaped ERB tag in an element without ERB" do
       let(:source) { "<p><%% foo %></p>" }
-      let(:expected) { "p;               " }
+      let(:expected) { "p                " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped ERB tag followed by an ERB tag" do
       let(:source) { "<p><%% foo %><%= x %></p>" }
-      let(:expected) { "p; _a;       _ = x;  p;  " }
+      let(:expected) { "p  _a        _ = x;  p   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped output ERB tag" do
       let(:source) { "<%%= foo %><%= x %>" }
-      let(:expected) { "_a;        _ = x;  " }
+      let(:expected) { "_a         _ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped ERB tag closed with an escaped closing" do
       let(:source) { "<%% foo %%><%= x %>" }
-      let(:expected) { "_a;        _ = x;  " }
+      let(:expected) { "_a         _ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped ERB comment tag" do
       let(:source) { "<%%# rubocop:disable Lint/Void %>\n<% 1 %>" }
-      let(:expected) { "_a;                              \n   1;  " }
+      let(:expected) { "_a                               \n   1;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped ERB block containing an ERB tag" do
       let(:source) { "<%% items.each do |item| %><%= item %><%% end %>" }
-      let(:expected) { "_a;                        _ = item;  _a;       " }
+      let(:expected) { "_a                         _ = item;  _a        " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped ERB tag containing multi-byte characters" do
       let(:source) { "<p>あ<%% い %><%= x %></p>" }
-      let(:expected) { "p;  _a;     _ = x;  p;  " }
+      let(:expected) { "p  __a      _ = x;  p   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an escaped ERB tag in an HTML attribute" do
       let(:source) { '<div class="<%% x %>" id="<%= y %>"></div>' }
-      let(:expected) { "div;        _a;           _ = y;    div;  " }
+      let(:expected) { "div         _a            _ = y;    div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with execution tag without output" do
       let(:source) { "<div><% @counter += 1 %></div>" }
-      let(:expected) { "div;    @counter += 1;  div;  " }
+      let(:expected) { "div     @counter += 1;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -292,11 +323,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     if admin?;  ",
-         "    _a;          ",
+         "    _a           ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -311,11 +342,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     unless logged_in?;  ",
-         "    _a;          ",
+         "    _a           ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -334,15 +365,15 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     if admin?;  ",
-         "    _a;  ",
+         "    _a   ",
          "     elsif moderator?;  ",
-         "    _a;      ",
+         "    _a       ",
          "     else;  ",
-         "    _a; ",
+         "    _a  ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -362,16 +393,16 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     case status;  ",
          "     when :active;  ",
-         "    _a;   ",
+         "    _a    ",
          "     when :inactive;  ",
-         "    _a;     ",
+         "    _a      ",
          "     else;  ",
-         "    _a;    ",
+         "    _a     ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -402,9 +433,9 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["   case status when :active;  ",
-         "  _a;   ",
+         "  _a    ",
          "   when :inactive;  ",
-         "  _a;     ",
+         "  _a      ",
          "   end;  "].join("\n")
       end
 
@@ -422,9 +453,9 @@ RSpec.describe RuboCop::Herb::Converter do
       # Output tags inside HTML elements need _ = because closing tags follow
       let(:expected) do
         ["   if page.current?;  ",
-         "  li; _ = content_tag :a, page;  li;  ",
+         "  li  _ = content_tag :a, page;  li   ",
          "   else;  ",
-         "  li; _ = link_to page, url;  li;  ",
+         "  li  _ = link_to page, url;  li   ",
          "   end;  "].join("\n")
       end
 
@@ -442,13 +473,13 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     if campaign;  ",
-         "    input;        _ = locale_class;      ",
+         "    input         _ = locale_class;      ",
          "     else;  ",
-         "    input;              _ = locale_class;      ",
+         "    input               _ = locale_class;      ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -468,16 +499,16 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     case value;  ",
          "     in Integer => n;  ",
          "    _ = n;  ",
          "     in String;  ",
-         "    _a; ",
+         "    _a  ",
          "     else;  ",
-         "    _a;    ",
+         "    _a     ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -485,7 +516,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with case-in-ERB tags on single line" do
       let(:source) { "<% case value %><% in 1 %>one<% end %>" }
-      let(:expected) { "   case value;     in 1;  _a;   end;  " }
+      let(:expected) { "   case value;     in 1;  _a    end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -500,11 +531,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</ul>"].join("\n")
       end
       let(:expected) do
-        ["ul; ",
+        ["ul  ",
          "     users.each do |user|;  ",
-         "    li; _ = user.name;  li;  ",
+         "    li  _ = user.name;  li   ",
          "     end;  ",
-         "ul;  "].join("\n")
+         "ul   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -519,11 +550,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     3.times do |i|;  ",
-         "    p; _ = i;  p;  ",
+         "    p  _ = i;  p   ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -538,11 +569,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</ul>"].join("\n")
       end
       let(:expected) do
-        ["ul; ",
+        ["ul  ",
          "     for item in items;  ",
-         "    li; _ = item;  li;  ",
+         "    li  _ = item;  li   ",
          "     end;  ",
-         "ul;  "].join("\n")
+         "ul   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -557,11 +588,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     while condition;  ",
-         "    p;               ",
+         "    p                ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -576,11 +607,11 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     until done;  ",
-         "    p;            ",
+         "    p             ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -600,7 +631,7 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     begin;  ",
          "    _ = risky_operation;  ",
          "     rescue StandardError => e;  ",
@@ -608,7 +639,7 @@ RSpec.describe RuboCop::Herb::Converter do
          "     ensure;  ",
          "       cleanup;  ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       # cleanup is execution tag, not output tag, so it never gets _ =.
@@ -629,15 +660,15 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "     if show_list?;  ",
-         "    ul; ",
+         "    ul  ",
          "         items.each do |item|;  ",
-         "        li; _ = item.name;  li;  ",
+         "        li  _ = item.name;  li   ",
          "         end;  ",
-         "    ul;  ",
+         "    ul   ",
          "     end;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -671,14 +702,14 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with multiple content tags on same line" do
       let(:source) { "<p><%= first %> and <%= second %></p>" }
-      let(:expected) { "p; _ = first;   _a; _ = second;  p;  " }
+      let(:expected) { "p  _ = first;   _a  _ = second;  p   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with raw output tag (-%>)" do
       let(:source) { "<div><%= value -%></div>" }
-      let(:expected) { "div; _ = value;   div;  " }
+      let(:expected) { "div  _ = value;   div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -741,7 +772,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with a comment ERB tag followed by HTML on the same line" do
       let(:source) { "<%# comment %><p>x</p>" }
-      let(:expected) { "              p;      " }
+      let(:expected) { "              p       " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -749,7 +780,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with a comment ERB tag with multi-byte characters followed by HTML on the same line" do
       # Shorter HTML than the difference between bytes and characters fails if byte positions are used as characters
       let(:source) { "<%# 日本語 %><br>" }
-      let(:expected) { "          br; " }
+      let(:expected) { "          br  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -829,12 +860,12 @@ RSpec.describe RuboCop::Herb::Converter do
          "</div>"].join("\n")
       end
       let(:expected) do
-        ["div; ",
+        ["div  ",
          "    #",
          "    # multiline",
          "    # comment",
          "#   ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -923,7 +954,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with output tag containing multibyte characters" do
       let(:source) { '<%= "エラー" %>' }
-      let(:expected) { '_ = "エラー";  ' }
+      let(:expected) { "_ = \"エラー\";  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -934,7 +965,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:source) { "日本語<%= x %>" }
       # 日本語 (3 chars) + <%= x %> (8 chars) = 11 chars
       # Rendered to: "_a;" (3 chars) + "_ = x;  " (8 chars) = 11 chars
-      let(:expected) { "_a;_ = x;  " }
+      let(:expected) { "_a _ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -942,7 +973,7 @@ RSpec.describe RuboCop::Herb::Converter do
     describe "with emoji characters before output tag" do
       let(:source) { "🎉🎉🎉<%= x %>" }
       # 🎉🎉🎉 (3 chars) + <%= x %> (8 chars) = 11 chars
-      let(:expected) { "_a;_ = x;  " }
+      let(:expected) { "_a _ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -951,7 +982,7 @@ RSpec.describe RuboCop::Herb::Converter do
       let(:source) { "あいうえお<% code %>" }
       # あいうえお (5 chars) + <% code %> (10 chars) = 15 chars
       # Rendered to: "_a;  " (5 chars) + "   code;  " (10 chars) = 15 chars
-      let(:expected) { "_a;     code;  " }
+      let(:expected) { "_a      code;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -965,10 +996,10 @@ RSpec.describe RuboCop::Herb::Converter do
          "<html>"].join("\n")
       end
       let(:expected) do
-        ["html; ",
+        ["html  ",
          "  _ = form_with do;  ",
          "     end;  ",
-         "html; "].join("\n")
+         "html  "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -977,7 +1008,7 @@ RSpec.describe RuboCop::Herb::Converter do
     # HTML tags
     describe "with open tag with attributes" do
       let(:source) { "<div class=\"foo\" id=\"bar\"><%= x %></div>" }
-      let(:expected) { "div;                      _ = x;  div;  " }
+      let(:expected) { "div                       _ = x;  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -985,35 +1016,35 @@ RSpec.describe RuboCop::Herb::Converter do
     # HTML tags without ERB nodes should render tag name only and skip processing children
     describe "with HTML tag without ERB nodes" do
       let(:source) { "<div>text</div>" }
-      let(:expected) { "div;           " }
+      let(:expected) { "div            " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with HTML tag with attributes but without ERB nodes" do
       let(:source) { '<span class="admin">Admin</span>' }
-      let(:expected) { "span;                           " }
+      let(:expected) { "span                            " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with nested HTML tags without ERB nodes" do
       let(:source) { "<div><p>text</p></div>" }
-      let(:expected) { "div;                  " }
+      let(:expected) { "div                   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with parent tag containing ERB but child tag without ERB" do
       let(:source) { "<div><%= x %><p>text</p></div>" }
-      let(:expected) { "div; _ = x;  p;         div;  " }
+      let(:expected) { "div  _ = x;  p          div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with nested inline elements" do
       let(:source) { '<p><code id="x"><%= y %></code></p>' }
-      let(:expected) { "p; code;        _ = y;  code;  p;  " }
+      let(:expected) { "p  code         _ = y;  code   p   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -1028,9 +1059,9 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["   if admin?;  ",
-         "  span;                           ",
+         "  span                            ",
          "   else;  ",
-         "  span;                         ",
+         "  span                          ",
          "   end;  "].join("\n")
       end
 
@@ -1065,7 +1096,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with yield ERB tag inside HTML element" do
       let(:source) { '<div class="a"><%= yield %></div>' }
-      let(:expected) { "div;           _ = yield;  div;  " }
+      let(:expected) { "div            _ = yield;  div   " }
       let(:skip_valid_ruby_check) { true }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -1073,7 +1104,7 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with yield ERB tag with conditional inside HTML element" do
       let(:source) { '<div class="form-body"><%= yield if block_given? %></div>' }
-      let(:expected) { "div;                   _ = yield if block_given?;  div;  " }
+      let(:expected) { "div                    _ = yield if block_given?;  div   " }
       let(:skip_valid_ruby_check) { true }
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -1089,9 +1120,9 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["   if condition;  ",
-         "  div;             _ = @name;  div;  ",
+         "  div              _ = @name;  div   ",
          "   else;  ",
-         "  div;             _ = @other;  div;  ",
+         "  div              _ = @other;  div   ",
          "   end;  "].join("\n")
       end
 
@@ -1100,14 +1131,14 @@ RSpec.describe RuboCop::Herb::Converter do
 
     describe "with open tag containing ERB in attributes" do
       let(:source) { '<th class="<%= class_name %>"><%= content %></th>' }
-      let(:expected) { "th;        _ = class_name;    _ = content;  th;  " }
+      let(:expected) { "th         _ = class_name;    _ = content;  th   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with open tag whose tag name is followed by a newline" do
       let(:source) { "<div\n  class=\"<%= x %>\">\n  <%= y %>\n</div>" }
-      let(:expected) { "div;\n         _ = x;    \n  _ = y;  \ndiv;  " }
+      let(:expected) { "div \n         _ = x;    \n  _ = y;  \ndiv   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -1115,110 +1146,125 @@ RSpec.describe RuboCop::Herb::Converter do
     # Void elements (no close tag) render only the open tag
     describe "with void element containing ERB in attributes" do
       let(:source) { '<meta content="<%= x %>">' }
-      let(:expected) { "meta;          _ = x;    " }
+      let(:expected) { "meta           _ = x;    " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The literals in the ERB nodes of attribute values are rendered as markers like text nodes,
+    # The literals in the ERB nodes of attribute values are marked like text nodes,
     # while the attributes in the open tag (`class="btn ..."`) are a part of the tag
     describe "with a conditional in an attribute value" do
       let(:source) { '<div class="btn <% if admin? %>admin<% end %>"></div>' }
-      let(:expected) { "div;               if admin?;  _a;     end;    div;  " }
+      let(:expected) { "div                if admin?;  _a      end;    div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    describe "with a conditional in an attribute value containing text too short to place the marker" do
+    describe "with a conditional in an attribute value containing text of 1 character" do
       let(:source) { '<div class="<% if a %>x<% end %>"></div>' }
-      let(:expected) { "div;           if a;      end;    div;  " }
+      let(:expected) { "div            if a;  _   end;    div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional in an attribute value containing multi-byte characters" do
       let(:source) { '<div class="<% if a %>管理者 <% else %>一般ユーザー <% end %>"></div>' }
-      let(:expected) { "div;           if a;  _a;    else;  _a;       end;    div;  " }
+      let(:expected) { "div            if a;  _a     else;  _a        end;    div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional in a multi-line attribute value" do
       let(:source) { "<div class=\"\n  base\n  <% if a %>\n    active\n  <% end %>\n\"></div>" }
-      let(:expected) { "div;        \n      \n     if a;  \n    _a;   \n     end;  \n  div;  " }
+      let(:expected) { "div         \n      \n     if a;  \n    _a    \n     end;  \n  div   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a block in an attribute value" do
       let(:source) { '<ul class="<% items.each do |i| %>item <% end %>"></ul>' }
-      let(:expected) { "ul;           items.each do |i|;  _a;     end;    ul;  " }
+      let(:expected) { "ul            items.each do |i|;  _a      end;    ul   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional attribute" do
       let(:source) { "<input <% if a %>disabled<% end %>>" }
-      let(:expected) { "input;    if a;  _a;        end;   " }
+      let(:expected) { "input     if a;  _a         end;   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
-    # The marker of the attribute is rendered at the value when it does not fit in the name
-    describe "with a conditional attribute whose name is too short to place the marker" do
-      let(:source) { '<input <% if a %>id="abc"<% end %>>' }
-      let(:expected) { "input;    if a;      _a;    end;   " }
+    # The attribute is marked at its first literal
+    describe "with a conditional attribute with a value" do
+      let(:source) { '<input <% if a %>id="ab"<% end %>>' }
+      let(:expected) { "input     if a;  _a        end;   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    # Literals with whitespace only have no text to mark
+    describe "with a conditional attribute whose first literal has whitespace only" do
+      let(:source) { '<input <% if a %><%= k %>=" <%= v %>x"<% end %>>' }
+      let(:expected) { "input     if a;  _ = k;     _ = v;  _    end;   " }
+
+      it_behaves_like "a Ruby code extractor for ERB"
+    end
+
+    describe "with a conditional attribute without literals" do
+      let(:source) { '<input <% if a %><%= k %>="<%= v %>"<% end %>>' }
+      let(:expected) { "input     if a;  _ = k;    _ = v;      end;   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional in a script element" do
       let(:source) { "<script>var a = 1; <% if a %>abc <%= x %><% end %></script>" }
-      let(:expected) { "script; _a;           if a;  _a; _ = x;     end;  script;  " }
+      let(:expected) { "script  _a            if a;  _a  _ = x;     end;  script   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional in a style element" do
       let(:source) { "<style>.a { color: red; } <% if a %>.b {}<% end %></style>" }
-      let(:expected) { "style; _a;                   if a;  _a;     end;  style;  " }
+      let(:expected) { "style  _a                    if a;  _a      end;  style   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a doctype in a conditional" do
       let(:source) { "<% if a %><!DOCTYPE html><% end %>" }
-      let(:expected) { "   if a;  _a;               end;  " }
+      let(:expected) { "   if a;  _a                end;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional in CDATA" do
       let(:source) { "<![CDATA[ hello <% if a %>world<% end %> ]]>" }
-      let(:expected) { "_a;       _a;      if a;  _a;     end;      " }
+      let(:expected) { "_a        _a       if a;  _a      end;      " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an XML declaration containing ERB" do
       let(:source) { '<?xml version="<%= v %>"?>' }
-      let(:expected) { "_a;   _a;      _ = v;     " }
+      let(:expected) { "_a    _a       _ = v;  _  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with a conditional in an HTML comment" do
       let(:source) { "<!-- note <% if a %>abc<% end %> -->" }
-      let(:expected) { "_a;  _a;     if a;  _a;   end;      " }
+      let(:expected) { "_a   _a      if a;  _a    end;      " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     # The comment would be a comment on its own line without the marker, as the marker of the text
-    # is rendered at its first line
+    # is at its first line
     describe "with an ERB comment following multi-line text" do
       let(:source) { "<div>abc\n  de <%# note %>\n  <%= x %>\n</div>" }
-      let(:expected) { "div; _a;\n  _a;  # note   \n  _ = x;  \ndiv;  " }
+      let(:expected) { "div  _a \n  _a   # note   \n  _ = x;  \ndiv   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -1234,14 +1280,14 @@ RSpec.describe RuboCop::Herb::Converter do
     # HTML tags not wrapped by an element
     describe "with an open tag without the close tag" do
       let(:source) { "<div class=\"a\">\n  <%= x %>" }
-      let(:expected) { "div;           \n  _ = x;  " }
+      let(:expected) { "div            \n  _ = x;  " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
 
     describe "with an open tag containing ERB without the close tag" do
       let(:source) { "<b <%= x %>>" }
-      let(:expected) { "b; _ = x;   " }
+      let(:expected) { "b  _ = x;   " }
 
       it_behaves_like "a Ruby code extractor for ERB"
     end
@@ -1258,12 +1304,12 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["   if a;  ",
-         "  div;           ",
+         "  div            ",
          "   else;  ",
-         "  div;           ",
+         "  div            ",
          "   end;  ",
          "  _ = x;  ",
-         "div;  "].join("\n")
+         "div   "].join("\n")
       end
 
       it_behaves_like "a Ruby code extractor for ERB"
@@ -1281,11 +1327,11 @@ RSpec.describe RuboCop::Herb::Converter do
       end
       let(:expected) do
         ["   if a;  ",
-         "  a;          ",
+         "  a           ",
          "   end;  ",
-         "_a; ",
+         "_a  ",
          "   if a;  ",
-         "  a;  ",
+         "  a   ",
          "   end;  "].join("\n")
       end
 

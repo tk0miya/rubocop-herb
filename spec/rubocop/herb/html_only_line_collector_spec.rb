@@ -12,7 +12,8 @@ RSpec.describe RuboCop::Herb::HtmlOnlyLineCollector do
     let(:processed_source) do
       RuboCop::Herb::ProcessedSource.new(
         conversion_result.ruby_code, 3.3, "test.html.erb",
-        parse_result: conversion_result.parse_result
+        parse_result: conversion_result.parse_result,
+        html_markers: conversion_result.html_markers
       )
     end
 

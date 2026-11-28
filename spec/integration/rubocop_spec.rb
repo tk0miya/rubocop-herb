@@ -341,18 +341,124 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing a short indented text after next" do
-    it "triggers Lint/UnreachableCode on the indentation before the text" do
+  context "when analyzing texts of 1 character after next" do
+    it "triggers Lint/UnreachableCode on the texts" do
       expect_offense(<<~ERB)
         <% items.each do |item| %>
           <% next %>
           [<%= item %>]
+                      ^ Lint/UnreachableCode: Unreachable code detected.
            ^^^^^^^^ Lint/UnreachableCode: Unreachable code detected.
-        ^^ Lint/UnreachableCode: Unreachable code detected.
+          ^ Lint/UnreachableCode: Unreachable code detected.
         <% end %>
       ERB
 
       expect_no_corrections
+    end
+  end
+
+  context "when analyzing a nested conditional followed by a text of 1-2 characters" do
+    it "does not trigger Style/SoleNestedConditional" do
+      expect_no_offenses(<<~ERB)
+        <% if a %><% if b %><%= c %><% end %>,<% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing a conditional in an else branch followed by a text of 1-2 characters" do
+    it "does not trigger Style/IfInsideElse" do
+      expect_no_offenses(<<~ERB)
+        <% if a %><%= b %><% else %><% if c %><%= d %><% end %>,<% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing a conditional in a method followed by a text of 1-2 characters" do
+    it "does not trigger Style/GuardClause" do
+      expect_no_offenses(<<~ERB)
+        <% def foo(arg) %>
+          <% if arg %>
+            <%= arg %>
+            <%= arg %>
+          <% end %>-
+        <% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing duplicate branches and a branch with a text of 1-2 characters" do
+    it "triggers Lint/DuplicateBranch" do
+      expect_offense(<<~ERB)
+        <% if a %>
+          <%= foo %>
+        <% elsif b %>
+           ^^^^^^^^^^ Lint/DuplicateBranch: Duplicate branch body detected.
+          <%= foo %>
+        <% else %><%= bar %>-
+        <% end %>
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing a negated condition whose branches have texts of 1-2 characters" do
+    it "triggers Style/NegatedIfElseCondition" do
+      expect_offense(<<~ERB)
+        <% if !a %>a<% else %>b<% end %>
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^ Style/NegatedIfElseCondition: Invert the negated condition and swap the if-else branches.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing empty branches next to branches with texts of 1-2 characters" do
+    it "triggers Lint/EmptyWhen and Lint/EmptyConditionalBody only for the empty branches" do
+      expect_offense(<<~ERB)
+        <% case a %><% when 1 %><% when 2 %>b<% end %>
+                       ^^^^^^ Lint/EmptyWhen: Avoid `when` branches without a body.
+        <% if a %>a<% elsif b %><% end %>
+                      ^^^^^^^^ Lint/EmptyConditionalBody: Avoid `elsif` branches without a body.
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing texts of multi-byte characters of 1-2 characters after next" do
+    it "triggers Lint/UnreachableCode on the texts" do
+      expect_offense(<<~ERB)
+        <% items.each do |item| %>
+        <% next %>
+        あ<%= item %>🍣
+                    ^ Lint/UnreachableCode: Unreachable code detected.
+         ^^^^^^^^ Lint/UnreachableCode: Unreachable code detected.
+        ^ Lint/UnreachableCode: Unreachable code detected.
+        <% end %>
+      ERB
+
+      expect_no_corrections
+    end
+  end
+
+  context "when analyzing redundant parentheses in a template with texts of 1-2 characters" do
+    it "triggers Style/RedundantParentheses, which parses the corrected code again, in and out of a method" do
+      expect_offense(<<~ERB)
+        a<%= (foo) %>
+             ^^^^^ Style/RedundantParentheses: Don't use parentheses around a method call.
+        <% def bar %>
+          <% (baz) %>b
+             ^^^^^ Style/RedundantParentheses: Don't use parentheses around a method call.
+        <% end %>
+      ERB
+
+      expect_correction(<<~ERB)
+        a<%= foo %>
+        <% def bar %>
+          <% baz %>b
+        <% end %>
+      ERB
     end
   end
 
@@ -389,7 +495,16 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing a short text followed by an output tag" do
+  context "when analyzing end tags of blocks following texts of 1-2 characters" do
+    it "does not trigger Layout/BlockEndNewline" do
+      expect_no_offenses(<<~ERB)
+        <% items.each do |item| %>
+          <%= item %>,<% end %>
+      ERB
+    end
+  end
+
+  context "when analyzing texts of 1 character around an output tag" do
     it "does not trigger Layout/SpaceAfterSemicolon" do
       expect_no_offenses(<<~ERB)
         <% if a %>
@@ -1350,7 +1465,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing conditional branches differing only in text too short to be rendered in the Ruby code" do
+  context "when analyzing conditional branches differing only in text of 1-2 characters" do
     it "triggers Style/IdenticalConditionalBranches but not Lint/DuplicateBranch" do
       expect_offense(<<~ERB)
         <% if a %>
@@ -1366,7 +1481,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing conditional branches in an attribute differing only in text not rendered in the Ruby code" do
+  context "when analyzing conditional branches in an attribute differing only in text of 1 character" do
     it "does not trigger Lint/DuplicateBranch" do
       expect_no_offenses(<<~ERB)
         <p class="<% if b %>a<%= x %><% elsif c %>d<%= x %><% end %>"></p>
@@ -1374,7 +1489,7 @@ RSpec.describe "Lint and autocorrect with RuboCop", type: :feature do
     end
   end
 
-  context "when analyzing conditional branches in an attribute differing only in text rendered in the Ruby code" do
+  context "when analyzing conditional branches in an attribute differing only in longer text" do
     it "does not trigger Lint/DuplicateBranch" do
       expect_no_offenses(<<~ERB)
         <p class="<% if b %>abc <%= x %><% else %>def <%= x %><% end %>"></p>

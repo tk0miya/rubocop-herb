@@ -1,0 +1,53 @@
+# Generated from lib/rubocop/herb/expanded_code.rb with RBS::Inline
+
+module RuboCop
+  module Herb
+    # The Ruby code to parse: the Ruby code rendered by RubyRenderer in which the markers of HTML are inserted.
+    # The Ruby code keeps the positions of the source and has whitespace at HTML, so each range of HTML with a marker
+    # is replaced with the code of the marker here, which shifts the code after it.
+    # The positions in the result of parsing this code are converted back to the ones in the source
+    # (see LocationRemapper), so that RuboCop gets an AST with the nodes of the markers at the HTML.
+    #
+    #     source:    "<p><% if x %>a<% else %>b<% end %></p>"
+    #     ruby_code: "      if x;      else;      end;      "
+    #     code:      "p;     if x;  _a;   else;  _a;   end;  p;   "
+    class ExpandedCode
+      # A range of HTML replaced with the code of its marker
+      class Replacement < Data
+        attr_reader marker(): HtmlMarker
+
+        attr_reader expanded_pos(): Integer
+
+        def self.new: (HtmlMarker marker, Integer expanded_pos) -> instance
+                    | (marker: HtmlMarker, expanded_pos: Integer) -> instance
+
+        def self.members: () -> [ :marker, :expanded_pos ]
+
+        def members: () -> [ :marker, :expanded_pos ]
+      end
+
+      attr_reader code: String
+
+      attr_reader replacements: Array[Replacement]
+
+      # @rbs ruby_code: String
+      # @rbs markers: Array[HtmlMarker] -- the ranges of the markers must not overlap
+      def initialize: (String ruby_code, Array[HtmlMarker] markers) -> void
+
+      # Convert a position in the expanded code to the one in the source
+      # The identifier of a marker is mapped to its range in the source, and its semicolon to the end of the range
+      # @rbs pos: Integer
+      def to_source_pos: (Integer pos) -> Integer
+
+      # Whether the position in the expanded code is the semicolon of a marker
+      # @rbs pos: Integer
+      def marker_semicolon?: (Integer pos) -> bool
+
+      private
+
+      # The last replacement starting at the position or before it
+      # @rbs pos: Integer
+      def preceding_replacement: (Integer pos) -> Replacement?
+    end
+  end
+end
